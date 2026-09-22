@@ -1,0 +1,16 @@
+{% extends "player_site_app/base.html" %}
+
+{% block title %}Hráčská sekce - Úvodní stránka{% endblock %}
+
+{% block content %}
+    <h1>Hráčská sekce (DnD Atarax)</h1>
+    <p>Vítejte v hráčské sekci aplikace DnD Atarax.</p>
+    
+    <section>
+        <h2>Rychlá navigace</h2>
+        <ul>
+            <li><strong>Aktuální sekce:</strong> Hráčský portál (<code>/player/</code>)</li>
+            <li><strong>Sekce Pána jeskyně:</strong> <a href="{% url 'dm_site_app:index' %}">Otevřít DM portál (<code>/dm/</code>)</a></li>
+        </ul>
+    </section>
+{% endblock %}
