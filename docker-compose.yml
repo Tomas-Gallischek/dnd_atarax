@@ -22,10 +22,9 @@ services:
     volumes:
       - .:/app
     ports:
-      - "8000:8000"
+      - "9000:8000"
     depends_on:
       - db
 
 volumes:
-  # Fyzické vytvoření persistentního volume na hostitelském serveru
   dnd_db_data:
