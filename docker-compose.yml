@@ -12,13 +12,11 @@ services:
     ports:
       - "5432:5432"
 
-  web:
+web:
     build: .
     container_name: dnd_django
     restart: unless-stopped
     command: python manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
     ports:
       - "9000:8000"
     environment:
