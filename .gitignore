@@ -1,21 +1,12 @@
-# Virtual environment
 .venv/
 env/
 venv/
-
-# Environment variables
 .env
-
-# Python bytecode & cache
 __pycache__/
 *.py[cod]
 *$py.class
-
-# Static collected files & media
 staticfiles/
 media/
-
-# IDE & OS files
 .vscode/
 .idea/
 *.swp
