@@ -23,9 +23,6 @@ services:
       - .:/app
     ports:
       - "8000:8000"
-    # Načtení proměnných prostředí ze souboru .env
-    env_file:
-      - .env
     depends_on:
       - db
 
