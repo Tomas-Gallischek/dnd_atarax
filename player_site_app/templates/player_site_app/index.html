@@ -1,16 +1,33 @@
-{% extends "player_site_app/base.html" %}
+{% extends "base.html" %}
 
-{% block title %}Hráčská sekce - Úvodní stránka{% endblock %}
+{% block title %}DnD Atarax - Hráčská sekce{% endblock %}
 
 {% block content %}
-    <h1>Hráčská sekce (DnD Atarax)</h1>
-    <p>Vítejte v hráčské sekci aplikace DnD Atarax.</p>
-    
-    <section>
-        <h2>Rychlá navigace</h2>
-        <ul>
-            <li><strong>Aktuální sekce:</strong> Hráčský portál (<code>/player/</code>)</li>
-            <li><strong>Sekce Pána jeskyně:</strong> <a href="{% url 'dm_site_app:index' %}">Otevřít DM portál (<code>/dm/</code>)</a></li>
-        </ul>
-    </section>
+    <header>
+        <nav aria-label="Hlavní navigace">
+            <ul>
+                <li><strong>Hráčská sekce (Home)</strong></li>
+                <li><a href="{% url 'dm_site_app:index' %}">Přejít do DM sekce (Pán jeskyně)</a></li>
+            </ul>
+        </nav>
+        <hr>
+    </header>
+
+    <main>
+        <h1>Hráčská sekce (DnD Atarax)</h1>
+        <p>Vítejte v hráčské sekci aplikace DnD Atarax.</p>
+
+        <section>
+            <h2>Rychlá navigace</h2>
+            <ul>
+                <li><strong>Aktuální sekce:</strong> Hráčský portál (<code>/player/</code>)</li>
+                <li><strong>Sekce Pána jeskyně:</strong> <a href="{% url 'dm_site_app:index' %}">Otevřít DM portál (<code>/dm/</code>)</a></li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <hr>
+        <p>&copy; DnD Atarax - Hráčská sekce</p>
+    </footer>
 {% endblock %}

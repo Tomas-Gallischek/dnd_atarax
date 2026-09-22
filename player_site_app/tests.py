@@ -8,7 +8,7 @@ class PlayerSiteViewTests(SimpleTestCase):
         response = self.client.get(reverse('player_site_app:index'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'player_site_app/index.html')
-        self.assertTemplateUsed(response, 'player_site_app/base.html')
+        self.assertTemplateUsed(response, 'base.html')
 
     def test_player_index_links_to_dm(self):
         """Ověření, že stránka obsahuje odkaz na DM sekci."""
