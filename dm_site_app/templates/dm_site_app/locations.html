@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}DnD Atarax - DM sekce{% endblock %}
+
+{% block content %}
+
+<h1>Mapy</h1>
+
+{% for location in locations %}
+    <h2>{{ location.name }}</h2>
+    <p>{{ location.description }}</p>
+    <p>{{ location.type }}</p>
+    <p>{{ location.layer_up }}</p>
+    <p>{{ location.layer_down }}</p>
+{% endfor %}
+
+{% endblock %}

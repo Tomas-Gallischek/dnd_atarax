@@ -5,4 +5,5 @@ app_name = 'dm_site_app'
 
 urlpatterns = [
     path('', views.index, name='index'),
+    path('locations',views.locations,name='locations'),
 ]
