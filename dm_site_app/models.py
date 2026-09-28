@@ -23,21 +23,15 @@ class Locations(models.Model):
     def __str__(self):
         return self.name
 
-
-from django.db import models
-# Předpokládám, že model Locations už máš naimportovaný nebo definovaný výše
-
 class Npc(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True, verbose_name="Jméno")
-    location = models.ForeignKey('Locations', on_delete=models.SET_NULL, null=True, blank=True, related_name='npcs', verbose_name="Lokace")
+    location = models.ForeignKey(Locations, on_delete=models.SET_NULL, null=True, blank=True, related_name='npcs', verbose_name="Lokace")
     description = models.TextField(null=True, blank=True, verbose_name="Popis")
     gender = models.CharField(max_length=100, null=True, blank=True, choices=[
         ('male', 'Muž'),
         ('female', 'Žena'),
         ('other', 'Jiné'),
     ], verbose_name="Pohlaví")
-    
-    # Kolonku 'loot' zde vůbec nepotřebuješ, vyřeší to relace níže
 
     class Meta:
         verbose_name = "Npc"
@@ -46,11 +40,8 @@ class Npc(models.Model):
     def __str__(self):
         return self.name or "Neznámé NPC"
 
-# Nový model pro podzáznamy
 class NpcLoot(models.Model):
-    # Tento řádek tvoří tu "magii". Propojuje konkrétní loot s konkrétním NPC.
     npc = models.ForeignKey(Npc, on_delete=models.CASCADE, related_name='loot_items')
-    
     item_name = models.CharField(max_length=100, verbose_name="Předmět")
     quantity = models.IntegerField(default=1, verbose_name="Počet")
     
