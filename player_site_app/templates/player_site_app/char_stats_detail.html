@@ -1,9 +1,52 @@
-{% extends "base.html" %}
+{% extends "player_site_app/player_base.html" %}
 
-{% block title %}DnD Atarax - Hráčská sekce{% endblock %}
+{% block title %}DnD Atarax - Detail statistik{% endblock %}
 
-{% block content %}
+{% block player_content %}
+<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
+    <h1>Detail statistik postavy</h1>
 
-<h1>Statistiky postavy</h1>
-
+    {% if character %}
+    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff; margin-bottom: 1.5rem;">
+        <h2>Základní hodnoty ({{ character.name }})</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; margin-top: 1rem;">
+            <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; text-align: center; background: #f8fafc;">
+                <div style="font-weight: bold; color: #475569;">Síla</div>
+                <div style="font-size: 1.6rem; font-weight: bold;">{{ character.strength }}</div>
+                <div style="color: #64748b;">{{ character.str_mod }}</div>
+            </div>
+            <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; text-align: center; background: #f8fafc;">
+                <div style="font-weight: bold; color: #475569;">Obratnost</div>
+                <div style="font-size: 1.6rem; font-weight: bold;">{{ character.dexterity }}</div>
+                <div style="color: #64748b;">{{ character.dex_mod }}</div>
+            </div>
+            <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; text-align: center; background: #f8fafc;">
+                <div style="font-weight: bold; color: #475569;">Odolnost</div>
+                <div style="font-size: 1.6rem; font-weight: bold;">{{ character.constitution }}</div>
+                <div style="color: #64748b;">{{ character.con_mod }}</div>
+            </div>
+            <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; text-align: center; background: #f8fafc;">
+                <div style="font-weight: bold; color: #475569;">Inteligence</div>
+                <div style="font-size: 1.6rem; font-weight: bold;">{{ character.intelligence }}</div>
+                <div style="color: #64748b;">{{ character.int_mod }}</div>
+            </div>
+            <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; text-align: center; background: #f8fafc;">
+                <div style="font-weight: bold; color: #475569;">Moudrost</div>
+                <div style="font-size: 1.6rem; font-weight: bold;">{{ character.wisdom }}</div>
+                <div style="color: #64748b;">{{ character.wis_mod }}</div>
+            </div>
+            <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 6px; text-align: center; background: #f8fafc;">
+                <div style="font-weight: bold; color: #475569;">Charisma</div>
+                <div style="font-size: 1.6rem; font-weight: bold;">{{ character.charisma }}</div>
+                <div style="color: #64748b;">{{ character.cha_mod }}</div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div style="border: 1px dashed #94a3b8; padding: 2rem; border-radius: 8px; text-align: center; background: #f8fafc;">
+        <p style="color: #64748b;">Nemáš vybranou žádnou postavu pro zobrazení statistik.</p>
+        <a href="{% url 'player_site_app:prehled_postav' %}" style="display: inline-block; margin-top: 0.5rem; color: #0284c7; font-weight: 600;">Přejít na Přehled postav &rarr;</a>
+    </div>
+    {% endif %}
+</main>
 {% endblock %}

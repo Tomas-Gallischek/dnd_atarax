@@ -1,9 +1,9 @@
-{% extends "base.html" %}
+{% extends "player_site_app/player_base.html" %}
 
 {% block title %}DnD Atarax - Přihlášení a registrace hráče{% endblock %}
 
-{% block content %}
-<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif;">
+{% block player_content %}
+<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
     <h1>Hráčská sekce - Vítej v Ataraxu</h1>
 
     <style>
@@ -25,24 +25,24 @@
 
     <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
         <!-- Formulář pro přihlášení -->
-        <section style="flex: 1; min-width: 280px; border: 1px solid #ddd; padding: 1.5rem; border-radius: 6px;">
+        <section style="flex: 1; min-width: 280px; border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
             <h2>Přihlášení</h2>
             <form method="post" action="{% url 'player_site_app:index' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="login">
                 {{ login_form.as_p }}
-                <button type="submit" style="padding: 8px 16px; cursor: pointer;">Přihlásit se</button>
+                <button type="submit" style="padding: 9px 18px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Přihlásit se</button>
             </form>
         </section>
 
         <!-- Formulář pro registraci -->
-        <section style="flex: 1; min-width: 280px; border: 1px solid #ddd; padding: 1.5rem; border-radius: 6px;">
+        <section style="flex: 1; min-width: 280px; border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
             <h2>Registrace nového hráče</h2>
             <form method="post" action="{% url 'player_site_app:index' %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="register">
                 {{ reg_form.as_p }}
-                <button type="submit" style="padding: 8px 16px; cursor: pointer;">Zaregistrovat se</button>
+                <button type="submit" style="padding: 9px 18px; background: #059669; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Zaregistrovat se</button>
             </form>
         </section>
     </div>

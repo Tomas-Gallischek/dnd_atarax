@@ -1,9 +1,34 @@
-{% extends "base.html" %}
+{% extends "player_site_app/player_base.html" %}
 
-{% block title %}DnD Atarax - Hráčská sekce{% endblock %}
+{% block title %}DnD Atarax - Dungeon Shop{% endblock %}
 
-{% block content %}
+{% block player_content %}
+<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
+    <h1>Dungeon Shop</h1>
 
-<h1>Dungeon Shop</h1>
+    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff; margin-bottom: 1.5rem;">
+        <h2>Dostupné měny</h2>
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 1rem;">
+            {% if character %}
+            <div style="padding: 12px 20px; border: 1px solid #fde68a; background: #fef3c7; border-radius: 8px;">
+                <div style="font-size: 0.85rem; color: #92400e;">Zlaťáky ({{ character.name }})</div>
+                <div style="font-size: 1.6rem; font-weight: bold; color: #b45309;">{{ character.gold }} zl</div>
+            </div>
+            <div style="padding: 12px 20px; border: 1px solid #e2e8f0; background: #f1f5f9; border-radius: 8px;">
+                <div style="font-size: 0.85rem; color: #475569;">Stříbrňáky ({{ character.name }})</div>
+                <div style="font-size: 1.6rem; font-weight: bold; color: #64748b;">{{ character.silver }} st</div>
+            </div>
+            {% endif %}
+            <div style="padding: 12px 20px; border: 1px solid #c084fc; background: #faf5ff; border-radius: 8px;">
+                <div style="font-size: 0.85rem; color: #7e22ce;">Temná esence hráče</div>
+                <div style="font-size: 1.6rem; font-weight: bold; color: #6b21a8;">{{ player.temna_esence|default:0 }}</div>
+            </div>
+        </div>
+    </div>
 
+    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
+        <h2>Nabídka Dungeon Shopu</h2>
+        <p style="color: #64748b;">Zde bude k dispozici nákup speciálních předmětů, magických artefaktů a vylepšení pro dobrodruhy.</p>
+    </div>
+</main>
 {% endblock %}

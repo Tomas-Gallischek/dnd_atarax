@@ -1,25 +1,14 @@
-{% extends "base.html" %}
+{% extends "player_site_app/player_base.html" %}
 
-{% block title %}DnD Atarax - {{ character.name }}{% endblock %}
+{% block title %}DnD Atarax - {% if character %}{{ character.name }}{% else %}Přehled postavy{% endif %}{% endblock %}
 
-{% block content %}
-<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif;">
-    <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 1rem; margin-bottom: 1.5rem;">
-        <div>
-            <a href="{% url 'player_site_app:prehled_postav' %}" style="text-decoration: none; font-weight: bold; color: #0066cc;">
-                &larr; Zpět na přehled postav
-            </a>
-        </div>
-        <div>
-            <strong>Hráč:</strong> {{ player.nickname|default:request.user.username }}
-            | <a href="{% url 'player_site_app:logout' %}" style="color: #c00; text-decoration: none;">Odhlásit se</a>
-        </div>
-    </header>
-
+{% block player_content %}
+<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
+    {% if character %}
     <h1>Postava hráče: {{ character.name }}</h1>
 
     <!-- 1. Základní identita -->
-    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem;">
+    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem; background: #fff;">
         <h2>Základní informace</h2>
         <table style="width: 100%; border-collapse: collapse;">
             <tr>
@@ -46,11 +35,18 @@
                 <td style="padding: 6px; font-weight: bold;">Zkušenosti (XP):</td>
                 <td style="padding: 6px;">{{ character.experience_points }} XP</td>
             </tr>
+            <tr>
+                <td style="padding: 6px; font-weight: bold;">Peníze:</td>
+                <td style="padding: 6px;">
+                    <strong style="color: #b45309;">{{ character.gold }} zl</strong>,
+                    <strong style="color: #64748b;">{{ character.silver }} st</strong>
+                </td>
+            </tr>
         </table>
     </section>
 
     <!-- 2. Bojové statistiky a životy -->
-    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem;">
+    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem; background: #fff;">
         <h2>Bojové statistiky</h2>
         <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
             <div style="border: 1px solid #aaa; padding: 10px 20px; border-radius: 6px; text-align: center; min-width: 120px;">
@@ -69,7 +65,7 @@
     </section>
 
     <!-- 3. Základní vlastnosti (Ability Scores) -->
-    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem;">
+    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem; background: #fff;">
         <h2>Vlastnosti (Ability Scores)</h2>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; text-align: center;">
             <div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; background-color: #fafafa;">
@@ -106,7 +102,7 @@
     </section>
 
     <!-- 4. Příběh a poznámky -->
-    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem;">
+    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem; background: #fff;">
         <h2>Příběh postavy (Historie)</h2>
         {% if character.backstory %}
             <div style="line-height: 1.5;">{{ character.backstory|linebreaks }}</div>
@@ -125,5 +121,14 @@
     <footer style="margin-top: 2rem; color: #888; font-size: 0.85rem;">
         Vytvořeno: {{ character.created_at|date:"d.m.Y H:i" }} | Poslední úprava: {{ character.updated_at|date:"d.m.Y H:i" }}
     </footer>
+    {% else %}
+    <div style="border: 1px solid #ddd; padding: 2rem; border-radius: 8px; text-align: center; background: #fff;">
+        <h2>Nemáš vybranou žádnou postavu</h2>
+        <p style="color: #666;">Zatím nemáš vytvořenou žádnou postavu nebo nebyla žádná vybrána.</p>
+        <a href="{% url 'player_site_app:prehled_postav' %}" style="display: inline-block; margin-top: 1rem; padding: 10px 20px; background: #3b82f6; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">
+            Přejít na Přehled postav
+        </a>
+    </div>
+    {% endif %}
 </main>
 {% endblock %}

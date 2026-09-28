@@ -1,9 +1,22 @@
-{% extends "base.html" %}
+{% extends "player_site_app/player_base.html" %}
 
-{% block title %}DnD Atarax - Hráčská sekce{% endblock %}
+{% block title %}DnD Atarax - Schopnosti a kouzla{% endblock %}
 
-{% block content %}
+{% block player_content %}
+<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
+    <h1>Dovednosti + triky + kouzla</h1>
 
-<h1>Dovednosti + triky + kouzla</h1>
-
+    {% if character %}
+    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff; margin-bottom: 1.5rem;">
+        <h2>Schopnosti a rysy ({{ character.name }})</h2>
+        <p><strong>Povolání:</strong> {{ character.character_class|default:"Neuvedeno" }} (Úroveň {{ character.level }})</p>
+        <p><strong>Rasa:</strong> {{ character.race|default:"Neuvedeno" }}</p>
+    </div>
+    {% else %}
+    <div style="border: 1px dashed #94a3b8; padding: 2rem; border-radius: 8px; text-align: center; background: #f8fafc;">
+        <p style="color: #64748b;">Nemáš vybranou žádnou postavu pro zobrazení schopností.</p>
+        <a href="{% url 'player_site_app:prehled_postav' %}" style="display: inline-block; margin-top: 0.5rem; color: #0284c7; font-weight: 600;">Přejít na Přehled postav &rarr;</a>
+    </div>
+    {% endif %}
+</main>
 {% endblock %}

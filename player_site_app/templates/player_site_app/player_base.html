@@ -1,0 +1,292 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+    /* Styly pro rozbalovací navigaci hráče v levém horním rohu */
+    .player-nav-container {
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 10000;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    .player-nav-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #1e293b;
+        color: #f8fafc;
+        border: 1px solid #334155;
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        transition: all 0.2s ease;
+    }
+
+    .player-nav-toggle-btn:hover {
+        background: #334155;
+        border-color: #475569;
+        transform: translateY(-1px);
+    }
+
+    .player-nav-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        left: 0;
+        width: 270px;
+        background: #0f172a;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.45);
+        overflow: hidden;
+        animation: fadeIn 0.15s ease-out;
+    }
+
+    .player-nav-dropdown.show {
+        display: block;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .player-nav-user-info {
+        padding: 12px 16px;
+        background: #1e293b;
+        border-bottom: 1px solid #334155;
+        font-size: 0.85rem;
+        color: #94a3b8;
+    }
+
+    .player-nav-user-info strong {
+        display: block;
+        color: #f1f5f9;
+        font-size: 0.95rem;
+    }
+
+    .player-nav-user-info .char-tag {
+        display: inline-block;
+        margin-top: 4px;
+        padding: 2px 8px;
+        background: #3b82f6;
+        color: #fff;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: bold;
+    }
+
+    .player-nav-list {
+        list-style: none;
+        margin: 0;
+        padding: 6px 0;
+    }
+
+    .player-nav-item a {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 16px;
+        color: #cbd5e1;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: background 0.15s, color 0.15s;
+    }
+
+    .player-nav-item a:hover {
+        background: #1e293b;
+        color: #38bdf8;
+    }
+
+    .player-nav-item a.active {
+        background: #1e293b;
+        color: #38bdf8;
+        font-weight: 600;
+        border-left: 3px solid #38bdf8;
+    }
+
+    .player-nav-divider {
+        margin: 6px 0;
+        border: none;
+        border-top: 1px solid #334155;
+    }
+
+    .player-nav-logout {
+        padding: 8px 12px;
+        background: #090d16;
+        border-top: 1px solid #1e293b;
+    }
+
+    .player-nav-logout a {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 12px;
+        color: #f87171;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        border-radius: 6px;
+        text-decoration: none;
+        font-size: 0.88rem;
+        font-weight: 600;
+        transition: all 0.15s;
+    }
+
+    .player-nav-logout a:hover {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+        border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    /* Odsazení stránky, aby tlačítko menu nepřekrývalo nadpisy */
+    .player-page-body {
+        padding-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if request.user.is_authenticated %}
+<div class="player-nav-container" id="playerNavContainer">
+    <button type="button" class="player-nav-toggle-btn" id="playerNavToggleBtn" aria-label="Menu hráče">
+        <span style="font-size: 1.1rem; line-height: 1;">&#9776;</span>
+        <span>Nabídka</span>
+    </button>
+
+    <div class="player-nav-dropdown" id="playerNavDropdown">
+        <div class="player-nav-user-info">
+            Hráč: <strong>{{ player.nickname|default:request.user.username }}</strong>
+            {% if active_character %}
+                <span class="char-tag">Postava: {{ active_character.name }} (Úr. {{ active_character.level }})</span>
+            {% endif %}
+        </div>
+
+        <ul class="player-nav-list">
+            <!-- 1. char_over_view..html -->
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:char_overview_active' %}" class="{% if current_page == 'char_overview' %}active{% endif %}">
+                    <span>&#128100;</span> Přehled postavy
+                </a>
+            </li>
+
+            <!-- 2. inv.html -->
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:inv' %}" class="{% if current_page == 'inv' %}active{% endif %}">
+                    <span>&#127890;</span> Inventář
+                </a>
+            </li>
+
+            <!-- 3. char_schopnosti.html -->
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:char_schopnosti' %}" class="{% if current_page == 'char_schopnosti' %}active{% endif %}">
+                    <span>&#9889;</span> Schopnosti a kouzla
+                </a>
+            </li>
+
+            <!-- 4. char_roleplay.html -->
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:char_roleplay' %}" class="{% if current_page == 'char_roleplay' %}active{% endif %}">
+                    <span>&#127917;</span> Roleplay informace
+                </a>
+            </li>
+
+            <!-- 5. char_achivements.html -->
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:char_achivements' %}" class="{% if current_page == 'char_achivements' %}active{% endif %}">
+                    <span>&#127942;</span> Úspěchy (Achievements)
+                </a>
+            </li>
+
+            <!-- 6. char_stats_detail.html -->
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:char_stats_detail' %}" class="{% if current_page == 'char_stats_detail' %}active{% endif %}">
+                    <span>&#128202;</span> Detail statistik
+                </a>
+            </li>
+
+            <!-- 7. kronika.html -->
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:kronika' %}" class="{% if current_page == 'kronika' %}active{% endif %}">
+                    <span>&#128220;</span> Kronika
+                </a>
+            </li>
+
+            <!-- 8. prehled_postav.html -->
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:prehled_postav' %}" class="{% if current_page == 'prehled_postav' %}active{% endif %}">
+                    <span>&#128101;</span> Přehled postav
+                </a>
+            </li>
+
+            <!-- 9. stream.html -->
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:stream' %}" class="{% if current_page == 'stream' %}active{% endif %}">
+                    <span>&#128250;</span> Stream
+                </a>
+            </li>
+        </ul>
+
+        <!-- Oddělovač (čára) před Dungeon Shopem -->
+        <hr class="player-nav-divider">
+
+        <!-- 10. dungeon_shop.html - poslední v nabídce před odhlášením -->
+        <ul class="player-nav-list">
+            <li class="player-nav-item">
+                <a href="{% url 'player_site_app:dungeon_shop' %}" class="{% if current_page == 'dungeon_shop' %}active{% endif %}">
+                    <span>&#128722;</span> Dungeon Shop
+                </a>
+            </li>
+        </ul>
+
+        <!-- Tlačítko odhlásit se pod Dungeon Shopem -->
+        <div class="player-nav-logout">
+            <a href="{% url 'player_site_app:logout' %}">
+                <span>&#128682;</span> Odhlásit se
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="player-page-body">
+    {% block player_content %}
+    {% endblock %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function() {
+        const toggleBtn = document.getElementById('playerNavToggleBtn');
+        const dropdown = document.getElementById('playerNavDropdown');
+        const container = document.getElementById('playerNavContainer');
+
+        if (toggleBtn && dropdown) {
+            toggleBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('show');
+            });
+
+            // Zavření při kliknutí mimo nabídku
+            document.addEventListener('click', function(e) {
+                if (container && !container.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
+
+            // Zavření klávesou Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+    })();
+</script>
+{% endblock %}

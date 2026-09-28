@@ -1,9 +1,35 @@
-{% extends "base.html" %}
+{% extends "player_site_app/player_base.html" %}
 
-{% block title %}DnD Atarax - Hráčská sekce{% endblock %}
+{% block title %}DnD Atarax - Inventář{% endblock %}
 
-{% block content %}
+{% block player_content %}
+<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
+    <h1>Inventář</h1>
 
-<h1>Inventář</h1>
+    {% if character %}
+    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff; margin-bottom: 1.5rem;">
+        <h2>Měšec postavy ({{ character.name }})</h2>
+        <div style="display: flex; gap: 2rem; margin-top: 1rem;">
+            <div style="padding: 12px 24px; border: 1px solid #fde68a; background: #fef3c7; border-radius: 8px;">
+                <div style="font-size: 0.85rem; color: #92400e;">Zlaťáky (Gold)</div>
+                <div style="font-size: 1.8rem; font-weight: bold; color: #b45309;">{{ character.gold }} zl</div>
+            </div>
+            <div style="padding: 12px 24px; border: 1px solid #e2e8f0; background: #f1f5f9; border-radius: 8px;">
+                <div style="font-size: 0.85rem; color: #475569;">Stříbrňáky (Silver)</div>
+                <div style="font-size: 1.8rem; font-weight: bold; color: #64748b;">{{ character.silver }} st</div>
+            </div>
+        </div>
+    </div>
 
+    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
+        <h2>Vybavení v batohu</h2>
+        <p style="color: #64748b;">Inventář předmětů a vybavení pro postavu {{ character.name }}.</p>
+    </div>
+    {% else %}
+    <div style="border: 1px dashed #94a3b8; padding: 2rem; border-radius: 8px; text-align: center; background: #f8fafc;">
+        <p style="color: #64748b;">Nemáš vybranou žádnou postavu pro zobrazení inventáře.</p>
+        <a href="{% url 'player_site_app:prehled_postav' %}" style="display: inline-block; margin-top: 0.5rem; color: #0284c7; font-weight: 600;">Přejít na Přehled postav &rarr;</a>
+    </div>
+    {% endif %}
+</main>
 {% endblock %}
