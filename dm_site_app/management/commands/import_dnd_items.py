@@ -5,53 +5,57 @@ from deep_translator import GoogleTranslator
 from dm_site_app.models import CompendiumItem
 
 class Command(BaseCommand):
-    help = 'Stáhne vybavení z DnD 5e API, bezpečně přeloží a uloží do databáze'
+    help = 'Stáhne vybavení z DnD 5e API, bezpečně (a pomalu) přeloží a uloží do databáze'
 
     def safe_translate(self, text, translator):
-        """Pomocná funkce pro bezpečný překlad s časovou prodlevou."""
+        """Pomocná funkce pro bezpečný překlad s dlouhou časovou prodlevou."""
         if not text:
             return ""
         
-        # Pojistka pro limit 5 požadavků/s (0.2s + drobná rezerva)
-        time.sleep(0.25) 
+        # Tvrdý limit 2 sekundy před každým jednotlivým překladem
+        time.sleep(2) 
         
         try:
             return translator.translate(text)
         except Exception as e:
-            self.stdout.write(self.style.WARNING(f"Chyba překladače (možná limit): {e}. Čekám 2 vteřiny..."))
-            time.sleep(2)  # Při chybě API si skript na chvíli odpočine
+            self.stdout.write(self.style.WARNING(f"Limit překladače zasažen ({e}). Chladím spojení na 10 vteřin..."))
+            time.sleep(10)  # Výrazně delší pauza pro resetování banu
             try:
                 return translator.translate(text)
             except:
-                self.stdout.write(self.style.ERROR("Druhý pokus selhal, ukládám původní text."))
+                self.stdout.write(self.style.ERROR("Druhý pokus selhal, ukládám původní anglický text."))
                 return text
 
     def handle(self, *args, **kwargs):
         translator = GoogleTranslator(source='en', target='cs')
         base_url = "https://www.dnd5eapi.co"
         
-        self.stdout.write("Stahuji seznam vybavení...")
+        self.stdout.write("Stahuji hlavní seznam vybavení z API...")
         response = requests.get(f"{base_url}/api/equipment")
         items_list = response.json().get('results', [])
         
-        # Testovací vzorek 10 položek. Jakmile to projde bez chyb, smaž "[:10]"
-        for item_ref in items_list[:10]:
+        # Zde můžeš smazat "[:10]", pokud chceš stáhnout celou databázi
+        for item_ref in items_list:
             item_url = f"{base_url}{item_ref['url']}"
             
-            # Bezpečnostní pauza i pro samotné DnD 5e API
-            time.sleep(0.5)
-            item_data = requests.get(item_url).json()
+            # Bezpečnostní pauza 2 sekundy i pro samotné DnD 5e API
+            time.sleep(2)
+            try:
+                item_data = requests.get(item_url).json()
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"Chyba při stahování {item_url}: {e}"))
+                continue
             
             index = item_data.get('index')
             name_en = item_data.get('name')
             
             if CompendiumItem.objects.filter(api_index=index).exists():
-                self.stdout.write(self.style.WARNING(f"Předmět {name_en} už existuje, přeskakuji."))
+                self.stdout.write(self.style.WARNING(f"Předmět {name_en} už existuje, přeskakuji (šetřím API)."))
                 continue
 
-            self.stdout.write(f"Zpracovávám: {name_en}...")
+            self.stdout.write(f"Zpracovávám: {name_en} (To chvíli potrvá...)")
             
-            # 1. Překlad základních textů (využívá naši novou bezpečnou funkci)
+            # 1. Překlad základních textů
             name_cz = self.safe_translate(name_en, translator)
             category_en = item_data.get('equipment_category', {}).get('name', '')
             category_cz = self.safe_translate(category_en, translator)
@@ -108,4 +112,4 @@ class Command(BaseCommand):
                 description=desc_cz
             )
             
-        self.stdout.write(self.style.SUCCESS('Import a překlad dokončen!'))
+        self.stdout.write(self.style.SUCCESS('Import a překlad dokončen! Můžeš to zkontrolovat v administraci.'))
