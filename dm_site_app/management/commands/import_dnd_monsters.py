@@ -657,7 +657,7 @@ class Command(BaseCommand):
                 ac_val = 10
                 ac_desc = ""
 
-            hit_points = monster_data.get('hit_points', 0)
+            hp_points = monster_data.get('hp_points', 0)
             hit_dice = monster_data.get('hit_dice', '')
 
             # Rychlost (speed)
@@ -782,7 +782,7 @@ class Command(BaseCommand):
                 'alignment': alignment_cz,
                 'armor_class': ac_val,
                 'armor_desc': ac_desc,
-                'hit_points': hit_points,
+                'hp_points': hp_points,
                 'hit_dice': hit_dice,
                 'speed': speed_str,
                 'strength': monster_data.get('strength', 10),

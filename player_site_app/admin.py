@@ -5,7 +5,7 @@ from .models import Player, Char_info
 class CharInfoInline(admin.TabularInline):
     model = Char_info
     extra = 0
-    fields = ('name', 'race', 'character_class', 'level', 'hit_points_current', 'hit_points_max', 'armor_class')
+    fields = ('name', 'race', 'character_class', 'level', 'hp_points_current', 'hp_points_max', 'armor_class')
     show_change_link = True
 
 
@@ -28,8 +28,8 @@ class CharInfoAdmin(admin.ModelAdmin):
         'character_class',
         'race',
         'level',
-        'hit_points_current',
-        'hit_points_max',
+        'hp_points_current',
+        'hp_points_max',
         'armor_class',
     )
     list_filter = ('character_class', 'race', 'level', 'player')
@@ -47,7 +47,7 @@ class CharInfoAdmin(admin.ModelAdmin):
         }),
         ('Bojové statistiky & Životy', {
             'fields': (
-                ('hit_points_current', 'hit_points_max'),
+                ('hp_points_current', 'hp_points_max'),
                 ('armor_class', 'speed'),
             ),
         }),
