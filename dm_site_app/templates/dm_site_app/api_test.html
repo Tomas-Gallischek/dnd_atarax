@@ -1,0 +1,21 @@
+{% extends 'dm_site_app/base.html' %}
+
+{% block content %}
+<div style="padding: 20px;">
+    <h1>Seznam předmětů z DnD 5e API</h1>
+    <p>Celkem nalezeno: <strong>{{ items|length }}</strong> předmětů</p>
+    
+    <ul style="line-height: 1.6;">
+        {% for item in items %}
+            <li>
+                <strong>{{ item.name }}</strong> 
+                <span style="color: gray; font-size: 0.9em;">(Klíč: {{ item.index }})</span>
+                <!-- Odkaz pro detail předmětu přímo na API -->
+                <a href="https://www.dnd5eapi.co{{ item.url }}" target="_blank" style="margin-left: 10px; font-size: 0.8em;">Zobrazit surová data</a>
+            </li>
+        {% empty %}
+            <li style="color: red;">Žádná data se nepodařilo načíst. Zkontroluj logy serveru.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
