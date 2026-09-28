@@ -51,3 +51,32 @@ class NpcLoot(models.Model):
 
     def __str__(self):
         return f"{self.quantity}x {self.item_name}"
+
+
+class CompendiumItem(models.Model):
+    # Identifikátory
+    api_index = models.CharField(max_length=100, unique=True, verbose_name="API Index")
+    name_cz = models.CharField(max_length=150, verbose_name="Český název")
+    name_en = models.CharField(max_length=150, verbose_name="Anglický název")
+    
+# Kategorizace a nákup
+    category = models.CharField(max_length=100, verbose_name="Kategorie")
+    cost_gold = models.IntegerField(default=0, verbose_name="Cena (Zlaťáky)")
+    cost_silver = models.IntegerField(default=0, verbose_name="Cena (Stříbrňáky)") # NOVÝ ŘÁDEK
+    weight = models.FloatField(default=0.0, verbose_name="Váha (libry)")
+    
+    # Bojové statistiky (zploštěné do textu pro maximální jednoduchost)
+    damage = models.CharField(max_length=100, blank=True, null=True, verbose_name="Poškození (Kostky a typ)")
+    armor_class = models.IntegerField(blank=True, null=True, verbose_name="Obranné číslo (AC)")
+    properties = models.CharField(max_length=255, blank=True, null=True, verbose_name="Vlastnosti zbraně")
+    
+    # Dodatečné informace
+    description = models.TextField(blank=True, null=True, verbose_name="Popis")
+
+    class Meta:
+        verbose_name = "Předmět z Kompendia"
+        verbose_name_plural = "Předměty z Kompendia"
+        ordering = ['name_cz']
+
+    def __str__(self):
+        return f"{self.name_cz} ({self.category})"
