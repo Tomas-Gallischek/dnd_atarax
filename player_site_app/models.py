@@ -25,6 +25,9 @@ class Player(models.Model):
         verbose_name="Datum registrace"
     )
 
+    temna_esence = models.IntegerField(default=0, verbose_name="Temná esence", blank=True, null=True)
+    pin_code = models.IntegerField(default=0, verbose_name="Pin kod", blank=True, null=True)
+
     class Meta:
         verbose_name = "Hráč"
         verbose_name_plural = "Hráči"
@@ -49,6 +52,9 @@ class Char_info(models.Model):
     background = models.CharField(max_length=100, blank=True, null=True, verbose_name="Zázemí")
     alignment = models.CharField(max_length=50, blank=True, null=True, verbose_name="Přesvědčení")
     experience_points = models.IntegerField(default=0, verbose_name="Zkušenosti (XP)")
+    gold = models.IntegerField(default=0, verbose_name="Zlaťáky", blank=True, null=True)
+    silver = models.IntegerField(default=0, verbose_name="Stříbráky", blank=True, null=True)
+    
 
     # Bojové statistiky & Životy
     armor_class = models.IntegerField(default=10, verbose_name="Třída zbroje (AC)")
@@ -74,6 +80,15 @@ class Char_info(models.Model):
         verbose_name = "Postava hráče"
         verbose_name_plural = "Postavy hráče"
         ordering = ['-level', 'name']
+
+    def save(self, *args, **kwargs):
+        while self.silver >= 10:
+            self.gold += 1
+            self.silver -= 10
+        while self.silver < 0:
+            self.gold -= 1
+            self.silver += 10
+        super().save(*args, **kwargs)
 
     def __str__(self):
         cls_str = f" ({self.character_class})" if self.character_class else ""
