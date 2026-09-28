@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import Locations, Npc, NpcLoot, CompendiumItem
+from django.utils.html import format_html
+from .models import Locations, Npc, NpcLoot, CompendiumItem, CompendiumMonster
 
 admin.site.register(Locations)
 
@@ -75,3 +76,109 @@ class CompendiumItemAdmin(admin.ModelAdmin):
     @admin.display(description='Váha', ordering='weight')
     def formatted_weight(self, obj):
         return f"{obj.weight} lb" if obj.weight else "—"
+
+
+# 4. Zaregistrujeme nestvůry z kompendia s komplexním a přehledným rozhraním
+@admin.register(CompendiumMonster)
+class CompendiumMonsterAdmin(admin.ModelAdmin):
+    list_display = (
+        'name_cz',
+        'name_en',
+        'formatted_cr_display',
+        'monster_type',
+        'size',
+        'armor_class',
+        'hit_points',
+        'alignment',
+    )
+    list_filter = ('challenge_rating', 'monster_type', 'size', 'alignment')
+    search_fields = ('name_cz', 'name_en', 'api_index', 'monster_type', 'special_abilities', 'actions')
+    ordering = ('challenge_rating', 'name_cz')
+    list_per_page = 25
+
+    readonly_fields = ('image_preview', 'formatted_ability_scores')
+
+    fieldsets = (
+        ('Základní identifikace a vzhled', {
+            'fields': (
+                ('name_cz', 'name_en'),
+                'api_index',
+                ('size', 'monster_type', 'subtype'),
+                'alignment',
+                ('image_url', 'image_preview'),
+            ),
+        }),
+        ('Bojové statistiky a životy', {
+            'fields': (
+                ('armor_class', 'armor_desc'),
+                ('hit_points', 'hit_dice'),
+                'speed',
+            ),
+        }),
+        ('Základní vlastnosti (Ability Scores)', {
+            'fields': (
+                ('strength', 'dexterity', 'constitution'),
+                ('intelligence', 'wisdom', 'charisma'),
+                'formatted_ability_scores',
+            ),
+        }),
+        ('Obrana, dovednosti a smysly', {
+            'fields': (
+                'saving_throws',
+                'skills',
+                ('damage_vulnerabilities', 'damage_resistances'),
+                ('damage_immunities', 'condition_immunities'),
+                ('senses', 'languages'),
+            ),
+        }),
+        ('Nebezpečnost a odměna', {
+            'fields': (
+                ('challenge_rating', 'xp', 'proficiency_bonus'),
+            ),
+        }),
+        ('Bojové akce a schopnosti', {
+            'fields': (
+                'special_abilities',
+                'actions',
+                'legendary_actions',
+                'reactions',
+            ),
+        }),
+        ('Doplňující popis a surová data (API)', {
+            'classes': ('collapse',),
+            'fields': (
+                'description',
+                'raw_data',
+            ),
+        }),
+    )
+
+    @admin.display(description='CR', ordering='challenge_rating')
+    def formatted_cr_display(self, obj):
+        return obj.formatted_cr
+
+    @admin.display(description='Náhled obrázku')
+    def image_preview(self, obj):
+        if obj.image_url:
+            return format_html(
+                '<img src="{}" style="max-height: 120px; max-width: 150px; border-radius: 8px; border: 1px solid #555; object-fit: contain;" />',
+                obj.image_url
+            )
+        return "Bez obrázku"
+
+    @admin.display(description='Přehled modifikátorů')
+    def formatted_ability_scores(self, obj):
+        return format_html(
+            "<b>SIL:</b> {} ({}) &nbsp;|&nbsp; "
+            "<b>OBR:</b> {} ({}) &nbsp;|&nbsp; "
+            "<b>ODL:</b> {} ({}) &nbsp;|&nbsp; "
+            "<b>INT:</b> {} ({}) &nbsp;|&nbsp; "
+            "<b>MDR:</b> {} ({}) &nbsp;|&nbsp; "
+            "<b>CHA:</b> {} ({})",
+            obj.strength, obj.str_mod,
+            obj.dexterity, obj.dex_mod,
+            obj.constitution, obj.con_mod,
+            obj.intelligence, obj.int_mod,
+            obj.wisdom, obj.wis_mod,
+            obj.charisma, obj.cha_mod,
+        )

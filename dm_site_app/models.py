@@ -80,3 +80,106 @@ class CompendiumItem(models.Model):
 
     def __str__(self):
         return f"{self.name_cz} ({self.category})"
+
+
+class CompendiumMonster(models.Model):
+    # Identifikace
+    api_index = models.CharField(max_length=100, unique=True, verbose_name="API Index")
+    name_cz = models.CharField(max_length=150, verbose_name="Český název")
+    name_en = models.CharField(max_length=150, verbose_name="Anglický název")
+
+    # Typologie a zařazení
+    size = models.CharField(max_length=50, verbose_name="Velikost")
+    monster_type = models.CharField(max_length=100, verbose_name="Typ nestvůry")
+    subtype = models.CharField(max_length=100, blank=True, null=True, verbose_name="Podtyp")
+    alignment = models.CharField(max_length=100, blank=True, null=True, verbose_name="Přesvědčení")
+
+    # Bojové statistiky a životy
+    armor_class = models.IntegerField(verbose_name="Třída zbroje (AC)")
+    armor_desc = models.CharField(max_length=150, blank=True, null=True, verbose_name="Typ zbroje")
+    hit_points = models.IntegerField(verbose_name="Životy (HP)")
+    hit_dice = models.CharField(max_length=50, blank=True, null=True, verbose_name="Kostky životů")
+    speed = models.CharField(max_length=200, verbose_name="Rychlost")
+
+    # Základní vlastnosti (Ability Scores)
+    strength = models.IntegerField(default=10, verbose_name="Síla (STR)")
+    dexterity = models.IntegerField(default=10, verbose_name="Obratnost (DEX)")
+    constitution = models.IntegerField(default=10, verbose_name="Odolnost (CON)")
+    intelligence = models.IntegerField(default=10, verbose_name="Inteligence (INT)")
+    wisdom = models.IntegerField(default=10, verbose_name="Moudrost (WIS)")
+    charisma = models.IntegerField(default=10, verbose_name="Charisma (CHA)")
+
+    # Záchrany, dovednosti, obrana a smysly
+    saving_throws = models.CharField(max_length=255, blank=True, null=True, verbose_name="Záchranné hody")
+    skills = models.CharField(max_length=255, blank=True, null=True, verbose_name="Dovednosti")
+    damage_vulnerabilities = models.CharField(max_length=255, blank=True, null=True, verbose_name="Zranitelnosti")
+    damage_resistances = models.CharField(max_length=255, blank=True, null=True, verbose_name="Odolnosti")
+    damage_immunities = models.CharField(max_length=255, blank=True, null=True, verbose_name="Imunity vůči poškození")
+    condition_immunities = models.CharField(max_length=255, blank=True, null=True, verbose_name="Stavové imunity")
+    senses = models.CharField(max_length=255, blank=True, null=True, verbose_name="Smysly")
+    languages = models.CharField(max_length=255, blank=True, null=True, verbose_name="Jazyky")
+
+    # Nebezpečnost a postup
+    challenge_rating = models.FloatField(verbose_name="Nebezpečnost (CR)")
+    xp = models.IntegerField(default=0, verbose_name="Zkušenosti (XP)")
+    proficiency_bonus = models.IntegerField(default=2, verbose_name="Zdatnostní bonus")
+
+    # Schopnosti a akce
+    special_abilities = models.TextField(blank=True, null=True, verbose_name="Zvláštní schopnosti")
+    actions = models.TextField(blank=True, null=True, verbose_name="Akce")
+    legendary_actions = models.TextField(blank=True, null=True, verbose_name="Legendární akce")
+    reactions = models.TextField(blank=True, null=True, verbose_name="Reakce")
+
+    # Popis, obrázek a surová data
+    description = models.TextField(blank=True, null=True, verbose_name="Popis")
+    image_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="URL obrázku")
+    raw_data = models.JSONField(blank=True, null=True, verbose_name="Původní JSON data")
+
+    class Meta:
+        verbose_name = "Nestvůra z Kompendia"
+        verbose_name_plural = "Nestvůry z Kompendia"
+        ordering = ['challenge_rating', 'name_cz']
+
+    def __str__(self):
+        return f"{self.name_cz} (CR {self.formatted_cr})"
+
+    @property
+    def formatted_cr(self):
+        if self.challenge_rating == 0.125:
+            return "1/8"
+        elif self.challenge_rating == 0.25:
+            return "1/4"
+        elif self.challenge_rating == 0.5:
+            return "1/2"
+        elif self.challenge_rating.is_integer():
+            return str(int(self.challenge_rating))
+        return str(self.challenge_rating)
+
+    @staticmethod
+    def _calc_mod(score):
+        m = (score - 10) // 2
+        return f"+{m}" if m >= 0 else str(m)
+
+    @property
+    def str_mod(self):
+        return self._calc_mod(self.strength)
+
+    @property
+    def dex_mod(self):
+        return self._calc_mod(self.dexterity)
+
+    @property
+    def con_mod(self):
+        return self._calc_mod(self.constitution)
+
+    @property
+    def int_mod(self):
+        return self._calc_mod(self.intelligence)
+
+    @property
+    def wis_mod(self):
+        return self._calc_mod(self.wisdom)
+
+    @property
+    def cha_mod(self):
+        return self._calc_mod(self.charisma)
