@@ -102,3 +102,8 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+LOGIN_URL = 'player_site_app:index'
+LOGIN_REDIRECT_URL = 'player_site_app:prehled_postav'
+LOGOUT_REDIRECT_URL = 'player_site_app:index'
+

@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}DnD Atarax - {{ character.name }}{% endblock %}
+
+{% block content %}
+<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif;">
+    <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <a href="{% url 'player_site_app:prehled_postav' %}" style="text-decoration: none; font-weight: bold; color: #0066cc;">
+                &larr; Zpět na přehled postav
+            </a>
+        </div>
+        <div>
+            <strong>Hráč:</strong> {{ player.nickname|default:request.user.username }}
+            | <a href="{% url 'player_site_app:logout' %}" style="color: #c00; text-decoration: none;">Odhlásit se</a>
+        </div>
+    </header>
+
+    <h1>Postava hráče: {{ character.name }}</h1>
+
+    <!-- 1. Základní identita -->
+    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem;">
+        <h2>Základní informace</h2>
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 6px; font-weight: bold; width: 30%;">Jméno postavy:</td>
+                <td style="padding: 6px;">{{ character.name }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px; font-weight: bold;">Povolání &amp; Úroveň:</td>
+                <td style="padding: 6px;">{{ character.character_class|default:"Neuvedeno" }} (Úroveň {{ character.level }})</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px; font-weight: bold;">Rasa:</td>
+                <td style="padding: 6px;">{{ character.race|default:"Neuvedeno" }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px; font-weight: bold;">Zázemí:</td>
+                <td style="padding: 6px;">{{ character.background|default:"Neuvedeno" }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px; font-weight: bold;">Přesvědčení:</td>
+                <td style="padding: 6px;">{{ character.alignment|default:"Neuvedeno" }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px; font-weight: bold;">Zkušenosti (XP):</td>
+                <td style="padding: 6px;">{{ character.experience_points }} XP</td>
+            </tr>
+        </table>
+    </section>
+
+    <!-- 2. Bojové statistiky a životy -->
+    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem;">
+        <h2>Bojové statistiky</h2>
+        <div style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+            <div style="border: 1px solid #aaa; padding: 10px 20px; border-radius: 6px; text-align: center; min-width: 120px;">
+                <div style="font-size: 0.9rem; color: #555;">Třída zbroje (AC)</div>
+                <div style="font-size: 1.8rem; font-weight: bold;">{{ character.armor_class }}</div>
+            </div>
+            <div style="border: 1px solid #aaa; padding: 10px 20px; border-radius: 6px; text-align: center; min-width: 140px;">
+                <div style="font-size: 0.9rem; color: #555;">Životy (HP)</div>
+                <div style="font-size: 1.8rem; font-weight: bold; color: #c00;">{{ character.hit_points_current }} / {{ character.hit_points_max }}</div>
+            </div>
+            <div style="border: 1px solid #aaa; padding: 10px 20px; border-radius: 6px; text-align: center; min-width: 120px;">
+                <div style="font-size: 0.9rem; color: #555;">Rychlost</div>
+                <div style="font-size: 1.8rem; font-weight: bold;">{{ character.speed }} stop</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Základní vlastnosti (Ability Scores) -->
+    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem;">
+        <h2>Vlastnosti (Ability Scores)</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; text-align: center;">
+            <div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; background-color: #fafafa;">
+                <div style="font-weight: bold;">SIL (STR)</div>
+                <div style="font-size: 1.4rem;">{{ character.strength }}</div>
+                <div style="color: #666; font-size: 0.9rem;">({{ character.str_mod }})</div>
+            </div>
+            <div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; background-color: #fafafa;">
+                <div style="font-weight: bold;">OBR (DEX)</div>
+                <div style="font-size: 1.4rem;">{{ character.dexterity }}</div>
+                <div style="color: #666; font-size: 0.9rem;">({{ character.dex_mod }})</div>
+            </div>
+            <div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; background-color: #fafafa;">
+                <div style="font-weight: bold;">ODL (CON)</div>
+                <div style="font-size: 1.4rem;">{{ character.constitution }}</div>
+                <div style="color: #666; font-size: 0.9rem;">({{ character.con_mod }})</div>
+            </div>
+            <div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; background-color: #fafafa;">
+                <div style="font-weight: bold;">INT (INT)</div>
+                <div style="font-size: 1.4rem;">{{ character.intelligence }}</div>
+                <div style="color: #666; font-size: 0.9rem;">({{ character.int_mod }})</div>
+            </div>
+            <div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; background-color: #fafafa;">
+                <div style="font-weight: bold;">MDR (WIS)</div>
+                <div style="font-size: 1.4rem;">{{ character.wisdom }}</div>
+                <div style="color: #666; font-size: 0.9rem;">({{ character.wis_mod }})</div>
+            </div>
+            <div style="border: 1px solid #ccc; padding: 10px; border-radius: 4px; background-color: #fafafa;">
+                <div style="font-weight: bold;">CHA (CHA)</div>
+                <div style="font-size: 1.4rem;">{{ character.charisma }}</div>
+                <div style="color: #666; font-size: 0.9rem;">({{ character.cha_mod }})</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Příběh a poznámky -->
+    <section style="border: 1px solid #ddd; padding: 1.2rem; border-radius: 6px; margin-bottom: 1.5rem;">
+        <h2>Příběh postavy (Historie)</h2>
+        {% if character.backstory %}
+            <div style="line-height: 1.5;">{{ character.backstory|linebreaks }}</div>
+        {% else %}
+            <p style="color: #888;">Zatím nebyl vyplněn žádný příběh.</p>
+        {% endif %}
+
+        <h2 style="margin-top: 1.5rem;">Poznámky</h2>
+        {% if character.notes %}
+            <div style="line-height: 1.5;">{{ character.notes|linebreaks }}</div>
+        {% else %}
+            <p style="color: #888;">Žádné poznámky.</p>
+        {% endif %}
+    </section>
+
+    <footer style="margin-top: 2rem; color: #888; font-size: 0.85rem;">
+        Vytvořeno: {{ character.created_at|date:"d.m.Y H:i" }} | Poslední úprava: {{ character.updated_at|date:"d.m.Y H:i" }}
+    </footer>
+</main>
+{% endblock %}

@@ -1,9 +1,52 @@
 {% extends "base.html" %}
 
-{% block title %}DnD Atarax - Hráčská sekce{% endblock %}
+{% block title %}DnD Atarax - Přehled postav{% endblock %}
 
 {% block content %}
+<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif;">
+    <header style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ccc; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <strong>Přihlášený hráč:</strong> {{ player.nickname|default:request.user.username }}
+        </div>
+        <div>
+            <a href="{% url 'player_site_app:logout' %}" style="color: #c00; text-decoration: none; font-weight: bold;">Odhlásit se</a>
+        </div>
+    </header>
 
-<h1>Přehled postav</h1>
+    <style>
+        .alert-msg { padding: 10px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        .alert-error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+        .alert-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+        .alert-info { background-color: #e2e3e5; color: #383d41; border-color: #d6d8db; }
+    </style>
 
+    {% if messages %}
+    <div style="margin-bottom: 1.5rem;">
+        {% for message in messages %}
+        <div class="alert-msg {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <h1>Přehled postav</h1>
+
+    {% if characters %}
+        <ul style="list-style-type: none; padding-left: 0;">
+            {% for char in characters %}
+            <li style="padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <a href="{% url 'player_site_app:char_overview' char.id %}" style="font-size: 1.2rem; font-weight: bold; text-decoration: none; color: #0066cc;">
+                    {{ char.name }}
+                </a>
+                <span style="color: #666; margin-left: 10px;">
+                    (Úroveň {{ char.level }}{% if char.character_class %}, {{ char.character_class }}{% endif %}{% if char.race %}, {{ char.race }}{% endif %})
+                </span>
+            </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>žádná postava</p>
+    {% endif %}
+</main>
 {% endblock %}
