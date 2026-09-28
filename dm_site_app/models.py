@@ -97,7 +97,7 @@ class CompendiumMonster(models.Model):
     # Bojové statistiky a životy
     armor_class = models.IntegerField(verbose_name="Třída zbroje (AC)")
     armor_desc = models.CharField(max_length=150, blank=True, null=True, verbose_name="Typ zbroje")
-    hp_points = models.IntegerField(verbose_name="Životy (HP)")
+    hit_points = models.IntegerField(verbose_name="Životy (HP)")
     hit_dice = models.CharField(max_length=50, blank=True, null=True, verbose_name="Kostky životů")
     speed = models.CharField(max_length=200, verbose_name="Rychlost")
 

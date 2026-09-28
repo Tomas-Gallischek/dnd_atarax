@@ -88,7 +88,7 @@ class CompendiumMonsterAdmin(admin.ModelAdmin):
         'monster_type',
         'size',
         'armor_class',
-        'hp_points',
+        'hit_points',
         'alignment',
     )
     list_filter = ('challenge_rating', 'monster_type', 'size', 'alignment')
@@ -111,7 +111,7 @@ class CompendiumMonsterAdmin(admin.ModelAdmin):
         ('Bojové statistiky a životy', {
             'fields': (
                 ('armor_class', 'armor_desc'),
-                ('hp_points', 'hit_dice'),
+                ('hit_points', 'hit_dice'),
                 'speed',
             ),
         }),

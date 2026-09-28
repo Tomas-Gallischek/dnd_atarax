@@ -58,8 +58,8 @@ class Char_info(models.Model):
 
     # Bojové statistiky & Životy
     armor_class = models.IntegerField(default=10, verbose_name="Třída zbroje (AC)")
-    hp_points_max = models.IntegerField(default=10, verbose_name="Maximální životy")
-    hp_points_current = models.IntegerField(default=10, verbose_name="Současné životy")
+    hit_points_max = models.IntegerField(default=10, verbose_name="Maximální životy")
+    hit_points_current = models.IntegerField(default=10, verbose_name="Současné životy")
     speed = models.IntegerField(default=30, verbose_name="Rychlost (stopy)")
 
     # Základní vlastnosti (Ability Scores)
