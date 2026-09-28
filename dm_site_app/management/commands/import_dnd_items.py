@@ -5,26 +5,7 @@ from deep_translator import GoogleTranslator
 from dm_site_app.models import CompendiumItem
 
 class Command(BaseCommand):
-    help = 'Stáhne vybavení z DnD 5e API, bezpečně (a pomalu) přeloží a uloží do databáze'
-
-    def safe_translate(self, text, translator):
-        """Pomocná funkce pro bezpečný překlad s dlouhou časovou prodlevou."""
-        if not text:
-            return ""
-        
-        # Tvrdý limit 2 sekundy před každým jednotlivým překladem
-        time.sleep(2) 
-        
-        try:
-            return translator.translate(text)
-        except Exception as e:
-            self.stdout.write(self.style.WARNING(f"Limit překladače zasažen ({e}). Chladím spojení na 10 vteřin..."))
-            time.sleep(10)  # Výrazně delší pauza pro resetování banu
-            try:
-                return translator.translate(text)
-            except:
-                self.stdout.write(self.style.ERROR("Druhý pokus selhal, ukládám původní anglický text."))
-                return text
+    help = 'Stáhne vybavení z DnD 5e API, přeloží ho dávkově (batch) a uloží do databáze'
 
     def handle(self, *args, **kwargs):
         translator = GoogleTranslator(source='en', target='cs')
@@ -34,12 +15,11 @@ class Command(BaseCommand):
         response = requests.get(f"{base_url}/api/equipment")
         items_list = response.json().get('results', [])
         
-        # Zde můžeš smazat "[:10]", pokud chceš stáhnout celou databázi
-        for item_ref in items_list:
+        # Testovací vzorek (až si to ověříš, smaž "[:10]" pro import celého kompendia)
+        for item_ref in items_list[:10]:
             item_url = f"{base_url}{item_ref['url']}"
             
-            # Bezpečnostní pauza 2 sekundy i pro samotné DnD 5e API
-            time.sleep(2)
+            time.sleep(1) # Základní ohleduplnost k DnD API serverům
             try:
                 item_data = requests.get(item_url).json()
             except Exception as e:
@@ -47,20 +27,59 @@ class Command(BaseCommand):
                 continue
             
             index = item_data.get('index')
-            name_en = item_data.get('name')
+            name_en = item_data.get('name', '')
             
             if CompendiumItem.objects.filter(api_index=index).exists():
                 self.stdout.write(self.style.WARNING(f"Předmět {name_en} už existuje, přeskakuji (šetřím API)."))
                 continue
 
-            self.stdout.write(f"Zpracovávám: {name_en} (To chvíli potrvá...)")
+            self.stdout.write(f"Zpracovávám: {name_en}...")
             
-            # 1. Překlad základních textů
-            name_cz = self.safe_translate(name_en, translator)
+            # 1. Příprava dat pro překlad
             category_en = item_data.get('equipment_category', {}).get('name', '')
-            category_cz = self.safe_translate(category_en, translator)
+            dmg_dice = item_data.get('damage', {}).get('damage_dice', '')
+            dmg_type_en = item_data.get('damage', {}).get('damage_type', {}).get('name', '')
             
-            # 2. Převod měny na Zlaťáky a Stříbrňáky
+            props = [p['name'] for p in item_data.get('properties', [])]
+            props_en = ", ".join(props) if props else ""
+            
+            desc_list = item_data.get('desc', [])
+            desc_en = "\n".join(desc_list) if desc_list else ""
+
+            # Zabalení do jednoho pole pro dávkový překlad.
+            # Deep-translator nemá rád prázdné stringy, proto dáváme "-" jako zástupný znak.
+            texts_to_translate = [
+                name_en if name_en else "-",
+                category_en if category_en else "-",
+                dmg_type_en if dmg_type_en else "-",
+                props_en if props_en else "-",
+                desc_en if desc_en else "-"
+            ]
+
+            time.sleep(3) # Brzda před odesláním jednoho velkého balíku
+            
+            # 2. Samotný dávkový překlad (translate_batch)
+            try:
+                translated = translator.translate_batch(texts_to_translate)
+            except Exception as e:
+                self.stdout.write(self.style.WARNING(f"Google nás dočasně zablokoval. Chladím IP adresu na celou minutu..."))
+                time.sleep(60)
+                try:
+                    translated = translator.translate_batch(texts_to_translate)
+                except:
+                    self.stdout.write(self.style.ERROR("I po minutě blokováno. Ukládám tento předmět v angličtině."))
+                    translated = texts_to_translate # Fallback na angličtinu
+            
+            # 3. Rozbalení přeloženého listu
+            name_cz = translated[0] if translated[0] != "-" else ""
+            category_cz = translated[1] if translated[1] != "-" else ""
+            dmg_type_cz = translated[2] if translated[2] != "-" else ""
+            props_cz = translated[3] if translated[3] != "-" else ""
+            desc_cz = translated[4] if translated[4] != "-" else ""
+
+            damage_str = f"{dmg_dice} {dmg_type_cz}".strip()
+
+            # 4. Převod měny na Zlaťáky a Stříbrňáky
             cost_gold = 0
             cost_silver = 0
             cost_data = item_data.get('cost', {})
@@ -79,25 +98,7 @@ class Command(BaseCommand):
                 if quantity > 0 and cost_gold == 0 and cost_silver == 0:
                     cost_silver = 1
 
-            # 3. Zpracování poškození
-            damage_str = ""
-            if 'damage' in item_data:
-                dmg_dice = item_data['damage'].get('damage_dice', '')
-                dmg_type_en = item_data['damage'].get('damage_type', {}).get('name', '')
-                dmg_type_cz = self.safe_translate(dmg_type_en, translator)
-                damage_str = f"{dmg_dice} {dmg_type_cz}".strip()
-
-            # 4. Zpracování vlastností zbraní
-            props = [p['name'] for p in item_data.get('properties', [])]
-            props_en = ", ".join(props) if props else ""
-            props_cz = self.safe_translate(props_en, translator)
-            
-            # 5. Popis
-            desc_list = item_data.get('desc', [])
-            desc_en = "\n".join(desc_list)
-            desc_cz = self.safe_translate(desc_en, translator)
-            
-            # 6. Uložení do databáze
+            # 5. Uložení do databáze
             CompendiumItem.objects.create(
                 api_index=index,
                 name_en=name_en,
@@ -112,4 +113,4 @@ class Command(BaseCommand):
                 description=desc_cz
             )
             
-        self.stdout.write(self.style.SUCCESS('Import a překlad dokončen! Můžeš to zkontrolovat v administraci.'))
+        self.stdout.write(self.style.SUCCESS('Import a překlad dokončen!'))
