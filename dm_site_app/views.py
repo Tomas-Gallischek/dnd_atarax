@@ -50,5 +50,5 @@ def add_gold(request):
         char.silver += int(silver)
         char.save()
     
-    return redirect('dm_site_app:golds_management')
+    return redirect('golds_management')
     
