@@ -1,3 +1,4 @@
+from datetime import timezone
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -122,3 +123,80 @@ class Char_info(models.Model):
     @property
     def cha_mod(self):
         return self._calc_mod(self.charisma)
+
+# DATABÁZE EXISTUJÍCÍCH ACHIVEMENTŮ
+class Achivements_database(models.Model):
+    name = models.CharField(max_length=50, verbose_name="Jméno úspěchu")
+    description = models.CharField(max_length=200, verbose_name="Popis úspěchu")
+
+    bronze_value = models.FloatField(default=0, verbose_name="hodnota pro bronze", null=True, blank=True)
+    silver_value = models.FloatField(default=0, verbose_name="hodnota pro silver", null=True, blank=True)
+    gold_value = models.FloatField(default=0, verbose_name="hodnota pro gold", null=True, blank=True)
+    platinum_value = models.FloatField(default=0, verbose_name="hodnota pro platinum", null=True, blank=True)
+    emerald_value = models.FloatField(default=0, verbose_name="hodnota pro emerald", null=True, blank=True)
+    diamond_value = models.FloatField(default=0, verbose_name="hodnota pro diamond", null=True, blank=True)
+
+
+# Databáze existujících achivementů
+class Achivements_players(models.Model):
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name='achivements',
+        verbose_name="Hráč"
+    )
+    Achivement = models.ForeignKey(
+        Achivements_database,
+        on_delete=models.CASCADE,
+        related_name='achivements',
+        verbose_name="Achivement"
+    )
+
+    STATUS_CHOICES = [
+        ('bronze', 'Bronze'),
+        ('silver', 'Silver'),
+        ('gold', 'Gold'),
+        ('platinum', 'Platinum'),
+        ('emerald', 'Emerald'),
+        ('diamond', 'Diamond'),
+    ]
+
+    current_status = models.CharField(max_length=20, verbose_name="Aktuální status", choices=STATUS_CHOICES, null=True, blank=True)
+    current_value = models.FloatField(default=0, verbose_name="Současná hodnota")
+
+    bronze_obtained_date = models.DateTimeField(null=True, blank=True, verbose_name="Datum získání bronze")
+    silver_obtained_date = models.DateTimeField(null=True, blank=True, verbose_name="Datum získání silver")
+    gold_obtained_date = models.DateTimeField(null=True, blank=True, verbose_name="Datum získání gold")
+    platinum_obtained_date = models.DateTimeField(null=True, blank=True, verbose_name="Datum získání platinum")
+    emerald_obtained_date = models.DateTimeField(null=True, blank=True, verbose_name="Datum získání emerald")
+    diamond_obtained_date = models.DateTimeField(null=True, blank=True, verbose_name="Datum získání diamond")
+    
+    def update_achivement_status(self):
+        if self.current_value >= self.Achivement.diamond_value and self.current_status != 'diamond':
+            self.current_status = 'diamond'
+            self.diamond_obtained_date = timezone.now()
+        elif self.current_value >= self.Achivement.emerald_value and self.current_status != 'emerald':
+            self.current_status = 'emerald'
+            self.emerald_obtained_date = timezone.now()
+        elif self.current_value >= self.Achivement.platinum_value and self.current_status != 'platinum':
+            self.current_status = 'platinum'
+            self.platinum_obtained_date = timezone.now()
+        elif self.current_value >= self.Achivement.gold_value and self.current_status != 'gold':
+            self.current_status = 'gold'
+            self.gold_obtained_date = timezone.now()
+        elif self.current_value >= self.Achivement.silver_value and self.current_status != 'silver':
+            self.current_status = 'silver'
+            self.silver_obtained_date = timezone.now()
+        elif self.current_value >= self.Achivement.bronze_value and self.current_status != 'bronze':
+            self.current_status = 'bronze'
+            self.bronze_obtained_date = timezone.now()
+        else:
+            self.current_status = None
+            self.bronze_obtained_date = None
+            self.silver_obtained_date = None
+            self.gold_obtained_date = None
+            self.platinum_obtained_date = None
+            self.emerald_obtained_date = None
+            self.diamond_obtained_date = None
+
+        self.save()

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Player, Char_info
+from .models import Player, Char_info, Achivements_database, Achivements_players
 
 
 class CharInfoInline(admin.TabularInline):
@@ -64,3 +64,60 @@ class CharInfoAdmin(admin.ModelAdmin):
             ),
         }),
     )
+
+@admin.register(Achivements_database)
+class AchivementsDatabaseAdmin(admin.ModelAdmin):
+    list_display = ('name', 'description', 'bronze_value', 'silver_value', 'gold_value', 'platinum_value', 'emerald_value', 'diamond_value')
+    search_fields = ('name', 'description')
+    ordering = ('name',)
+    fieldsets = (
+        ('Základní informace o achivementu', {
+            'fields': (
+                ('name', 'description'),
+            ),
+        }),
+        ('Hodnoty pro získání achivementu', {
+            'fields': (
+                ('bronze_value', 'silver_value', 'gold_value'),
+                ('platinum_value', 'emerald_value', 'diamond_value'),
+            ),
+        }),
+    )
+
+    def has_add_permission(self, request):
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        return True
+
+
+@admin.register(Achivements_players)
+class AchivementsPlayersAdmin(admin.ModelAdmin):
+    list_display = ('player', 'Achivement', 'current_status', 'current_value', 'bronze_obtained_date', 'silver_obtained_date', 'gold_obtained_date', 'platinum_obtained_date', 'emerald_obtained_date', 'diamond_obtained_date')
+    list_filter = ('current_status', 'Achivement', 'player')
+    search_fields = ('player__user__username', 'player__nickname', 'Achivement__name')
+    ordering = ('-current_value', 'Achivement')
+    fieldsets = (
+        ('Hráč a achivement', {
+            'fields': (
+                ('player', 'Achivement'),
+            ),
+        }),
+        ('Aktuální status', {
+            'fields': (
+                ('current_status', 'current_value'),
+            ),
+        }),
+        ('Datumy získání', {
+            'fields': (
+                ('bronze_obtained_date', 'silver_obtained_date', 'gold_obtained_date'),
+                ('platinum_obtained_date', 'emerald_obtained_date', 'diamond_obtained_date'),
+            ),
+        }),
+    )
+
+    def has_add_permission(self, request):
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        return True
