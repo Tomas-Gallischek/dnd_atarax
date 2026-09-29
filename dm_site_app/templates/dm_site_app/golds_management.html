@@ -11,7 +11,13 @@
         <h2>{{ char.name }}</h2>
         <p><strong>Hráč:</strong> {{ char.player.nickname }}</p>
         <p><strong>Měna:</strong> {{ char.gold }} zlaťáků, {{ char.silver }} stříbrňáků</p>
-    </div> 
+        <form action="{{ char.char_id }}/" method="post">
+            {% csrf_token %}
+            <input type="number" name="gold" value="{{ char.gold }}">
+            <input type="number" name="silver" value="{{ char.silver }}">
+            <button type="submit">Uložit</button>
+        </form>
+    </div>  
 {% endfor %}
 
 {% endblock %}

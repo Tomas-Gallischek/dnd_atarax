@@ -1,6 +1,7 @@
 from datetime import timezone
 from django.db import models
 from django.contrib.auth.models import User
+import random
 
 
 class Player(models.Model):
@@ -44,6 +45,8 @@ class Char_info(models.Model):
         related_name='characters',
         verbose_name="Hráč"
     )
+
+    char_id = models.IntegerField(default=random.randint(100000, 999999), verbose_name="ID postavy", blank=True, null=True)
 
     # Základní identita
     name = models.CharField(max_length=100, verbose_name="Jméno postavy")
