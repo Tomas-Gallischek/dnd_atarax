@@ -56,6 +56,7 @@ class Char_info(models.Model):
     experience_points = models.IntegerField(default=0, verbose_name="Zkušenosti (XP)")
     gold = models.IntegerField(default=0, verbose_name="Zlaťáky", blank=True, null=True)
     silver = models.IntegerField(default=0, verbose_name="Stříbráky", blank=True, null=True)
+    total_golds = models.FloatField(default=0, verbose_name="Celkové zlaťáky - EVER", blank=True, null=True)
     
 
     # Bojové statistiky & Životy
@@ -208,3 +209,26 @@ class Achivements_players(models.Model):
 
 
         self.save()
+
+class Logs(models.Model):
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name='logs',
+        verbose_name="Hráč"
+    )
+
+    character = models.ForeignKey(
+        Char_info,
+        on_delete=models.CASCADE,
+        related_name='logs',
+        verbose_name="Postava"
+    )
+
+    
+    message = models.CharField(max_length=200, verbose_name="Zpráva")
+    value = models.FloatField(default=0, verbose_name="Hodnota", null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
+
+    def __str__(self):
+        return f"{self.player} - {self.character} - {self.message} - {self.value}"
