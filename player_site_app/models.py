@@ -90,6 +90,12 @@ class Char_info(models.Model):
         while self.silver < 0:
             self.gold -= 1
             self.silver += 10
+
+        if self.gold < 0:
+            self.gold = 0
+        if self.silver < 0:
+            self.silver = 0
+
         super().save(*args, **kwargs)
 
     def __str__(self):
