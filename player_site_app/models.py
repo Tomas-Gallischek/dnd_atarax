@@ -154,6 +154,13 @@ class Achivements_database(models.Model):
     emerald_value = models.FloatField(default=0, verbose_name="hodnota pro emerald", null=True, blank=True)
     diamond_value = models.FloatField(default=0, verbose_name="hodnota pro diamond", null=True, blank=True)
 
+    class Meta:
+        verbose_name = "Úspěch (šablona)"
+        verbose_name_plural = "Úspěchy (šablony)"
+
+    def __str__(self):
+        return self.name
+
 
 # Databáze existujících achivementů
 class Achivements_players(models.Model):
@@ -200,34 +207,61 @@ class Achivements_players(models.Model):
     platinum_obtained_date = models.DateTimeField(null=True, blank=True, verbose_name="Datum získání platinum")
     emerald_obtained_date = models.DateTimeField(null=True, blank=True, verbose_name="Datum získání emerald")
     diamond_obtained_date = models.DateTimeField(null=True, blank=True, verbose_name="Datum získání diamond")
+
+    class Meta:
+        verbose_name = "Úspěch hráče"
+        verbose_name_plural = "Úspěchy hráčů"
+        ordering = ['-current_value', 'Achivement']
+
+    def __str__(self):
+        ach_name = self.Achivement.name if self.Achivement else "Neznámý úspěch"
+        who = self.char.name if self.char else (str(self.player) if self.player else "Neznámý")
+        status = f" ({self.get_current_status_display()})" if self.current_status else ""
+        return f"{who} - {ach_name}{status}"
     
     def update_achivement_status(self):
-        if self.current_value >= self.Achivement.diamond_value and self.current_status != 'diamond':
-            self.current_status = 'diamond'
-            self.diamond_obtained_date = timezone.now()
-        elif self.current_value >= self.Achivement.emerald_value and self.current_status != 'emerald':
-            self.current_status = 'emerald'
-            self.emerald_obtained_date = timezone.now()
-        elif self.current_value >= self.Achivement.platinum_value and self.current_status != 'platinum':
-            self.current_status = 'platinum'
-            self.platinum_obtained_date = timezone.now()
-        elif self.current_value >= self.Achivement.gold_value and self.current_status != 'gold':
-            self.current_status = 'gold'
-            self.gold_obtained_date = timezone.now()
-        elif self.current_value >= self.Achivement.silver_value and self.current_status != 'silver':
-            self.current_status = 'silver'
-            self.silver_obtained_date = timezone.now()
-        elif self.current_value >= self.Achivement.bronze_value and self.current_status != 'bronze':
-            self.current_status = 'bronze'
-            self.bronze_obtained_date = timezone.now()
+        if not self.Achivement:
+            return
+
+        d_val = self.Achivement.diamond_value
+        e_val = self.Achivement.emerald_value
+        p_val = self.Achivement.platinum_value
+        g_val = self.Achivement.gold_value
+        s_val = self.Achivement.silver_value
+        b_val = self.Achivement.bronze_value
+
+        if d_val is not None and d_val > 0 and self.current_value >= d_val:
+            if self.current_status != 'diamond':
+                self.current_status = 'diamond'
+            if not self.diamond_obtained_date:
+                self.diamond_obtained_date = timezone.now()
+        elif e_val is not None and e_val > 0 and self.current_value >= e_val:
+            if self.current_status != 'emerald':
+                self.current_status = 'emerald'
+            if not self.emerald_obtained_date:
+                self.emerald_obtained_date = timezone.now()
+        elif p_val is not None and p_val > 0 and self.current_value >= p_val:
+            if self.current_status != 'platinum':
+                self.current_status = 'platinum'
+            if not self.platinum_obtained_date:
+                self.platinum_obtained_date = timezone.now()
+        elif g_val is not None and g_val > 0 and self.current_value >= g_val:
+            if self.current_status != 'gold':
+                self.current_status = 'gold'
+            if not self.gold_obtained_date:
+                self.gold_obtained_date = timezone.now()
+        elif s_val is not None and s_val > 0 and self.current_value >= s_val:
+            if self.current_status != 'silver':
+                self.current_status = 'silver'
+            if not self.silver_obtained_date:
+                self.silver_obtained_date = timezone.now()
+        elif b_val is not None and self.current_value >= b_val and (b_val > 0 or self.current_value > 0):
+            if self.current_status != 'bronze':
+                self.current_status = 'bronze'
+            if not self.bronze_obtained_date:
+                self.bronze_obtained_date = timezone.now()
         else:
             self.current_status = None
-            self.bronze_obtained_date = None
-            self.silver_obtained_date = None
-            self.gold_obtained_date = None
-            self.platinum_obtained_date = None
-            self.emerald_obtained_date = None
-            self.diamond_obtained_date = None
 
 
     def save(self, *args, **kwargs):

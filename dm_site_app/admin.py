@@ -2,7 +2,34 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import Locations, Npc, NpcLoot, CompendiumItem, CompendiumMonster
 
-admin.site.register(Locations)
+
+@admin.register(Locations)
+class LocationsAdmin(admin.ModelAdmin):
+    list_display = ('name', 'type', 'layer_up', 'layer_down', 'short_description')
+    list_filter = ('type', 'layer_up')
+    search_fields = ('name', 'description')
+    ordering = ('name',)
+    list_per_page = 25
+
+    fieldsets = (
+        ('Základní informace', {
+            'fields': (
+                ('name', 'type'),
+                ('layer_up', 'layer_down'),
+            ),
+        }),
+        ('Popis', {
+            'fields': (
+                'description',
+            ),
+        }),
+    )
+
+    @admin.display(description='Popis')
+    def short_description(self, obj):
+        if obj.description and len(obj.description) > 60:
+            return f"{obj.description[:60]}..."
+        return obj.description or "—"
 
 
 
