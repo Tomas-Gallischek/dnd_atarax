@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Player, Char_info, Achivements_database, Achivements_players
+from .models import Player, Char_info, Achivements_database, Achivements_players, Logs
 
 
 class CharInfoInline(admin.TabularInline):
@@ -121,3 +121,16 @@ class AchivementsPlayersAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return True
+
+@admin.register(Logs)
+class LogsAdmin(admin.ModelAdmin):
+    list_display = ('player', 'message', 'value')
+    search_fields = ('player__user__username', 'player__nickname', 'message')
+    ordering = ('created_at',)
+    fieldsets = (
+        ('Základní informace o logu', {
+            'fields': (
+                ('player', 'message'),
+            ),
+        }),
+    )
