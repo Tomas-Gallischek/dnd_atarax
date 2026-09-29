@@ -11,9 +11,11 @@
         <h2>{{ char.name }}</h2>
         <p><strong>Hráč:</strong> {{ char.player.nickname }}</p>
         <p><strong>Měna:</strong> {{ char.gold }} zlaťáků, {{ char.silver }} stříbrňáků</p>
-        <form action="add_gold/" method="post">
+        <form action="{% url 'dm_site_app:add_gold' %}" method="post">
             {% csrf_token %}
+            <label for="gold">Zlaťáky:</label>
             <input type="number" name="gold" value="0">
+            <label for="silver">Stříbrňáky:</label>
             <input type="number" name="silver" value="0">
             <input type="hidden" name="char_id" value="{{ char.id }}">
             <button type="submit">Uložit</button>
