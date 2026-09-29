@@ -30,9 +30,18 @@ class Player(models.Model):
     temna_esence = models.IntegerField(default=0, verbose_name="Temná esence", blank=True, null=True)
     pin_code = models.IntegerField(default=0, verbose_name="Pin kod", blank=True, null=True)
 
+    admin = models.BooleanField(default=False, verbose_name="Jsi administrátor", blank=True, null=True)
+
     class Meta:
         verbose_name = "Hráč"
         verbose_name_plural = "Hráči"
+
+    def save(self, *args, **kwargs):
+        if self.user.is_staff == True:
+            self.admin = True
+        else:
+            self.admin = False
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.nickname or self.user.username

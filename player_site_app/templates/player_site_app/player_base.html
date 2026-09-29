@@ -244,6 +244,18 @@
             </li>
         </ul>
 
+        <!-- Tlačítko pro administrátora - spravuje celkovou hru-->
+        {% if player.admin == True %}
+            <ul class="player-nav-list">
+                <li class="player-nav-item">
+                    <a href="{% url 'dm_site:index_dashboard' %}" class="{% if current_page == 'index_dashboard' %}active{% endif %}">
+                        <span>&#128176;</span> Správa dungeonu
+                    </a>
+                </li>
+            </ul>
+        {% endif %}
+
+
         <!-- Tlačítko odhlásit se pod Dungeon Shopem -->
         <div class="player-nav-logout">
             <a href="{% url 'player_site_app:logout' %}">
