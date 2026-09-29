@@ -221,7 +221,9 @@ class Achivements_players(models.Model):
             self.diamond_obtained_date = None
 
 
-        self.save()
+    def save(self, *args, **kwargs):
+        self.update_achivement_status() # Spuštění funkce pro kontrolu achivementu
+        super().save(*args, **kwargs)
 
 class Logs(models.Model):
     player = models.ForeignKey(
