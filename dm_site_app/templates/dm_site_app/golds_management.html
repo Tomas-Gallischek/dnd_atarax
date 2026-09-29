@@ -1,27 +1,27 @@
-{% extends "base.html" %}
+{% extends "dm_site_app/base_dm.html" %}
 
-{% block title %}DnD Atarax - DM sekce{% endblock %}
+{% block title %}DnD Atarax - Správa zlaťáků{% endblock %}
 
-{% block content %}
-
+{% block dm_content %}
 <h1>Správa zlaťáků</h1>
 
 {% for char in all_chars %}
-    <div class="char">
-        <h2>{{ char.name }}</h2>
+    <div class="char" style="margin-top: 1rem; padding: 14px; border: 1px solid #44403c; border-radius: 8px; background: #292524; color: #f5f5f4;">
+        <h2 style="margin-top: 0; color: #fbbf24;">{{ char.name }}</h2>
         <p><strong>Hráč:</strong> {{ char.player.nickname }}</p>
         <p><strong>Měna:</strong> {{ char.gold }} zlaťáků, {{ char.silver }} stříbrňáků</p>
-        <form action="{% url 'dm_site_app:add_gold' %}" method="post">
+        <form action="{% url 'dm_site_app:add_gold' %}" method="post" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             {% csrf_token %}
-            <label for="gold">Zlaťáky:</label>
-            <input type="number" name="gold" value="0">
-            <label for="silver">Stříbrňáky:</label>
-            <input type="number" name="silver" value="0">
+            <label for="gold_{{ char.id }}">Zlaťáky:</label>
+            <input type="number" id="gold_{{ char.id }}" name="gold" value="0" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #78716c; width: 80px;">
+            <label for="silver_{{ char.id }}">Stříbrňáky:</label>
+            <input type="number" id="silver_{{ char.id }}" name="silver" value="0" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #78716c; width: 80px;">
             <input type="hidden" name="char_id" value="{{ char.id }}">
-            <button type="submit" name="action" value="plus">Přidat</button>
-            <button type="submit" name="action" value="minus">Ubrat</button>
+            <button type="submit" name="action" value="plus" style="padding: 6px 12px; background: #16a34a; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Přidat</button>
+            <button type="submit" name="action" value="minus" style="padding: 6px 12px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Ubrat</button>
         </form>
     </div>  
+{% empty %}
+    <p style="color: #a8a29e; margin-top: 1rem;">Žádné postavy k dispozici.</p>
 {% endfor %}
-
 {% endblock %}

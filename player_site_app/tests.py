@@ -223,6 +223,10 @@ class PlayerAuthAndCharacterTests(TestCase):
 
     def test_dm_site_does_not_contain_player_nav(self):
         """Aplikace dm_site_app nesmí obsahovat hráčské menu."""
+        self.user1.is_staff = True
+        self.user1.save()
+        self.client.force_login(self.user1)
         response = self.client.get(reverse('dm_site_app:index'))
+        self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'id="playerNavContainer"')
         self.assertNotContains(response, 'id="playerNavToggleBtn"')

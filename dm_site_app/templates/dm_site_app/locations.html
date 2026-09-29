@@ -1,15 +1,17 @@
-{% extends "base.html" %}
+{% extends "dm_site_app/base_dm.html" %}
 
-{% block title %}DnD Atarax - DM sekce{% endblock %}
+{% block title %}DnD Atarax - Lokace a Mapy{% endblock %}
 
-{% block content %}
-
-<h1>Mapy</h1>
+{% block dm_content %}
+<h1>Mapy a Lokace</h1>
 
 {% for location in locations %}
-    <h2>{{ location.name }}</h2>
-    <p>{{ location.description }}</p>
-    <p>{{ location.type }}</p>
+    <div style="margin-top: 1rem; padding: 14px; border: 1px solid #44403c; border-radius: 8px; background: #292524; color: #f5f5f4;">
+        <h2 style="margin-top: 0; color: #fbbf24;">{{ location.name }}</h2>
+        <p>{{ location.description }}</p>
+        <p style="color: #a8a29e; font-size: 0.9rem;"><strong>Typ:</strong> {{ location.get_type_display|default:location.type }}</p>
+    </div>
+{% empty %}
+    <p style="color: #a8a29e; margin-top: 1rem;">Žádné lokace nejsou k dispozici.</p>
 {% endfor %}
-
 {% endblock %}

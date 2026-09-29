@@ -1,86 +1,129 @@
+from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Locations
+from django.contrib import messages
+from .models import Locations, Npc
 from player_site_app.models import Player, Char_info, Logs
 from player_site_app.achivements import golds_achivement
 
 
+def dm_required(view_func):
+    """
+    Dekorátor pro DM sekci.
+    Kontroluje:
+    1) Zda je uživatel přihlášený (request.user.is_authenticated)
+    2) Zda má administrátorská / staff práva (request.user.is_staff=True)
+    """
+    @wraps(view_func)
+    def _wrapped_view(request, *args, **kwargs):
+        # 1. Kontrola přihlášení
+        if not request.user.is_authenticated:
+            return redirect('player_site_app:index')
 
+        # 2. Kontrola administrátorských práv
+        if not request.user.is_staff:
+            messages.error(request, "Pro přístup do DM sekce musíte mít administrátorská práva (is_staff).")
+            return redirect('player_site_app:prehled_postav')
+
+        return view_func(request, *args, **kwargs)
+    return _wrapped_view
+
+
+@dm_required
 def index(request):
-    if request.user.is_staff == False:
-        return redirect('player_site_app:index')
-    return render(request, 'dm_site_app/index_dashboard.html')
+    """1. DM Dashboard"""
+    return render(request, 'dm_site_app/index_dashboard.html', {
+        'current_page': 'index_dashboard',
+    })
 
-def locations(request):
-    if request.user.is_staff == False:
-        return redirect('player_site_app:index')
 
-    all_locations = Locations.objects.all()
+@dm_required
+def tools(request):
+    """2. Nástroje DM"""
+    return render(request, 'dm_site_app/tools.html', {
+        'current_page': 'tools',
+    })
 
+
+@dm_required
+def npc(request):
+    """3. Seznam NPC"""
+    all_npcs = Npc.objects.all()
     context = {
-        'locations': all_locations
+        'npcs': all_npcs,
+        'current_page': 'npc',
     }
+    return render(request, 'dm_site_app/npc.html', context)
 
+
+# Zpětná kompatibilita pro název funkce npcs
+npcs = npc
+
+
+@dm_required
+def locations(request):
+    """4. Mapy a lokace"""
+    all_locations = Locations.objects.all()
+    context = {
+        'locations': all_locations,
+        'current_page': 'locations',
+    }
     return render(request, 'dm_site_app/locations.html', context)
 
-def tools(request):
-    if request.user.is_staff == False:
-        return redirect('player_site_app:index')
-    return render(request, 'dm_site_app/tools.html')
 
+@dm_required
+def notes(request):
+    """5. Poznámky DM"""
+    return render(request, 'dm_site_app/notes.html', {
+        'current_page': 'notes',
+    })
+
+
+@dm_required
+def lore(request):
+    """6. Lore s možností sdílet hráčům"""
+    return render(request, 'dm_site_app/lore.html', {
+        'current_page': 'lore',
+    })
+
+
+@dm_required
 def golds_management(request):
-    if request.user.is_staff == False:
-        return redirect('player_site_app:index')
+    """Správa zlaťáků postav"""
     all_chars = Char_info.objects.all()
-
-    
     context = {
-        'all_chars': all_chars
+        'all_chars': all_chars,
+        'current_page': 'golds_management',
     }
     return render(request, 'dm_site_app/golds_management.html', context)
 
-def lore(request):
-    if request.user.is_staff == False:
-        return redirect('player_site_app:index')
-    return render(request, 'dm_site_app/lore.html')
 
-def notes(request):
-    if request.user.is_staff == False:
-        return redirect('player_site_app:index')
-    return render(request, 'dm_site_app/notes.html')
-
-def npcs(request):
-    if request.user.is_staff == False:
-        return redirect('player_site_app:index')
-    return render(request, 'dm_site_app/npcs.html')
-
-
+@dm_required
 def add_gold(request):
-    if request.user.is_staff == False:
-        return redirect('player_site_app:index')
+    """Přidání/odebrání zlaťáků postavě"""
     if request.method == 'POST':
         char_id = request.POST.get('char_id')
         gold = request.POST.get('gold')
         silver = request.POST.get('silver')
         action = request.POST.get('action')
-        plus_total_golds = float(gold) + (float(silver) / 10)
+        plus_total_golds = round(float(gold or 0) + (float(silver or 0) / 10), 1)
 
-    # Zapsání goldů
+        # Zapsání goldů
         if char_id:
             char = get_object_or_404(Char_info, id=char_id)
             if action == 'plus':
                 char.gold += int(gold or 0)
                 char.silver += int(silver or 0)
                 char.total_golds += plus_total_golds
-                golds_achivement(char_id, plus_total_golds) # kontrola achivementu
+                golds_achivement(char_id, plus_total_golds)  # kontrola achievementu
             elif action == 'minus':
                 char.gold -= int(gold or 0)
                 char.silver -= int(silver or 0)
             else:
                 return redirect('dm_site_app:golds-management')
-                
+
             char.save()
 
-    # Zapsání do logu
+            # Zapsání do logu
             log = Logs(
                 player=char.player,
                 character=char,
@@ -88,8 +131,5 @@ def add_gold(request):
                 value=plus_total_golds
             )
             log.save()
-           
-
 
     return redirect('dm_site_app:golds-management')
-    
