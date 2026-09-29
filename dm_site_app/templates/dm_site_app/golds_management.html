@@ -6,12 +6,11 @@
 
 <h1>Správa zlaťáků</h1>
 
-{% for player in all_players %}
-    <div class="player">
-        <h2>{{ player.player_name }}</h2>
-        {% for character in player.characters %}
-            <p>{{ character.name }} : {{ character.gold }} zlaťáků, {{ character.silver }} stříbrňáků</p>
-        {% endfor %}
+{% for char in all_chars %}
+    <div class="char">
+        <h2>{{ char.name }}</h2>
+        <p><strong>Hráč:</strong> {{ char.player.nickname }}</p>
+        <p><strong>Měna:</strong> {{ char.gold }} zlaťáků, {{ char.silver }} stříbrňáků</p>
     </div> 
 {% endfor %}
 

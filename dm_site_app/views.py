@@ -19,11 +19,11 @@ def tools(request):
     return render(request, 'dm_site_app/tools.html')
 
 def golds_management(request):
-    all_players = Player.objects.all()
+    all_chars = Char_info.objects.all()
 
     
     context = {
-        'all_players': all_players
+        'all_chars': all_chars
     }
     return render(request, 'dm_site_app/golds_management.html', context)
 
