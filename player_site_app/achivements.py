@@ -6,7 +6,11 @@ def golds_achivement(char_id, amount):
 # identifikace
     this_achivement = Achivements_database.objects.get(name="Zbohatlík")
     this_char = Char_info.objects.get(id=char_id)
-    current_achivement = this_char.achivements.get(Achivement=this_achivement)
+    current_achivement = Achivements_players.objects.filter(char=this_char, Achivement=this_achivement)
+    if current_achivement.exists():
+        current_achivement = current_achivement.first()
+    else:
+        current_achivement = Achivements_players.objects.create(char=this_char, Achivement=this_achivement, current_value=amount)
 
 # Zápis a kontrola
     new_total_gold = this_char.total_golds + amount # Nové celkové goldy
