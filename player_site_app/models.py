@@ -46,8 +46,6 @@ class Char_info(models.Model):
         verbose_name="Hráč"
     )
 
-    char_id = models.IntegerField(default=random.randint(100000, 999999), verbose_name="ID postavy", blank=True, null=True)
-
     # Základní identita
     name = models.CharField(max_length=100, verbose_name="Jméno postavy")
     race = models.CharField(max_length=50, blank=True, null=True, verbose_name="Rasa")
