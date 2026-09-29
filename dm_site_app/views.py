@@ -3,9 +3,13 @@ from .models import Locations
 from player_site_app.models import Player, Char_info
 
 def index(request):
+    if request.user.is_staff == False:
+        return redirect('player_site_app:index')
     return render(request, 'dm_site_app/index_dashboard.html')
 
 def locations(request):
+    if request.user.is_staff == False:
+        return redirect('player_site_app:index')
 
     all_locations = Locations.objects.all()
 
@@ -16,9 +20,13 @@ def locations(request):
     return render(request, 'dm_site_app/locations.html', context)
 
 def tools(request):
+    if request.user.is_staff == False:
+        return redirect('player_site_app:index')
     return render(request, 'dm_site_app/tools.html')
 
 def golds_management(request):
+    if request.user.is_staff == False:
+        return redirect('player_site_app:index')
     all_chars = Char_info.objects.all()
 
     
@@ -28,16 +36,24 @@ def golds_management(request):
     return render(request, 'dm_site_app/golds_management.html', context)
 
 def lore(request):
+    if request.user.is_staff == False:
+        return redirect('player_site_app:index')
     return render(request, 'dm_site_app/lore.html')
 
 def notes(request):
+    if request.user.is_staff == False:
+        return redirect('player_site_app:index')
     return render(request, 'dm_site_app/notes.html')
 
 def npcs(request):
+    if request.user.is_staff == False:
+        return redirect('player_site_app:index')
     return render(request, 'dm_site_app/npcs.html')
 
 
 def add_gold(request):
+    if request.user.is_staff == False:
+        return redirect('player_site_app:index')
     if request.method == 'POST':
         char_id = request.POST.get('char_id')
         gold = request.POST.get('gold')
