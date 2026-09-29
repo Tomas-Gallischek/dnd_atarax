@@ -152,13 +152,25 @@ class Achivements_players(models.Model):
         Player,
         on_delete=models.CASCADE,
         related_name='achivements',
-        verbose_name="Hráč"
+        verbose_name="Hráč",
+        blank = True,
+        null = True
     )
     Achivement = models.ForeignKey(
         Achivements_database,
         on_delete=models.CASCADE,
         related_name='achivements',
-        verbose_name="Achivement"
+        verbose_name="Achivement",
+        blank = True,
+        null = True
+    )
+    char = models.ForeignKey(
+        Char_info,
+        on_delete=models.CASCADE,
+        related_name='achivements',
+        verbose_name="Postava",
+        blank = True,
+        null = True
     )
 
     STATUS_CHOICES = [
