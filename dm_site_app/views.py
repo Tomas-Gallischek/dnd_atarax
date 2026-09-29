@@ -1,6 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Locations
 from player_site_app.models import Player, Char_info, Logs
+from player_site_app.achivements import golds_achivement
+
+
 
 def index(request):
     if request.user.is_staff == False:
@@ -61,12 +64,14 @@ def add_gold(request):
         action = request.POST.get('action')
         plus_total_golds = float(gold) + (float(silver) / 10)
 
+    # Zapsání goldů
         if char_id:
             char = get_object_or_404(Char_info, id=char_id)
             if action == 'plus':
                 char.gold += int(gold or 0)
                 char.silver += int(silver or 0)
                 char.total_golds += plus_total_golds
+                golds_achivement(char_id, plus_total_golds) # kontrola achivementu
             elif action == 'minus':
                 char.gold -= int(gold or 0)
                 char.silver -= int(silver or 0)
@@ -75,6 +80,7 @@ def add_gold(request):
                 
             char.save()
 
+    # Zapsání do logu
             log = Logs(
                 player=char.player,
                 character=char,
@@ -82,6 +88,8 @@ def add_gold(request):
                 value=plus_total_golds
             )
             log.save()
+           
+
 
     return redirect('dm_site_app:golds-management')
     

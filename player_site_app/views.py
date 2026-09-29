@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Player, Char_info
 from .forms import PlayerLoginForm, PlayerRegistrationForm
+from . import achivements
 
 
 def get_player_and_character(request, char_id=None):
