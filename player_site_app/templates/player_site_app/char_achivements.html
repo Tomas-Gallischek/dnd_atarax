@@ -3,20 +3,11 @@
 {% block title %}DnD Atarax - Úspěchy{% endblock %}
 
 {% block player_content %}
-<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
-    <h1>Achievements (Úspěchy)</h1>
 
-    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff; margin-bottom: 1.5rem;">
-        <h2>Hráčské zdroje</h2>
-        <div style="padding: 12px 20px; border: 1px solid #c084fc; background: #faf5ff; border-radius: 8px; display: inline-block;">
-            <div style="font-size: 0.85rem; color: #7e22ce;">Temná esence</div>
-            <div style="font-size: 1.8rem; font-weight: bold; color: #6b21a8;">{{ player.temna_esence|default:0 }}</div>
-        </div>
-    </div>
+{% for achivement in achivement %}
+{{ achivement.achivement.name }}
+{{ achivement.current_status }}
+{{ achivement.current_value }}
+{% endfor %}
 
-    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
-        <h2>Získané úspěchy {% if character %}({{ character.name }}){% endif %}</h2>
-        <p style="color: #64748b;">Seznam odemčených a splněných herních milníků.</p>
-    </div>
-</main>
 {% endblock %}

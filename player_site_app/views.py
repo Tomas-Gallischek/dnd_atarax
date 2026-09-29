@@ -2,9 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Player, Char_info
+from .models import Player, Char_info, Achivements_players, Achivements_database
 from .forms import PlayerLoginForm, PlayerRegistrationForm
-from . import achivements
 
 
 def get_player_and_character(request, char_id=None):
@@ -163,11 +162,14 @@ def char_achivements_view(request, char_id=None):
     """5. Úspěchy (Achievements) aktivní postavy a hráče."""
     player, character = get_player_and_character(request, char_id)
 
+    achivements = Achivements_players.objects.filter(char=character)
+
     return render(request, 'player_site_app/char_achivements.html', {
         'player': player,
         'character': character,
         'active_character': character,
         'current_page': 'char_achivements',
+        'achivements': achivements,
     })
 
 
