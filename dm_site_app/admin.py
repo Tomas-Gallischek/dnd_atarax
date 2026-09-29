@@ -5,6 +5,7 @@ from .models import Locations, Npc, NpcLoot, CompendiumItem, CompendiumMonster
 admin.site.register(Locations)
 
 
+
 # 1. Definujeme vnořený formulář pro loot
 class NpcLootInline(admin.TabularInline):
     model = NpcLoot

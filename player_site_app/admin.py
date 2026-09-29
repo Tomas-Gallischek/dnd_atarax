@@ -2,6 +2,39 @@ from django.contrib import admin
 from .models import Player, Char_info, Achivements_database, Achivements_players, Logs
 
 
+
+
+class AchivementsPlayersAdmin(admin.ModelAdmin):
+    list_display = ('player', 'Achivement', 'char_info', 'current_status', 'current_value', 'bronze_obtained_date', 'silver_obtained_date', 'gold_obtained_date', 'platinum_obtained_date', 'emerald_obtained_date', 'diamond_obtained_date')
+    list_filter = ('current_status', 'Achivement', 'player')
+    search_fields = ('player__user__username', 'player__nickname', 'Achivement__name')
+    ordering = ('-current_value', 'Achivement')
+    fieldsets = (
+        ('Hráč a achivement', {
+            'fields': (
+                ('player', 'Achivement'),
+            ),
+        }),
+        ('Aktuální status', {
+            'fields': (
+                ('current_status', 'current_value'),
+            ),
+        }),
+        ('Datumy získání', {
+            'fields': (
+                ('bronze_obtained_date', 'silver_obtained_date', 'gold_obtained_date'),
+                ('platinum_obtained_date', 'emerald_obtained_date', 'diamond_obtained_date'),
+            ),
+        }),
+    )
+
+    def has_add_permission(self, request):
+        return True
+
+    def has_change_permission(self, request, obj=None):
+        return True
+
+
 class CharInfoInline(admin.TabularInline):
     model = Char_info
     extra = 0
@@ -89,38 +122,7 @@ class AchivementsDatabaseAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return True
-
-
-@admin.register(Achivements_players)
-class AchivementsPlayersAdmin(admin.ModelAdmin):
-    list_display = ('player', 'Achivement', 'current_status', 'current_value', 'bronze_obtained_date', 'silver_obtained_date', 'gold_obtained_date', 'platinum_obtained_date', 'emerald_obtained_date', 'diamond_obtained_date')
-    list_filter = ('current_status', 'Achivement', 'player')
-    search_fields = ('player__user__username', 'player__nickname', 'Achivement__name')
-    ordering = ('-current_value', 'Achivement')
-    fieldsets = (
-        ('Hráč a achivement', {
-            'fields': (
-                ('player', 'Achivement'),
-            ),
-        }),
-        ('Aktuální status', {
-            'fields': (
-                ('current_status', 'current_value'),
-            ),
-        }),
-        ('Datumy získání', {
-            'fields': (
-                ('bronze_obtained_date', 'silver_obtained_date', 'gold_obtained_date'),
-                ('platinum_obtained_date', 'emerald_obtained_date', 'diamond_obtained_date'),
-            ),
-        }),
-    )
-
-    def has_add_permission(self, request):
-        return True
-
-    def has_change_permission(self, request, obj=None):
-        return True
+   
 
 @admin.register(Logs)
 class LogsAdmin(admin.ModelAdmin):
