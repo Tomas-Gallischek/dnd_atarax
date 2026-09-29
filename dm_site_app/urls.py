@@ -11,6 +11,5 @@ urlpatterns = [
     path('lore',views.lore,name='lore'),
     path('notes',views.notes,name='notes'),
     path('npcs',views.npcs,name='npcs'),
-    
-    
+    path('add_gold', views.add_gold, name='add_gold'),
 ]

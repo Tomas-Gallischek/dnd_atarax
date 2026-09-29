@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from .models import Locations
 from player_site_app.models import Player, Char_info
+from django.shortcuts import redirect
 
 def index(request):
     return render(request, 'dm_site_app/index_dashboard.html')
@@ -35,3 +36,19 @@ def notes(request):
 
 def npcs(request):
     return render(request, 'dm_site_app/npcs.html')
+
+
+def add_gold(request):
+    if request.method == 'POST':
+        char_id = request.POST.get('char_id')
+        gold = request.POST.get('gold')
+        silver = request.POST.get('silver')
+        print(f"Přidíno: {gold} zlaťáků a {silver} stříbrňáků postavě {Char_info.objects.get(id=char_id).name}")
+        
+        char = Char_info.objects.get(id=char_id)
+        char.gold += int(gold)
+        char.silver += int(silver)
+        char.save()
+    
+    return redirect('dm_site_app:golds_management')
+    
