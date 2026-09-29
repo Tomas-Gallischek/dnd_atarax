@@ -1,7 +1,6 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect, get_object_or_404
 from .models import Locations
 from player_site_app.models import Player, Char_info
-from django.shortcuts import redirect
 
 def index(request):
     return render(request, 'dm_site_app/index_dashboard.html')
@@ -43,12 +42,13 @@ def add_gold(request):
         char_id = request.POST.get('char_id')
         gold = request.POST.get('gold')
         silver = request.POST.get('silver')
-        print(f"Přidíno: {gold} zlaťáků a {silver} stříbrňáků postavě {Char_info.objects.get(id=char_id).name}")
-        
-        char = Char_info.objects.get(id=char_id)
-        char.gold += int(gold)
-        char.silver += int(silver)
-        char.save()
-    
-    return redirect('golds_management')
+
+        if char_id:
+            char = get_object_or_404(Char_info, id=char_id)
+            char.gold += int(gold or 0)
+            char.silver += int(silver or 0)
+            char.save()
+            print(f"Přidáno: {gold} zlaťáků a {silver} stříbrňáků postavě {char.name}")
+
+    return redirect('dm_site_app:golds-management')
     
