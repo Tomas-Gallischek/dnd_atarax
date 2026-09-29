@@ -42,11 +42,19 @@ def add_gold(request):
         char_id = request.POST.get('char_id')
         gold = request.POST.get('gold')
         silver = request.POST.get('silver')
+        action = request.POST.get('action')
 
         if char_id:
             char = get_object_or_404(Char_info, id=char_id)
-            char.gold += int(gold or 0)
-            char.silver += int(silver or 0)
+            if action == 'plus':
+                char.gold += int(gold or 0)
+                char.silver += int(silver or 0)
+            elif action == 'minus':
+                char.gold -= int(gold or 0)
+                char.silver -= int(silver or 0)
+            else:
+                return redirect('dm_site_app:golds-management')
+                
             char.save()
             print(f"Přidáno: {gold} zlaťáků a {silver} stříbrňáků postavě {char.name}")
 

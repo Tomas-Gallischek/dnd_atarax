@@ -18,7 +18,8 @@
             <label for="silver">Stříbrňáky:</label>
             <input type="number" name="silver" value="0">
             <input type="hidden" name="char_id" value="{{ char.id }}">
-            <button type="submit">Uložit</button>
+            <button type="submit" name="action" value="plus">Přidat</button>
+            <button type="submit" name="action" value="minus">Ubrat</button>
         </form>
     </div>  
 {% endfor %}
