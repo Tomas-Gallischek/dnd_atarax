@@ -16,7 +16,8 @@ services:
     build: .
     container_name: dnd_django
     restart: unless-stopped
-    command: sh -c "python python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    # Server nyní provádí už pouze fyzický zápis do databáze (migrate) a spuštění
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     ports:
       - "9000:8000"
     environment:

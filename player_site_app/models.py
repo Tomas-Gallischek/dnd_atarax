@@ -134,6 +134,7 @@ class Char_info(models.Model):
 
 # DATABÁZE EXISTUJÍCÍCH ACHIVEMENTŮ
 class Achivements_database(models.Model):
+    img_ozn = models.CharField(max_length=50, verbose_name="Označení ikonky", default = "PRÁZDNO", null = True, blank = True)
     name = models.CharField(max_length=50, verbose_name="Jméno úspěchu")
     description = models.CharField(max_length=200, verbose_name="Popis úspěchu")
 
