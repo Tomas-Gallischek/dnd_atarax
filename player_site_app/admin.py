@@ -195,6 +195,18 @@ class AchivementsPlayersAdmin(admin.ModelAdmin):
     def tier_progress(self, obj):
         if not obj.Achivement:
             return "—"
+
+        def format_num(val):
+            if val is None:
+                return "0"
+            try:
+                f_val = float(val)
+                if f_val.is_integer():
+                    return str(int(f_val))
+                return f"{f_val:g}"
+            except (ValueError, TypeError):
+                return str(val)
+
         ach = obj.Achivement
         tiers = [
             ('Bronze', ach.bronze_value),
@@ -215,16 +227,16 @@ class AchivementsPlayersAdmin(admin.ModelAdmin):
             pct = min(100, max(0, int((obj.current_value / next_tier[1]) * 100)))
             return format_html(
                 '<div style="min-width: 130px;">'
-                '<div style="font-size: 11px; margin-bottom: 2px; color: #ddd;">Další: <b>{}</b> ({:g} / {:g})</div>'
+                '<div style="font-size: 11px; margin-bottom: 2px; color: #ddd;">Další: <b>{}</b> ({} / {})</div>'
                 '<div style="background: #374151; border-radius: 4px; height: 7px; overflow: hidden; border: 1px solid #4b5563;">'
                 '<div style="background: linear-gradient(90deg, #3b82f6, #10b981); width: {}%; height: 100%;"></div>'
                 '</div>'
                 '</div>',
-                next_tier[0], obj.current_value, next_tier[1], pct
+                next_tier[0], format_num(obj.current_value), format_num(next_tier[1]), pct
             )
         elif obj.current_status == 'diamond':
             return format_html('<span style="color: #10b981; font-weight: bold; font-size: 11px;">✓ Maximální úroveň</span>')
-        return format_html('<span style="color: #9ca3af; font-size: 11px;">{:g} bodů</span>', obj.current_value)
+        return format_html('<span style="color: #9ca3af; font-size: 11px;">{} bodů</span>', format_num(obj.current_value))
 
     @admin.display(description='Poslední milník')
     def latest_obtained_milestone(self, obj):
