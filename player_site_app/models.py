@@ -199,4 +199,5 @@ class Achivements_players(models.Model):
             self.emerald_obtained_date = None
             self.diamond_obtained_date = None
 
+
         self.save()

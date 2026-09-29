@@ -67,7 +67,10 @@ def index(request):
                 next_url = request.GET.get('next')
                 if next_url:
                     return redirect(next_url)
-                return redirect('player_site_app:prehled_postav')
+                if request.user.is_staff:
+                    return redirect('dm_site_app:index')
+                else:
+                    return redirect('player_site_app:prehled_postav')
             else:
                 messages.error(request, "Neplatné uživatelské jméno nebo heslo.")
 
