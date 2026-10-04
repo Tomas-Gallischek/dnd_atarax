@@ -178,6 +178,7 @@ def random_monster_gen(request):
 
 
     else:
+        print("TEST: NEJSEM POST")
         return redirect('dm_site_app:monster_gen_page')
     
 
