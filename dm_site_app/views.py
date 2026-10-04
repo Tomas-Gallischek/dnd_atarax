@@ -7,7 +7,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Locations, Npc, Monsters_All_db, Monsters_Active
 from player_site_app.models import Player, Char_info, Logs
-from player_site_app.achivements import golds_achivement
+from player_site_app.achivements import golds_achivement, killer_achivement
 from dnd_atarax.terminal import (
     log_dm, log_arena, log_hp, log_mob, log_player,
     log_gold, log_success, log_warning, log_error, log_info
@@ -337,13 +337,7 @@ def remove_mob(request, mob_id):
 
 @dm_required
 def mob_dead(request):
-    """
-    Zpracování zabití monstra hráčem.
-    Logiku si doplní DM (uživatel).
-    Přijímá POST data:
-      - mob_id: ID zabitého monstra
-      - killer: ID postavy hráče, který zasadil smrtící úder
-    """
+
     if request.method == 'POST':
         mob_id = request.POST.get('mob_id')
         killer_id = request.POST.get('killer')
@@ -355,6 +349,19 @@ def mob_dead(request):
 
         log_arena("Smrtící úder zaznamenán! 💀", f"Monstrum '{mob_name}' skoleno postavou '{killer_name}'")
 
-        # TODO: Zde si DM doplní vlastní logiku
+# ACHIVEMENT
+        killer_achivement(killer_id, 1)
+# LOOT
+
+# LOG
+        log = Logs(
+            player=killer.player,
+            character=killer,
+            message=f"Postava {killer_name} porazila monstrum {mob_name}",
+            value=None
+        )
+        log.save()
+
+
         return redirect('dm_site_app:pvp_arena')
     return redirect('dm_site_app:pvp_arena')
