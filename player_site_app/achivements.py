@@ -27,7 +27,7 @@ def golds_achivement(char_id, amount):
     )
     log.save()
 
-    log_gold("Úspěch 'Zbohatlík' aktualizován", f"{this_char.char_name}: {current_achivement.current_value} gp celkem")
+    log_gold("Úspěch 'Zbohatlík' aktualizován", f"{this_char.name}: {current_achivement.current_value} gp celkem")
 
     return "OK"
     
@@ -49,12 +49,12 @@ def killer_achivement(char_id, amount):
     log = Logs(
         player=this_char.player,
         character=this_char,
-        message=f"AKTUALIZACE ACHIVEMENTU 'Smrtící stroj'. Postava {this_char.char_name} zabila {amount} monster. Změna z: {old_value} na: {current_achivement.current_value}",
+        message=f"AKTUALIZACE ACHIVEMENTU 'Smrtící stroj'. Postava {this_char.name} zabila {amount} monster. Změna z: {old_value} na: {current_achivement.current_value}",
         value=current_achivement.current_value
     )
     log.save()
 
-    log_gold("AKTUALIZACE ACHIVEMENTU 'Smrtící stroj'", f"{this_char.char_name} zabil {amount} monster. Celkem: {current_achivement.current_value} monster")
+    log_gold("AKTUALIZACE ACHIVEMENTU 'Smrtící stroj'", f"{this_char.name} zabil {amount} monster. Celkem: {current_achivement.current_value} monster")
 
     return "OK"
     

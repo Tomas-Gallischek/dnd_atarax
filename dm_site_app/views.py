@@ -115,11 +115,11 @@ def add_gold(request):
                 char.silver += int(silver or 0)
                 char.total_golds += plus_total_golds
                 golds_achivement(char_id, plus_total_golds)  # kontrola achievementu
-                log_gold(f"+{gold or 0} gp, +{silver or 0} sp", f"Postava: {char.char_name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
+                log_gold(f"+{gold or 0} gp, +{silver or 0} sp", f"Postava: {char.name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
             elif action == 'minus':
                 char.gold -= int(gold or 0)
                 char.silver -= int(silver or 0)
-                log_gold(f"-{gold or 0} gp, -{silver or 0} sp", f"Postava: {char.char_name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
+                log_gold(f"-{gold or 0} gp, -{silver or 0} sp", f"Postava: {char.name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
             else:
                 return redirect('dm_site_app:golds-management')
 
@@ -246,7 +246,7 @@ def api_update_hp(request):
                 player.hit_points_current = new_hp
                 player.save(update_fields=['hit_points_current'])
                 saved_records.append({'entity_type': 'player', 'id': player.id, 'current_hp': player.hit_points_current})
-                log_hp("Změna HP hráče", f"{player.char_name}: {old_hp} -> {new_hp}/{player.hit_points_max} HP")
+                log_hp("Změna HP hráče", f"{player.name}: {old_hp} -> {new_hp}/{player.hit_points_max} HP")
 
         return JsonResponse({'success': True, 'saved': saved_records})
     except Exception as e:
@@ -272,7 +272,7 @@ def in_fight_switch(request):
             player.in_fight = (action == 'True') # Musí být takto, jinak to python vždycky zapíše jako "True"
             player.save()
             action_desc = "VSTUPUJE DO BOJE ⚔️" if player.in_fight else "ODCHÁZÍ Z BOJE 🏳️"
-            log_arena(f"Hráč: {action_desc}", f"{player.char_name} (Hráč: {player.player.nickname}) [ID: {player.id}]")
+            log_arena(f"Hráč: {action_desc}", f"{player.name} (Hráč: {player.player.nickname}) [ID: {player.id}]")
             return redirect('dm_site_app:pvp_pre')
     else:
         log_warning("Přepnutí stavu v boji", "Neplatná metoda požadavku (očekáván POST)")
