@@ -276,7 +276,6 @@ def in_fight_switch(request):
         messages.error(request, "Chyba při vybirani monstra")
         return redirect('dm_site_app:pvp_pre') 
 
-@dm_required
 def active_mob_db_save(mob_id):
     mob = Monsters_All_db.objects.get(id=mob_id)
     print("Ukládá se do databáze")
