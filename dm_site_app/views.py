@@ -231,11 +231,15 @@ def active_mob_db_save(mob_id):
     print("Uloženo do databáze")
     
 
-    
+@dm_required
+def remove_mob(request, mob_id):
+    mob = Monsters_Active.objects.get(id=mob_id)
+    mob.delete()
+    return redirect('dm_site_app:monster_gen_page')    
     
 
     
-    
+
 
     
 
