@@ -171,7 +171,8 @@ def random_monster_gen(request):
         print(f"TEST: MOB: {random_mob}")
 
         context = {
-            'random_mob': random_mob,
+            'mob_name': random_mob.name,
+            'mob_challenge_rating': random_mob.challenge_rating,
         }
         
         return render(request, 'dm_site_app/monster_gen_page.html', context)
