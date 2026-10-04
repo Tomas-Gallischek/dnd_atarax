@@ -207,13 +207,6 @@ def pvp_pre(request):
     })
 
 
-
-@dm_required
-def pvp_arena(request):
-    return render(request, 'dm_site_app/pvp_arena.html', {
-        'current_page': 'pvp_arena',
-    })
-
 @dm_required
 def pvp_arena(request):
     all_active_mobs = Monsters_Active.objects.filter(in_fight=True)
