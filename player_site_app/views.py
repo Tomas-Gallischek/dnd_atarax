@@ -162,7 +162,10 @@ def char_achivements_view(request, char_id=None):
     """5. Úspěchy (Achievements) aktivní postavy a hráče."""
     player, character = get_player_and_character(request, char_id)
 
-    achivements = Achivements_players.objects.filter(char=character)
+    if character:
+        achivements = Achivements_players.objects.filter(char=character).select_related('Achivement')
+    else:
+        achivements = Achivements_players.objects.none()
 
     return render(request, 'player_site_app/char_achivements.html', {
         'player': player,
@@ -170,6 +173,7 @@ def char_achivements_view(request, char_id=None):
         'active_character': character,
         'current_page': 'char_achivements',
         'achivements': achivements,
+        'achivement': achivements,
     })
 
 

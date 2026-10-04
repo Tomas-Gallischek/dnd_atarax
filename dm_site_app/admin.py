@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Locations, Npc, NpcLoot, CompendiumItem, CompendiumMonster
+from .models import Locations, Npc, NpcLoot, Monsters_All_db, Items_All_db, Monsters_Active, Items_Active
 
 
 @admin.register(Locations)
@@ -51,8 +51,8 @@ class NpcAdmin(admin.ModelAdmin):
 
 
 # 3. Zaregistrujeme položky z kompendia s přehledným rozhraním
-@admin.register(CompendiumItem)
-class CompendiumItemAdmin(admin.ModelAdmin):
+@admin.register(Items_All_db)
+class Items_All_dbAdmin(admin.ModelAdmin):
     list_display = (
         'name_cz',
         'name_en',
@@ -107,8 +107,8 @@ class CompendiumItemAdmin(admin.ModelAdmin):
 
 
 # 4. Zaregistrujeme nestvůry z kompendia s komplexním a přehledným rozhraním
-@admin.register(CompendiumMonster)
-class CompendiumMonsterAdmin(admin.ModelAdmin):
+@admin.register(Monsters_All_db)
+class Monsters_All_dbAdmin(admin.ModelAdmin):
     list_display = (
         'name_cz',
         'name_en',

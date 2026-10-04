@@ -1,7 +1,7 @@
 import time
 import requests
 from django.core.management.base import BaseCommand
-from dm_site_app.models import CompendiumItem
+from dm_site_app.models import Items_All_db
 
 try:
     from deep_translator import GoogleTranslator
@@ -323,7 +323,7 @@ class Command(BaseCommand):
             name_en = item_data.get('name', '')
 
             # Kontrola existence v databázi
-            item_exists = CompendiumItem.objects.filter(api_index=index).exists()
+            item_exists = Items_All_db.objects.filter(api_index=index).exists()
             if item_exists and not update_existing:
                 self.stdout.write(self.style.WARNING(f"[{i}/{len(items_to_process)}] Předmět '{name_en}' už existuje, přeskakuji."))
                 skipped_count += 1
@@ -414,12 +414,12 @@ class Command(BaseCommand):
             }
 
             if update_existing:
-                CompendiumItem.objects.update_or_create(
+                Items_All_db.objects.update_or_create(
                     api_index=index,
                     defaults=defaults_data,
                 )
             else:
-                CompendiumItem.objects.create(
+                Items_All_db.objects.create(
                     api_index=index,
                     **defaults_data,
                 )

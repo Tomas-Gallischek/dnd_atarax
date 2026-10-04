@@ -218,6 +218,11 @@ class Achivements_players(models.Model):
         who = self.char.name if self.char else (str(self.player) if self.player else "Neznámý")
         status = f" ({self.get_current_status_display()})" if self.current_status else ""
         return f"{who} - {ach_name}{status}"
+
+    @property
+    def achivement(self):
+        """Umožňuje přístup k FK přes malé písmeno achivement."""
+        return self.Achivement
     
     def update_achivement_status(self):
         if not self.Achivement:

@@ -1,7 +1,7 @@
 import time
 import requests
 from django.core.management.base import BaseCommand
-from dm_site_app.models import CompendiumMonster
+from dm_site_app.models import Monsters_All_db
 
 try:
     from deep_translator import GoogleTranslator
@@ -629,7 +629,7 @@ class Command(BaseCommand):
             name_en = monster_data.get('name', '')
 
             # Kontrola existence v databázi
-            monster_exists = CompendiumMonster.objects.filter(api_index=index).exists()
+            monster_exists = Monsters_All_db.objects.filter(api_index=index).exists()
             if monster_exists and not update_existing:
                 self.stdout.write(self.style.WARNING(f"[{i}/{len(monsters_to_process)}] Nestvůra '{name_en}' už existuje, přeskakuji."))
                 skipped_count += 1
@@ -812,12 +812,12 @@ class Command(BaseCommand):
             }
 
             if update_existing:
-                CompendiumMonster.objects.update_or_create(
+                Monsters_All_db.objects.update_or_create(
                     api_index=index,
                     defaults=defaults_data,
                 )
             else:
-                CompendiumMonster.objects.create(
+                Monsters_All_db.objects.create(
                     api_index=index,
                     **defaults_data,
                 )
