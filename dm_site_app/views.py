@@ -1,3 +1,4 @@
+from django.utils import functional
 from dm_site_app.models import Monsters_All_db
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
@@ -154,14 +155,16 @@ def random_monster_gen(request):
 
         final_dificulty = int(mob_dificulty - 3) # 1-2 = menší lvl než hráči, 3 = stejný lvl jak hráčí, 4-5 = větší lvl než hráčí
         final_lvl = float(mob_lvl + final_dificulty)
+        final_lvl_min = final_lvl-0.5
+        final_lvl_max=final_lvl+0.5
 
-        if final_lvl >= 0:
-            final_lvl = 1
-        elif final_lvl >= 30:
-            final_lvl = 30
+        if final_lvl_min <=0:
+            final_lvl_min = 0
+        if final_lvl_max >= 30:
+            final_lvl_max = 30
 
 # Vyhledá všechny monstra které mají CR o 0,5 menší nebo větší
-        monsters = Monsters_All_db.objects.filter(challenge_rating__gte=final_lvl-0.5, challenge_rating__lte=final_lvl+0.5)
+        monsters = Monsters_All_db.objects.filter(challenge_rating__gte=final_lvl_min, challenge_rating__lte=final_lvl_max)
         
         # Vybere náhodné monstrum
         random_mob = random.choice(monsters)
