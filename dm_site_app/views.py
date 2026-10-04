@@ -1,12 +1,13 @@
-from django.utils import functional
-from dm_site_app.models import Monsters_All_db, Monsters_Active
+import json
+import random
 from functools import wraps
+from django.http import JsonResponse
+from django.utils import functional
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Locations, Npc
+from .models import Locations, Npc, Monsters_All_db, Monsters_Active
 from player_site_app.models import Player, Char_info, Logs
 from player_site_app.achivements import golds_achivement
-import random
 
 
 def dm_required(view_func):
@@ -224,6 +225,43 @@ def pvp_arena(request):
         'all_players': all_players,
     })
 
+
+@dm_required
+def api_update_hp(request):
+    """
+    API endpoint pro dávkový pozitivní update aktuálních životů (HP)
+    pro monstra (Monsters_Active) i postavy hráčů (Char_info).
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Pouze metoda POST'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        updates = data.get('updates')
+        if updates is None:
+            updates = [data]
+
+        saved_records = []
+        for item in updates:
+            entity_type = item.get('entity_type')
+            entity_id = item.get('entity_id')
+            new_hp = int(item.get('current_hp'))
+
+            if entity_type == 'mob':
+                mob = Monsters_Active.objects.get(id=entity_id)
+                mob.current_hp = new_hp
+                mob.save(update_fields=['current_hp'])
+                saved_records.append({'entity_type': 'mob', 'id': mob.id, 'current_hp': mob.current_hp})
+            elif entity_type == 'player':
+                player = Char_info.objects.get(id=entity_id)
+                player.hit_points_current = new_hp
+                player.save(update_fields=['hit_points_current'])
+                saved_records.append({'entity_type': 'player', 'id': player.id, 'current_hp': player.hit_points_current})
+
+        return JsonResponse({'success': True, 'saved': saved_records})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
 @dm_required
 def in_fight_switch(request):
     if request.method == 'POST':
@@ -261,6 +299,7 @@ def active_mob_db_save(mob_id):
         armor_class=mob.armor_class,
         armor_desc=mob.armor_desc,
         hit_points=mob.hit_points,
+        current_hp=mob.hit_points,
         hit_dice=mob.hit_dice,
         speed=mob.speed,
         strength=mob.strength,

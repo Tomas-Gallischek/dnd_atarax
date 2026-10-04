@@ -143,6 +143,16 @@ class Char_info(models.Model):
     def cha_mod(self):
         return self._calc_mod(self.charisma)
 
+    @property
+    def max_hp(self):
+        return self.hit_points_max or 10
+
+    @property
+    def current_hp_val(self):
+        if self.hit_points_current is not None:
+            return self.hit_points_current
+        return self.max_hp
+
 # DATABÁZE EXISTUJÍCÍCH ACHIVEMENTŮ
 class Achivements_database(models.Model):
     img_ozn = models.CharField(max_length=50, verbose_name="Označení ikonky", default = "PRÁZDNO", null = True, blank = True)

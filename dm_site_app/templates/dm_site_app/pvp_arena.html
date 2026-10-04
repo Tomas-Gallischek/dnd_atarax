@@ -1,51 +1,584 @@
 {% extends "dm_site_app/base_dm.html" %}
+{% load static %}
 
-{% block title %}Aréna{% endblock %}
+{% block title %}DnD Atarax - Aréna soubojů{% endblock %}
+
+{% block extra_dm_head %}
+<link rel="stylesheet" href="{% static 'dm_site_app/css/pvp_arena.css' %}">
+{% endblock %}
 
 {% block dm_content %}
+<div class="arena-wrapper">
 
-    <h1>Aréna:</h1>
+    <!-- Horní ovládací lišta DM -->
+    <header class="arena-topbar">
+        <div class="arena-title-group">
+            <h1><span>⚔️</span> Bojová Aréna</h1>
+            <p class="arena-subtitle">DM nástroj pro řízení bojových střetů, sledování statistik a správu životů</p>
+        </div>
 
-    <h1>Mobs:</h1>
+        <div class="arena-actions-group">
+            <span id="syncIndicator" class="sync-status-indicator">
+                <span>●</span> Vše uloženo
+            </span>
+            <a href="{% url 'dm_site_app:pvp_pre' %}" class="btn-arena-link">
+                <span>⚙️</span> Správa bojovníků
+            </a>
+            <a href="{% url 'dm_site_app:monster_gen_page' %}" class="btn-arena-link">
+                <span>👾</span> Generátor monster
+            </a>
+        </div>
+    </header>
 
-        {% for mob in all_active_mobs %}
-            <p>Name: {{ mob.name }}</p>
-            <p>HP: {{ mob.current_hp }} / {{ mob.max_hp }}</p>
-            <p>AC: {{ mob.ac }}</p>
-            <p>Speed: {{ mob.speed }}</p>
-            <p>Stats: {{ mob.strength }}, {{ mob.dexterity }}, {{ mob.constitution }}, {{ mob.intelligence }}, {{ mob.wisdom }}, {{ mob.charisma }}</p>
-            <p>Skills: {{ mob.skills }}</p>
-            <p>Senses: {{ mob.senses }}</p>
-            <p>Languages: {{ mob.languages }}</p>
-            <p>Challenge Rating: {{ mob.challenge_rating }}</p>
-            <p>Traits: {{ mob.traits }}</p>
-            <p>Actions: {{ mob.actions }}</p>
-            <p>Reactions: {{ mob.reactions }}</p>
-            <p>Legendary Actions: {{ mob.legendary_actions }}</p>
-            <p>Legendary Resistance: {{ mob.legendary_resistance }}</p>
-            <p>In Fight: {{ mob.in_fight }}</p>
-            <p>In Arena: {{ mob.in_arena }}</p>
-        {% endfor %}
+    <!-- 1. SEKCE: MONSTRA (NEPŘÁTELÉ) -->
+    <section class="arena-section">
+        <div class="section-header">
+            <h2 class="section-title title-mobs">
+                <span>💀</span> Monstra v boji
+                <span class="section-count-badge">{{ all_active_mobs|length }}</span>
+            </h2>
+        </div>
 
-    <h1>Hráči:</h1>
+        <div class="cards-grid">
+            {% for mob in all_active_mobs %}
+            <article class="character-card mob-card {% if mob.current_hp_val <= 0 %}is-defeated{% endif %}"
+                     id="card-mob-{{ mob.id }}"
+                     data-entity-type="mob"
+                     data-entity-id="{{ mob.id }}"
+                     data-current-hp="{{ mob.current_hp_val }}"
+                     data-max-hp="{{ mob.max_hp }}">
 
-    {% for player in all_players %}
-        <p>Name: {{ player.name }}</p>
-        <p>HP: {{ player.current_hp }} / {{ player.max_hp }}</p>
-        <p>AC: {{ player.ac }}</p>
-        <p>Speed: {{ player.speed }}</p>
-        <p>Stats: {{ player.strength }}, {{ player.dexterity }}, {{ player.constitution }}, {{ player.intelligence }}, {{ player.wisdom }}, {{ player.charisma }}</p>
-        <p>Skills: {{ player.skills }}</p>
-        <p>Senses: {{ player.senses }}</p>
-        <p>Languages: {{ player.languages }}</p>
-        <p>Challenge Rating: {{ player.challenge_rating }}</p>
-        <p>Traits: {{ player.traits }}</p>
-        <p>Actions: {{ player.actions }}</p>
-        <p>Reactions: {{ player.reactions }}</p>
-        <p>Legendary Actions: {{ player.legendary_actions }}</p>
-        <p>Legendary Resistance: {{ player.legendary_resistance }}</p>
-        <p>In Fight: {{ player.in_fight }}</p>
-        <p>In Arena: {{ player.in_arena }}</p>
-    {% endfor %}
+                <div class="defeated-banner">Pororažen</div>
 
+                <div>
+                    <!-- Hlavička karty -->
+                    <div class="card-header">
+                        <div class="card-title-wrap">
+                            <h3>{{ mob.name_cz|default:mob.name_en }}</h3>
+                            <p class="card-subtitle">
+                                {{ mob.size|default:"" }} {{ mob.monster_type|default:"Nestvůra" }}
+                                {% if mob.alignment %}&bull; {{ mob.alignment }}{% endif %}
+                            </p>
+                        </div>
+                        <div class="card-cr-badge" title="Nebezpečnost (Challenge Rating)">
+                            CR {{ mob.formatted_cr|default:mob.challenge_rating|default:"—" }}
+                        </div>
+                    </div>
+
+                    <!-- Hlavní část karty: Portrét + Flyout detaily + Obrana -->
+                    <div class="card-main">
+                        <!-- Portrét s rozbalovacím tooltipem na hover -->
+                        <div class="portrait-container" tabindex="0" aria-label="Zobrazit detailní statistiky">
+                            {% if mob.image_url %}
+                                <img src="{{ mob.image_url }}" alt="{{ mob.name_cz }}" class="card-portrait" loading="lazy">
+                            {% else %}
+                                <div class="card-portrait card-portrait-placeholder">
+                                    🐉
+                                </div>
+                            {% endif %}
+                            <div class="portrait-hover-hint">🔍 Detaily</div>
+
+                            <!-- DETAILNÍ FLYOUT POPUP (Po najetí myši na obrázek) -->
+                            <div class="detail-flyout">
+                                <h4 class="flyout-heading">{{ mob.name_cz }} {% if mob.name_en %}<small>({{ mob.name_en }})</small>{% endif %}</h4>
+                                
+                                <div class="flyout-section">
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Typ:</span> {{ mob.size }} {{ mob.monster_type }}{% if mob.subtype %} ({{ mob.subtype }}){% endif %}
+                                    </p>
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Zbroj:</span> AC {{ mob.armor_class|default:10 }} {% if mob.armor_desc %}({{ mob.armor_desc }}){% endif %}
+                                    </p>
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Životy kostky:</span> {{ mob.hit_dice|default:"—" }}
+                                    </p>
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Rychlost:</span> {{ mob.speed|default:"30 stop" }}
+                                    </p>
+                                </div>
+
+                                {% if mob.saving_throws %}
+                                <div class="flyout-block">
+                                    <span class="flyout-label">Záchranné hody:</span>
+                                    <span class="flyout-text">{{ mob.saving_throws }}</span>
+                                </div>
+                                {% endif %}
+
+                                {% if mob.skills %}
+                                <div class="flyout-block">
+                                    <span class="flyout-label">Dovednosti:</span>
+                                    <span class="flyout-text">{{ mob.skills }}</span>
+                                </div>
+                                {% endif %}
+
+                                {% if mob.damage_resistances or mob.damage_immunities or mob.damage_vulnerabilities or mob.condition_immunities %}
+                                <div class="flyout-block">
+                                    <div class="flyout-block-title">Odolnosti a imunity</div>
+                                    {% if mob.damage_resistances %}<p class="flyout-text"><span class="flyout-label">Odolnosti:</span> {{ mob.damage_resistances }}</p>{% endif %}
+                                    {% if mob.damage_immunities %}<p class="flyout-text"><span class="flyout-label">Imunity na zranění:</span> {{ mob.damage_immunities }}</p>{% endif %}
+                                    {% if mob.condition_immunities %}<p class="flyout-text"><span class="flyout-label">Stavové imunity:</span> {{ mob.condition_immunities }}</p>{% endif %}
+                                    {% if mob.damage_vulnerabilities %}<p class="flyout-text"><span class="flyout-label">Zranitelnosti:</span> {{ mob.damage_vulnerabilities }}</p>{% endif %}
+                                </div>
+                                {% endif %}
+
+                                {% if mob.senses or mob.languages %}
+                                <div class="flyout-block">
+                                    {% if mob.senses %}<p class="flyout-text"><span class="flyout-label">Smysly:</span> {{ mob.senses }}</p>{% endif %}
+                                    {% if mob.languages %}<p class="flyout-text"><span class="flyout-label">Jazyky:</span> {{ mob.languages }}</p>{% endif %}
+                                </div>
+                                {% endif %}
+
+                                {% if mob.special_abilities %}
+                                <div class="flyout-block">
+                                    <div class="flyout-block-title">Zvláštní schopnosti</div>
+                                    <p class="flyout-text">{{ mob.special_abilities|linebreaksbr }}</p>
+                                </div>
+                                {% endif %}
+
+                                {% if mob.actions %}
+                                <div class="flyout-block">
+                                    <div class="flyout-block-title">Bojové akce (Útoky)</div>
+                                    <p class="flyout-text">{{ mob.actions|linebreaksbr }}</p>
+                                </div>
+                                {% endif %}
+
+                                {% if mob.reactions %}
+                                <div class="flyout-block">
+                                    <div class="flyout-block-title">Reakce</div>
+                                    <p class="flyout-text">{{ mob.reactions|linebreaksbr }}</p>
+                                </div>
+                                {% endif %}
+
+                                {% if mob.legendary_actions %}
+                                <div class="flyout-block">
+                                    <div class="flyout-block-title">Legendární akce</div>
+                                    <p class="flyout-text">{{ mob.legendary_actions|linebreaksbr }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Rychlé obranné statistiky -->
+                        <div class="quick-stats">
+                            <div class="quick-badge" title="Třída zbroje">
+                                <span class="quick-badge-label">🛡️ AC</span>
+                                <span class="quick-badge-val">{{ mob.armor_class|default:10 }}</span>
+                            </div>
+                            <div class="quick-badge" title="Rychlost pohybu">
+                                <span class="quick-badge-label">👢 Rychlost</span>
+                                <span class="quick-badge-val">{{ mob.speed|default:"30 ft" }}</span>
+                            </div>
+                            <div class="quick-badge" title="Zdatnost / XP">
+                                <span class="quick-badge-label">⭐ XP</span>
+                                <span class="quick-badge-val">{{ mob.xp|default:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pásek základních vlastností (Ability Scores) -->
+                    <div class="ability-scores-strip">
+                        <div class="ability-chip" title="Síla">
+                            <span class="ability-name">SIL</span>
+                            <span class="ability-score">{{ mob.strength|default:10 }}</span>
+                            <span class="ability-mod">{{ mob.str_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Obratnost">
+                            <span class="ability-name">OBR</span>
+                            <span class="ability-score">{{ mob.dexterity|default:10 }}</span>
+                            <span class="ability-mod">{{ mob.dex_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Odolnost">
+                            <span class="ability-name">ODL</span>
+                            <span class="ability-score">{{ mob.constitution|default:10 }}</span>
+                            <span class="ability-mod">{{ mob.con_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Inteligence">
+                            <span class="ability-name">INT</span>
+                            <span class="ability-score">{{ mob.intelligence|default:10 }}</span>
+                            <span class="ability-mod">{{ mob.int_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Moudrost">
+                            <span class="ability-name">MDR</span>
+                            <span class="ability-score">{{ mob.wisdom|default:10 }}</span>
+                            <span class="ability-mod">{{ mob.wis_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Charisma">
+                            <span class="ability-name">CHA</span>
+                            <span class="ability-score">{{ mob.charisma|default:10 }}</span>
+                            <span class="ability-mod">{{ mob.cha_mod }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spodní interaktivní sekce: Životy (HP Kalkulačka) -->
+                <div class="health-control-wrap">
+                    <div class="health-header">
+                        <span class="health-label">❤️ Životy</span>
+                        <div class="health-values-display">
+                            <span class="hp-current" id="hp-val-mob-{{ mob.id }}">{{ mob.current_hp_val }}</span>
+                            <span class="hp-max">/ {{ mob.max_hp }} HP</span>
+                        </div>
+                    </div>
+
+                    <div class="hp-bar-bg" aria-hidden="true">
+                        <div class="hp-bar-fill" id="hp-bar-mob-{{ mob.id }}"></div>
+                    </div>
+
+                    <div class="health-buttons">
+                        <button type="button" class="btn-hp btn-hp-minus" data-action="decrement" aria-label="Ubrat život">
+                            &minus; 1 HP
+                        </button>
+                        <button type="button" class="btn-hp btn-hp-plus" data-action="increment" aria-label="Přidat život">
+                            + 1 HP
+                        </button>
+                    </div>
+                </div>
+
+            </article>
+            {% empty %}
+            <div class="arena-empty-state">
+                <div class="empty-icon">🛡️</div>
+                <h3>Žádná monstra nejsou vybrána do boje</h3>
+                <p>Přejděte do <a href="{% url 'dm_site_app:pvp_pre' %}" class="btn-arena-link">Přípravy na souboj</a> a označte monstra tlačítkem „Vybrat do souboje“.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- BITEVNÍ PŘEDĚL (VS BATTLEFIELD DIVIDER) -->
+    <div class="battlefield-divider">
+        <div class="divider-line"></div>
+        <div class="divider-emblem">⚔️ BITEVNÍ STŘET ⚔️</div>
+        <div class="divider-line"></div>
+    </div>
+
+    <!-- 2. SEKCE: HRÁČI (DRUŽINA) -->
+    <section class="arena-section">
+        <div class="section-header">
+            <h2 class="section-title title-players">
+                <span>🛡️</span> Hrdinové v boji
+                <span class="section-count-badge">{{ all_players|length }}</span>
+            </h2>
+        </div>
+
+        <div class="cards-grid">
+            {% for player in all_players %}
+            <article class="character-card player-card {% if player.current_hp_val <= 0 %}is-defeated{% endif %}"
+                     id="card-player-{{ player.id }}"
+                     data-entity-type="player"
+                     data-entity-id="{{ player.id }}"
+                     data-current-hp="{{ player.current_hp_val }}"
+                     data-max-hp="{{ player.max_hp }}">
+
+                <div class="defeated-banner">V bezvědomí</div>
+
+                <div>
+                    <!-- Hlavička karty -->
+                    <div class="card-header">
+                        <div class="card-title-wrap">
+                            <h3>{{ player.name }}</h3>
+                            <p class="card-subtitle">
+                                {{ player.race|default:"" }} {{ player.character_class|default:"Dobrodruh" }}
+                                {% if player.player.nickname %}&bull; ({{ player.player.nickname }}){% endif %}
+                            </p>
+                        </div>
+                        <div class="card-cr-badge" title="Úroveň postavy">
+                            Úroveň {{ player.level }}
+                        </div>
+                    </div>
+
+                    <!-- Hlavní část karty: Portrét + Flyout detaily + Obrana -->
+                    <div class="card-main">
+                        <div class="portrait-container" tabindex="0" aria-label="Zobrazit detailní statistiky">
+                            <div class="card-portrait card-portrait-placeholder">
+                                🧙‍♂️
+                            </div>
+                            <div class="portrait-hover-hint">🔍 Detaily</div>
+
+                            <!-- DETAILNÍ FLYOUT POPUP (Hráč) -->
+                            <div class="detail-flyout">
+                                <h4 class="flyout-heading">{{ player.name }}</h4>
+                                
+                                <div class="flyout-section">
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Hráč:</span> {{ player.player.nickname|default:player.player.user.username }}
+                                    </p>
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Povolání:</span> {{ player.character_class }} (Úr. {{ player.level }})
+                                    </p>
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Rasa:</span> {{ player.race|default:"Neuvedeno" }}
+                                    </p>
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Přesvědčení:</span> {{ player.alignment|default:"Neuvedeno" }}
+                                    </p>
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Zázemí:</span> {{ player.background|default:"Neuvedeno" }}
+                                    </p>
+                                    <p class="flyout-text">
+                                        <span class="flyout-label">Rychlost:</span> {{ player.speed|default:30 }} stop
+                                    </p>
+                                </div>
+
+                                {% if player.notes %}
+                                <div class="flyout-block">
+                                    <div class="flyout-block-title">Poznámky DM k postavě</div>
+                                    <p class="flyout-text">{{ player.notes|linebreaksbr }}</p>
+                                </div>
+                                {% endif %}
+
+                                {% if player.backstory %}
+                                <div class="flyout-block">
+                                    <div class="flyout-block-title">Historie / Příběh</div>
+                                    <p class="flyout-text">{{ player.backstory|truncatewords:45|linebreaksbr }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Rychlé obranné statistiky -->
+                        <div class="quick-stats">
+                            <div class="quick-badge" title="Třída zbroje">
+                                <span class="quick-badge-label">🛡️ AC</span>
+                                <span class="quick-badge-val">{{ player.armor_class|default:10 }}</span>
+                            </div>
+                            <div class="quick-badge" title="Rychlost pohybu">
+                                <span class="quick-badge-label">👢 Rychlost</span>
+                                <span class="quick-badge-val">{{ player.speed|default:30 }} ft</span>
+                            </div>
+                            <div class="quick-badge" title="Zlaťáky">
+                                <span class="quick-badge-label">💰 Mince</span>
+                                <span class="quick-badge-val">{{ player.gold }} zl {{ player.silver }} st</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pásek základních vlastností (Ability Scores) -->
+                    <div class="ability-scores-strip">
+                        <div class="ability-chip" title="Síla">
+                            <span class="ability-name">SIL</span>
+                            <span class="ability-score">{{ player.strength|default:10 }}</span>
+                            <span class="ability-mod">{{ player.str_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Obratnost">
+                            <span class="ability-name">OBR</span>
+                            <span class="ability-score">{{ player.dexterity|default:10 }}</span>
+                            <span class="ability-mod">{{ player.dex_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Odolnost">
+                            <span class="ability-name">ODL</span>
+                            <span class="ability-score">{{ player.constitution|default:10 }}</span>
+                            <span class="ability-mod">{{ player.con_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Inteligence">
+                            <span class="ability-name">INT</span>
+                            <span class="ability-score">{{ player.intelligence|default:10 }}</span>
+                            <span class="ability-mod">{{ player.int_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Moudrost">
+                            <span class="ability-name">MDR</span>
+                            <span class="ability-score">{{ player.wisdom|default:10 }}</span>
+                            <span class="ability-mod">{{ player.wis_mod }}</span>
+                        </div>
+                        <div class="ability-chip" title="Charisma">
+                            <span class="ability-name">CHA</span>
+                            <span class="ability-score">{{ player.charisma|default:10 }}</span>
+                            <span class="ability-mod">{{ player.cha_mod }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Spodní interaktivní sekce: Životy (HP Kalkulačka) -->
+                <div class="health-control-wrap">
+                    <div class="health-header">
+                        <span class="health-label">❤️ Životy</span>
+                        <div class="health-values-display">
+                            <span class="hp-current" id="hp-val-player-{{ player.id }}">{{ player.current_hp_val }}</span>
+                            <span class="hp-max">/ {{ player.max_hp }} HP</span>
+                        </div>
+                    </div>
+
+                    <div class="hp-bar-bg" aria-hidden="true">
+                        <div class="hp-bar-fill" id="hp-bar-player-{{ player.id }}"></div>
+                    </div>
+
+                    <div class="health-buttons">
+                        <button type="button" class="btn-hp btn-hp-minus" data-action="decrement" aria-label="Ubrat život">
+                            &minus; 1 HP
+                        </button>
+                        <button type="button" class="btn-hp btn-hp-plus" data-action="increment" aria-label="Přidat život">
+                            + 1 HP
+                        </button>
+                    </div>
+                </div>
+
+            </article>
+            {% empty %}
+            <div class="arena-empty-state">
+                <div class="empty-icon">👥</div>
+                <h3>Žádné postavy hráčů nejsou vybrány do boje</h3>
+                <p>Přejděte do <a href="{% url 'dm_site_app:pvp_pre' %}" class="btn-arena-link">Přípravy na souboj</a> a označte postavy tlačítkem „Vybrat do souboje“.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+</div>
+
+<!-- CSRF Token pro AJAX požadavky -->
+{% csrf_token %}
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+    // 1. Získání CSRF tokenu z formuláře
+    function getCsrfToken() {
+        const input = document.querySelector('input[name="csrfmiddlewaretoken"]');
+        return input ? input.value : "";
+    }
+
+    const syncIndicator = document.getElementById("syncIndicator");
+    const updateApiUrl = "{% url 'dm_site_app:api_update_hp' %}";
+
+    // Mapa čekajících změn: klíč = "type_id", hodnota = { entity_type, entity_id, current_hp }
+    const pendingHpMap = new Map();
+    let batchTimer = null;
+    const DEBOUNCE_DELAY_MS = 650; // Po 650 ms od posledního kliknutí se provede zápis do DB
+
+    // Inicializace HP barů podle stávajících hodnot
+    document.querySelectorAll(".character-card").forEach(card => {
+        updateCardHpVisuals(card, false);
+    });
+
+    // 2. Obsluha kliknutí na tlačítka + a -
+    document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".btn-hp");
+        if (!btn) return;
+
+        const card = btn.closest(".character-card");
+        if (!card) return;
+
+        const entityType = card.dataset.entityType;
+        const entityId = card.dataset.entityId;
+        const maxHp = parseInt(card.dataset.maxHp, 10) || 10;
+        let currentHp = parseInt(card.dataset.currentHp, 10);
+        if (isNaN(currentHp)) currentHp = maxHp;
+
+        const isIncrement = btn.dataset.action === "increment";
+        const delta = isIncrement ? 1 : -1;
+
+        // Pozitivní update: okamžitý výpočet nového HP
+        let newHp = currentHp + delta;
+        if (newHp < 0) newHp = 0; // Životy neklesnou pod 0
+
+        // Zápis do datasetu karty pro další kliknutí
+        card.dataset.currentHp = newHp;
+
+        // Okamžitá aktualizace vizuálu na kartě
+        updateCardHpVisuals(card, true, isIncrement);
+
+        // Uložení do dávkové fronty
+        const key = `${entityType}_${entityId}`;
+        pendingHpMap.set(key, {
+            entity_type: entityType,
+            entity_id: entityId,
+            current_hp: newHp
+        });
+
+        // Vizuální indikace probíhajícího zápisu
+        if (syncIndicator) {
+            syncIndicator.innerHTML = "<span>⏳</span> Ukládání změn...";
+            syncIndicator.className = "sync-status-indicator is-syncing";
+        }
+
+        // Restart debounce časovače pro hromadný zápis
+        clearTimeout(batchTimer);
+        batchTimer = setTimeout(flushBatchUpdates, DEBOUNCE_DELAY_MS);
+    });
+
+    // 3. Vizuální aktualizace jednoho bojovníka (číslo, bar, třídy stavu)
+    function updateCardHpVisuals(card, triggerPulse = false, isIncrement = false) {
+        const entityType = card.dataset.entityType;
+        const entityId = card.dataset.entityId;
+        const maxHp = parseInt(card.dataset.maxHp, 10) || 10;
+        const currentHp = parseInt(card.dataset.currentHp, 10) || 0;
+
+        const hpValSpan = document.getElementById(`hp-val-${entityType}-${entityId}`);
+        const hpBar = document.getElementById(`hp-bar-${entityType}-${entityId}`);
+
+        if (hpValSpan) {
+            hpValSpan.textContent = currentHp;
+
+            if (triggerPulse) {
+                const pulseClass = isIncrement ? "pulse-up" : "pulse-down";
+                hpValSpan.classList.add(pulseClass);
+                setTimeout(() => {
+                    hpValSpan.classList.remove(pulseClass);
+                }, 200);
+            }
+        }
+
+        if (hpBar) {
+            const pct = Math.min(100, Math.max(0, Math.round((currentHp / maxHp) * 100)));
+            hpBar.style.width = `${pct}%`;
+
+            hpBar.classList.remove("hp-mid", "hp-low", "hp-dead");
+            if (currentHp <= 0) {
+                hpBar.classList.add("hp-dead");
+            } else if (pct <= 25) {
+                hpBar.classList.add("hp-low");
+            } else if (pct <= 50) {
+                hpBar.classList.add("hp-mid");
+            }
+        }
+
+        // Třída pro poraženého / v bezvědomí
+        if (currentHp <= 0) {
+            card.classList.add("is-defeated");
+        } else {
+            card.classList.remove("is-defeated");
+        }
+    }
+
+    // 4. Dávkové odeslání změn do databáze (AJAX POST)
+    function flushBatchUpdates() {
+        if (pendingHpMap.size === 0) return;
+
+        const updates = Array.from(pendingHpMap.values());
+        pendingHpMap.clear();
+
+        fetch(updateApiUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCsrfToken()
+            },
+            body: JSON.stringify({ updates: updates })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error("Chyba při ukládání");
+            return response.json();
+        })
+        .then(data => {
+            if (data.success && syncIndicator) {
+                syncIndicator.innerHTML = "<span>●</span> Vše uloženo";
+                syncIndicator.className = "sync-status-indicator";
+            }
+        })
+        .catch(err => {
+            console.error("Chyba synchronizace životů:", err);
+            if (syncIndicator) {
+                syncIndicator.innerHTML = "<span>⚠️</span> Chyba zápisu!";
+                syncIndicator.className = "sync-status-indicator is-error";
+            }
+        });
+    }
+
+    // Před opuštěním stránky odeslat zbývající změny okamžitě
+    window.addEventListener("beforeunload", () => {
+        if (pendingHpMap.size > 0) {
+            flushBatchUpdates();
+        }
+    });
+});
+</script>
 {% endblock %}

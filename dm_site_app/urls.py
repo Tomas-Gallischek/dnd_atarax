@@ -21,4 +21,5 @@ urlpatterns = [
     path('pvp_pre', views.pvp_pre, name='pvp_pre'),
     path('pvp_arena', views.pvp_arena, name='pvp_arena'),
     path('in_fight_switch', views.in_fight_switch, name='in_fight_switch'),
+    path('api/update_hp/', views.api_update_hp, name='api_update_hp'),
 ]

@@ -232,6 +232,7 @@ class Monsters_Active(models.Model):
     armor_class = models.IntegerField(verbose_name="Třída zbroje (AC)", blank=True, null=True)
     armor_desc = models.CharField(max_length=150, blank=True, null=True, verbose_name="Typ zbroje")
     hit_points = models.IntegerField(verbose_name="Životy (HP)", blank=True, null=True)
+    current_hp = models.IntegerField(verbose_name="Aktuální životy (HP)", blank=True, null=True)
     hit_dice = models.CharField(max_length=50, blank=True, null=True, verbose_name="Kostky životů")
     speed = models.CharField(max_length=200, verbose_name="Rychlost", blank=True, null=True)
 
@@ -320,3 +321,13 @@ class Monsters_Active(models.Model):
     @property
     def cha_mod(self):
         return self._calc_mod(self.charisma)
+
+    @property
+    def max_hp(self):
+        return self.hit_points or 10
+
+    @property
+    def current_hp_val(self):
+        if self.current_hp is not None:
+            return self.current_hp
+        return self.max_hp
