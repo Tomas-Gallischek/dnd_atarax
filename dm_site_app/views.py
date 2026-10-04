@@ -174,7 +174,7 @@ def random_monster_gen(request):
             'random_mob': random_mob,
         }
         
-        return redirect('dm_site_app:monster_gen_page', context)
+        return render(request, 'dm_site_app/monster_gen_page.html', context)
 
 
     else:
