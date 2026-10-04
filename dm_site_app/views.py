@@ -148,7 +148,7 @@ def monster_gen_page(request):
 
 @dm_required
 def random_monster_gen(request):
-    if request == 'POST':
+    if request.method == 'POST':
         mob_lvl = int(request.POST.get('mob_lvl')) # 1-30 (v databázi 0-29)
         mob_dificulty = int(request.POST.get('mob_dificulty')) # Obtížnost v rámci daného levelu
 
