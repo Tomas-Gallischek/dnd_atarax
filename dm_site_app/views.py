@@ -196,9 +196,8 @@ def specific_monster_gen(request):
         
 @dm_required
 def pvp_pre(request):
-    all_active_mobs = Monsters_Active.objects.filter(in_fight=False)
-    all_players = Char_info.objects.filter(in_fight=False)
-
+    all_active_mobs = Monsters_Active.objects.all()
+    all_players = Char_info.objects.all()
 
     return render(request, 'dm_site_app/pvp_pre.html', {
         'current_page': 'pvp_pre',
@@ -214,12 +213,13 @@ def pvp_arena(request):
         'current_page': 'pvp_arena',
     })
 
+@dm_required
 def in_fight_switch(request):
     if request.method == 'POST':
         mob_id = request.POST.get('mob_id')
         action = request.POST.get('in_fight')
-        mob = Monsters_Active.objects.get(id=mob_id)
-        mob.in_fight = action
+        mob = get_object_or_404(Monsters_Active, id=mob_id)
+        mob.in_fight = (action == 'True')
         mob.save()
         return redirect('dm_site_app:pvp_pre')
     else:

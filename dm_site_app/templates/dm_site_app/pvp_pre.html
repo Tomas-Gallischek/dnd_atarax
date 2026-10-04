@@ -8,41 +8,43 @@
 
 <h1>MOBS:</h1>
 
+<ul>
 {% for mob in all_active_mobs %}
-    <ul>
-        <li>
-            {{ mob.name }} - {{ mob.challenge_rating }}
-            {% if mob.in_fight == False %}
-                <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="mob_id" value="{{ mob.id }}">
-                    <input type="hidden" name="in_fight" value="True">
-                    <button type="submit">Vybrat do souboje</button>
-                </form>
-            {% endif %}
-        </li>
-        <li>
-            {% if mob.in_fight == True %}
-                <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
-                    {% csrf_token %}
-                    <input type="hidden" name="mob_id" value="{{ mob.id }}">
-                    <input type="hidden" name="in_fight" value="False">
-                    <button type="submit">Odebrat ze souboje</button>
-                </form>
-            {% endif %}
-        </li>
-    </ul>
+    <li style="margin-bottom: 8px;">
+        <strong>{{ mob.name_cz }}</strong> - CR: {{ mob.challenge_rating }}
+        {% if mob.in_fight %}
+            <span style="color: green; font-weight: bold;">(V boji)</span>
+            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" style="display: inline; margin-left: 8px;">
+                {% csrf_token %}
+                <input type="hidden" name="mob_id" value="{{ mob.id }}">
+                <input type="hidden" name="in_fight" value="False">
+                <button type="submit" class="btn btn-danger">Odebrat ze souboje</button>
+            </form>
+        {% else %}
+            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" style="display: inline; margin-left: 8px;">
+                {% csrf_token %}
+                <input type="hidden" name="mob_id" value="{{ mob.id }}">
+                <input type="hidden" name="in_fight" value="True">
+                <button type="submit" class="btn btn-success">Vybrat do souboje</button>
+            </form>
+        {% endif %}
+    </li>
+{% empty %}
+    <li>Žádná aktivní monstra.</li>
 {% endfor %}
+</ul>
 
 <h1>Hráči:</h1>
 
+<ul>
 {% for player in all_players %}
-    <ul>
-        <li>
-            {{ player.name }}
-        </li>
-    </ul>
+    <li>
+        {{ player.name }}
+    </li>
+{% empty %}
+    <li>Žádní hráči k dispozici.</li>
 {% endfor %}
+</ul>
 
 
 
