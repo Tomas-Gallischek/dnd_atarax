@@ -1,9 +1,11 @@
+from dm_site_app.models import Monsters_All_db
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Locations, Npc
 from player_site_app.models import Player, Char_info, Logs
 from player_site_app.achivements import golds_achivement
+import random
 
 
 def dm_required(view_func):
@@ -133,3 +135,51 @@ def add_gold(request):
             log.save()
 
     return redirect('dm_site_app:golds-management')
+
+
+@dm_required
+def monster_gen_page(request):
+
+    context = {
+        'current_page': 'monster_gen',
+    }
+
+    return render(request, 'dm_site_app/monster_gen_page;.html', context)
+
+@dm_required
+def random_monster_gen(request):
+    if request == 'POST':
+        mob_lvl = int(request.POST.get('mob_lvl')) # 1-30 (v databázi 0-29)
+        mob_dificulty = int(request.POST.get('mob_dificulty')) # Obtížnost v rámci daného levelu
+
+        final_dificulty = int(mob_dificulty - 3) # 1-2 = menší lvl než hráči, 3 = stejný lvl jak hráčí, 4-5 = větší lvl než hráčí
+        final_lvl = float(mob_lvl + final_dificulty)
+
+        if final_lvl >= 0:
+            final_lvl = 1
+        elif final_lvl >= 30:
+            final_lvl = 30
+
+# Vyhledá všechny monstra které mají CR o 0,5 menší nebo větší
+        monsters = Monsters_All_db.objects.filter(challenge_rating__gte=final_lvl-0.5, challenge_rating__lte=final_lvl+0.5)
+        
+        # Vybere náhodné monstrum
+        random_mob = random.choice(monsters)
+
+        print(f"TEST: MOB LEVEL: {final_lvl}")
+        print(f"TEST: MOB LISTA: {monsters}")
+        print(f"TEST: MOB: {random_mob}")
+
+        context = {
+            'random_mob': random_mob,
+        }
+        
+
+
+    else:
+        return redirect('dm_site_app:monster_gen_page', context)
+    
+
+
+    
+    
