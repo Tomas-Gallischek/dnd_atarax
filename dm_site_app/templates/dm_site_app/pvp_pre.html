@@ -19,7 +19,10 @@
                     <input type="hidden" name="in_fight" value="True">
                     <button type="submit">Vybrat do souboje</button>
                 </form>
-            {% else %}
+            {% endif %}
+        </li>
+        <li>
+            {% if mob.in_fight == True %}
                 <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
                     {% csrf_token %}
                     <input type="hidden" name="mob_id" value="{{ mob.id }}">
