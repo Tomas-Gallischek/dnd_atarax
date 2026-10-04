@@ -171,7 +171,7 @@ def random_monster_gen(request):
         print(f"TEST: MOB: {random_mob}")
 
         context = {
-            'mob_name': random_mob.name,
+            'mob_name': random_mob.name_cz,
             'mob_challenge_rating': random_mob.challenge_rating,
         }
         
