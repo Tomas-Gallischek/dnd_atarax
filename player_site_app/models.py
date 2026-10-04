@@ -88,6 +88,8 @@ class Char_info(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Poslední úprava")
 
+    # pracovní
+    in_fight = models.BooleanField(default=False, verbose_name="V boji")
     class Meta:
         verbose_name = "Postava hráče"
         verbose_name_plural = "Postavy hráče"

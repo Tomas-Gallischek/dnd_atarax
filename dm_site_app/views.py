@@ -196,9 +196,18 @@ def specific_monster_gen(request):
         
 @dm_required
 def pvp_pre(request):
+    all_active_mobs = Monsters_Active.objects.all()
+    all_players = Char_info.objects.all()
+
+
     return render(request, 'dm_site_app/pvp_pre.html', {
         'current_page': 'pvp_pre',
+        'all_active_mobs': all_active_mobs,
+        'all_players': all_players,
     })
+
+
+
 @dm_required
 def pvp_arena(request):
     return render(request, 'dm_site_app/pvp_arena.html', {

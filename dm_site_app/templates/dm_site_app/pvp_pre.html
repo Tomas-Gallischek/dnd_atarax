@@ -4,6 +4,32 @@
 
 {% block dm_content %}
 
-    <h1>Výběr postav do soubojů</h1>
+<h1>Výběr postav do soubojů:</h1>
+
+<h1>MOBS:</h1>
+
+{% for mob in all_active_mobs %}
+    <ul>
+        <li>
+            {{ mob.name }} - {{ mob.challenge_rating }}
+            <form action="" method="post">
+                <button type="submit">Vybrat</button>
+            </form>
+        </li>
+    </ul>
+{% endfor %}
+
+<h1>Hráči:</h1>
+
+{% for player in all_players %}
+    <ul>
+        <li>
+            {{ player.name }}
+        </li>
+    </ul>
+{% endfor %}
+
+
+
 
 {% endblock %}

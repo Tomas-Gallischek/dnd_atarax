@@ -162,6 +162,9 @@ class Monsters_All_db(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name="Popis")
     image_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="URL obrázku")
     raw_data = models.JSONField(blank=True, null=True, verbose_name="Původní JSON data")
+    
+    # pracovní
+    in_fight = models.BooleanField(default=False, verbose_name="V boji")
 
     class Meta:
         verbose_name = "Nestvůra z Kompendia"
@@ -265,6 +268,9 @@ class Monsters_Active(models.Model):
     description = models.TextField(blank=True, null=True, verbose_name="Popis")
     image_url = models.CharField(max_length=255, blank=True, null=True, verbose_name="URL obrázku")
     raw_data = models.JSONField(blank=True, null=True, verbose_name="Původní JSON data")
+
+    # pracovní
+    in_fight = models.BooleanField(default=False, verbose_name="V boji")
 
     class Meta:
         verbose_name = "Aktivní nestvůra"
