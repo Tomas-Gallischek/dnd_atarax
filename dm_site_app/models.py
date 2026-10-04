@@ -267,8 +267,8 @@ class Monsters_Active(models.Model):
     raw_data = models.JSONField(blank=True, null=True, verbose_name="Původní JSON data")
 
     class Meta:
-        verbose_name = "Nestvůra z Kompendia"
-        verbose_name_plural = "Nestvůry z Kompendia"
+        verbose_name = "Aktivní nestvůra"
+        verbose_name_plural = "Aktivní nestvůry"
         ordering = ['challenge_rating', 'name_cz']
 
     def __str__(self):

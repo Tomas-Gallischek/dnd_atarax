@@ -210,3 +210,15 @@ class Monsters_All_dbAdmin(admin.ModelAdmin):
             obj.wisdom, obj.wis_mod,
             obj.charisma, obj.cha_mod,
         )
+
+
+# 5. Zaregistrujeme aktivní položky (Items_Active)
+@admin.register(Items_Active)
+class Items_ActiveAdmin(Items_All_dbAdmin):
+    pass
+
+
+# 6. Zaregistrujeme aktivní nestvůry (Monsters_Active)
+@admin.register(Monsters_Active)
+class Monsters_ActiveAdmin(Monsters_All_dbAdmin):
+    pass
