@@ -140,18 +140,10 @@ def add_gold(request):
 
 @dm_required
 def monster_gen_page(request):
-
     all_active_mobs = Monsters_Active.objects.all()
-    
-    if all_active_mobs:
-        context = {
-            'active_mobs_list': all_active_mobs,
-        }
-    else:
-        context = {
-            'active_mobs_list': "Nic nenalezeno",
-        }
-
+    context = {
+        'active_mobs_list': all_active_mobs,
+    }
     return render(request, 'dm_site_app/monster_gen_page.html', context)
 
 @dm_required
@@ -233,8 +225,7 @@ def active_mob_db_save(mob_id):
 
 @dm_required
 def remove_mob(request, mob_id):
-    mob = Monsters_Active.objects.get(id=mob_id)
-    mob.delete()
+    Monsters_Active.objects.filter(id=mob_id).delete()
     return redirect('dm_site_app:monster_gen_page')    
     
 

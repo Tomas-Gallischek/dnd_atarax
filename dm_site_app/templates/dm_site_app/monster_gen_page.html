@@ -12,11 +12,16 @@
     
         <h2>{{ mob.name_cz }} CR: {{ mob.challenge_rating }}</h2>
         <img src="{{ mob.image_url }}" alt="{{ mob.name_cz }}" style="max-width: 50px; max-height: 50px;">
-        <button class="btn btn-danger", action="{% url 'dm_site_app:remove_mob' mob.id %}" type="submit">Odstranit</button>
+        <form action="{% url 'dm_site_app:remove_mob' mob.id %}" method="POST" style="display: inline;">
+            {% csrf_token %}
+            <button class="btn btn-danger" type="submit">Odstranit</button>
+        </form>
         <hr>
     
     {% endfor %}
 
+{% else %}
+    <p style="color: #888;">Žádná aktivní monstra.</p>
 {% endif %}
 
 
