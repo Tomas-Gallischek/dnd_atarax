@@ -17,4 +17,5 @@ urlpatterns = [
     path('monster_gen_page/', views.monster_gen_page, name='monster_gen_page'),
     path('random_monster_gen/', views.random_monster_gen, name='random_monster_gen'),
     path('remove_mob/<int:mob_id>/', views.remove_mob, name='remove_mob'),
+    path('specific_monster_gen/', views.specific_monster_gen, name='specific_monster_gen'),
 ]

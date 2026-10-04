@@ -141,8 +141,13 @@ def add_gold(request):
 @dm_required
 def monster_gen_page(request):
     all_active_mobs = Monsters_Active.objects.all()
+    all_monsters = Monsters_All_db.objects.all()
+    
+
     context = {
         'active_mobs_list': all_active_mobs,
+        'all_monsters': all_monsters,
+
     }
     return render(request, 'dm_site_app/monster_gen_page.html', context)
 
@@ -177,6 +182,19 @@ def random_monster_gen(request):
             print("Nenalezeno")
             messages.error(request, "Nenalezeno na daný level")
             return redirect('dm_site_app:monster_gen_page')
+
+def specific_monster_gen(request):
+    if request.method == 'POST':
+        monster_id = request.POST.get('monster_id')
+        print("Jdu na uložení do databáze")
+        active_mob_db_save(monster_id)
+        print("Uloženo do databáze")
+        return redirect('dm_site_app:monster_gen_page')
+    else:
+        messages.error(request, "Chyba při vybirani monstra")
+        return redirect('dm_site_app:monster_gen_page')
+
+
 
 def active_mob_db_save(mob_id):
     mob = Monsters_All_db.objects.get(id=mob_id)

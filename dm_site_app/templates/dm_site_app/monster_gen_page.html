@@ -41,5 +41,29 @@
 
 <h1>Výběr konkrétního monstra:</h1>
 
+<form action="{% url 'dm_site_app:specific_monster_gen' %}" method="POST">
+    {% csrf_token %}
+
+```
+<label for="monster">Vyber monstrum:</label>
+
+<select name="monster_id" id="monster" class="form-select" required>
+    <option value="" disabled selected>-- Vyber monstrum --</option>
+    {% for mob in all_monsters %}
+        <option value="{{ mob.id }}">
+            {{ mob.name_cz }} CR: {{ mob.challenge_rating }}
+        </option>
+    {% endfor %}
+</select>
+
+<button class="btn btn-success mt-2" type="submit">
+    Vybrat
+</button>
+```
+
+</form>
+
+
+
 
 {% endblock %}
