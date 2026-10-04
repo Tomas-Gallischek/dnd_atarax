@@ -6,8 +6,14 @@
 
 <h1>Aktivní monstra:</h1>
 
-{% if active_mobs_names %}
-<h2>{{ active_mobs_names }}</h2>
+{% if active_mobs_list %}
+
+    {% for mob in active_mobs_list %}
+    
+        <h2>{{ mob.name_cz }}</h2>
+    
+    {% endfor %}
+
 {% endif %}
 
 

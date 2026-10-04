@@ -141,15 +141,15 @@ def add_gold(request):
 @dm_required
 def monster_gen_page(request):
 
-    active_mobs = Monsters_Active.objects.all()
+    all_active_mobs = Monsters_Active.objects.all()
     
-    if active_mobs:
+    if all_active_mobs:
         context = {
-            'active_mobs_names': active_mobs.name_cz,
+            'active_mobs_list': all_active_mobs,
         }
     else:
         context = {
-            'active_mobs_names': "Nic nenalezeno",
+            'active_mobs_list': "Nic nenalezeno",
         }
 
     return render(request, 'dm_site_app/monster_gen_page.html', context)
