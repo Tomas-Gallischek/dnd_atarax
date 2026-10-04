@@ -11,8 +11,8 @@
     {% for mob in active_mobs_list %}
     
         <h2>{{ mob.name_cz }} CR: {{ mob.challenge_rating }}</h2>
-        <img src="{{ mob.image_url }}" alt="{{ mob.name_cz }}">
-        <button class="btn btn-danger", action="{% url 'dm_site_app:remove_mob' mob.id %}">Odstranit</button>
+        <img src="{{ mob.image_url }}" alt="{{ mob.name_cz }}" style="max-width: 50px; max-height: 50px;">
+        <button class="btn btn-danger", action="{% url 'dm_site_app:remove_mob' mob.id %}" type="submit">Odstranit</button>
         <hr>
     
     {% endfor %}
