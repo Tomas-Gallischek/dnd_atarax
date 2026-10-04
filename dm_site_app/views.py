@@ -8,6 +8,10 @@ from django.contrib import messages
 from .models import Locations, Npc, Monsters_All_db, Monsters_Active
 from player_site_app.models import Player, Char_info, Logs
 from player_site_app.achivements import golds_achivement
+from dnd_atarax.terminal import (
+    log_dm, log_arena, log_hp, log_mob, log_player,
+    log_gold, log_success, log_warning, log_error, log_info
+)
 
 def dm_required(view_func):
     """
@@ -20,10 +24,12 @@ def dm_required(view_func):
     def _wrapped_view(request, *args, **kwargs):
         # 1. Kontrola přihlášení
         if not request.user.is_authenticated:
+            log_warning("Neautorizovaný přístup do DM sekce", f"Nepřihlášený požadavek na '{request.path}'")
             return redirect('player_site_app:index')
 
         # 2. Kontrola administrátorských práv
         if not request.user.is_staff:
+            log_warning("Nedostatečná oprávnění", f"Uživatel '{request.user.username}' nemá staff práva pro '{request.path}'")
             messages.error(request, "Pro přístup do DM sekce musíte mít administrátorská práva (is_staff).")
             return redirect('player_site_app:prehled_postav')
 
@@ -109,9 +115,11 @@ def add_gold(request):
                 char.silver += int(silver or 0)
                 char.total_golds += plus_total_golds
                 golds_achivement(char_id, plus_total_golds)  # kontrola achievementu
+                log_gold(f"+{gold or 0} gp, +{silver or 0} sp", f"Postava: {char.char_name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
             elif action == 'minus':
                 char.gold -= int(gold or 0)
                 char.silver -= int(silver or 0)
+                log_gold(f"-{gold or 0} gp, -{silver or 0} sp", f"Postava: {char.char_name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
             else:
                 return redirect('dm_site_app:golds-management')
 
@@ -144,43 +152,39 @@ def monster_gen_page(request):
 @dm_required
 def random_monster_gen(request):
     if request.method == 'POST':
-        print("Supuštěn POST")
         mob_lvl = int(request.POST.get('mob_lvl')) # 1-30 (v databázi 0-29)
         mob_dificulty = int(request.POST.get('mob_dificulty')) # Obtížnost v rámci daného levelu
 
         final_dificulty = int(mob_dificulty - 3) # 1-2 = menší lvl než hráči, 3 = stejný lvl jak hráčí, 4-5 = větší lvl než hráčí
         final_lvl = float(mob_lvl + final_dificulty)
-        final_lvl_min = final_lvl-0.5
-        final_lvl_max=final_lvl+0.5
+        final_lvl_min = max(0.0, final_lvl - 0.5)
+        final_lvl_max = min(30.0, final_lvl + 0.5)
 
-        if final_lvl_min <=0:
-            final_lvl_min = 0
-        if final_lvl_max >= 30:
-            final_lvl_max = 30
-
-# Vyhledá všechny monstra které mají CR o 0,5 menší nebo větší
+        # Vyhledá všechny monstra které mají CR v daném rozsahu
         monsters = Monsters_All_db.objects.filter(challenge_rating__gte=final_lvl_min, challenge_rating__lte=final_lvl_max)
-        print("Nalezeno monster: ", monsters)
+        count = monsters.count()
+
         # Vybere náhodné monstrum
-        if monsters:
-            print("Vybral se random mob")
-            random_mob = random.choice(monsters) 
-            active_mob_db_save(random_mob.id)
-            print("Uložil se do databáze")
+        if count > 0:
+            random_mob = random.choice(monsters)
+            active_mob = active_mob_db_save(random_mob.id)
+            log_mob("Náhodný výběr monstra", f"CR {final_lvl_min}–{final_lvl_max} (nalezeno {count}x) -> Vybrán: {random_mob.name_cz or random_mob.name_en} (CR {random_mob.formatted_cr})")
             return redirect('dm_site_app:monster_gen_page') # Znova načte stránku s novým mobem
         else:
-            print("Nenalezeno")
+            log_warning("Náhodný výběr monstra", f"Žádné monstrum v databázi pro CR {final_lvl_min}–{final_lvl_max}")
             messages.error(request, "Nenalezeno na daný level")
             return redirect('dm_site_app:monster_gen_page')
+
 @dm_required
 def specific_monster_gen(request):
     if request.method == 'POST':
         monster_id = request.POST.get('monster_id')
-        print("Jdu na uložení do databáze")
-        active_mob_db_save(monster_id)
-        print("Uloženo do databáze")
+        active_mob = active_mob_db_save(monster_id)
+        if active_mob:
+            log_mob("Výběr konkrétního monstra", f"Přidán: {active_mob.name_cz or active_mob.name_en} (CR {active_mob.formatted_cr})")
         return redirect('dm_site_app:monster_gen_page')
     else:
+        log_warning("Výběr specifického monstra", "Neplatná metoda (očekáván POST)")
         messages.error(request, "Chyba při vybirani monstra")
         return redirect('dm_site_app:monster_gen_page')
         
@@ -200,6 +204,7 @@ def pvp_pre(request):
 def pvp_arena(request):
     all_active_mobs = Monsters_Active.objects.filter(in_fight=True)
     all_players = Char_info.objects.filter(in_fight=True)
+    log_arena("Načtena aréna", f"{all_active_mobs.count()} monster vs {all_players.count()} hráčů v boji")
 
     return render(request, 'dm_site_app/pvp_arena.html', {
         'current_page': 'pvp_arena',
@@ -230,17 +235,22 @@ def api_update_hp(request):
 
             if entity_type == 'mob':
                 mob = Monsters_Active.objects.get(id=entity_id)
+                old_hp = mob.current_hp
                 mob.current_hp = new_hp
                 mob.save(update_fields=['current_hp'])
                 saved_records.append({'entity_type': 'mob', 'id': mob.id, 'current_hp': mob.current_hp})
+                log_hp("Změna HP monstra", f"{mob.name_cz or mob.name_en}: {old_hp} -> {new_hp}/{mob.hit_points} HP")
             elif entity_type == 'player':
                 player = Char_info.objects.get(id=entity_id)
+                old_hp = player.hit_points_current
                 player.hit_points_current = new_hp
                 player.save(update_fields=['hit_points_current'])
                 saved_records.append({'entity_type': 'player', 'id': player.id, 'current_hp': player.hit_points_current})
+                log_hp("Změna HP hráče", f"{player.char_name}: {old_hp} -> {new_hp}/{player.hit_points_max} HP")
 
         return JsonResponse({'success': True, 'saved': saved_records})
     except Exception as e:
+        log_error("Chyba při aktualizaci HP", str(e))
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @dm_required
@@ -254,21 +264,25 @@ def in_fight_switch(request):
             mob = get_object_or_404(Monsters_Active, id=source_id)
             mob.in_fight = (action == 'True') # Musí být takto, jinak to python vždycky zapíše jako "True"
             mob.save()
+            action_desc = "VSTUPUJE DO BOJE ⚔️" if mob.in_fight else "ODCHÁZÍ Z BOJE 🏳️"
+            log_arena(f"Monstrum: {action_desc}", f"{mob.name_cz or mob.name_en} [ID: {mob.id}]")
             return redirect('dm_site_app:pvp_pre')
         elif source == "player":
             player = Char_info.objects.get(id=source_id)
             player.in_fight = (action == 'True') # Musí být takto, jinak to python vždycky zapíše jako "True"
             player.save()
+            action_desc = "VSTUPUJE DO BOJE ⚔️" if player.in_fight else "ODCHÁZÍ Z BOJE 🏳️"
+            log_arena(f"Hráč: {action_desc}", f"{player.char_name} (Hráč: {player.player.nickname}) [ID: {player.id}]")
             return redirect('dm_site_app:pvp_pre')
     else:
+        log_warning("Přepnutí stavu v boji", "Neplatná metoda požadavku (očekáván POST)")
         messages.error(request, "Chyba při vybirani monstra")
         return redirect('dm_site_app:pvp_pre') 
 
 def active_mob_db_save(mob_id):
     mob = Monsters_All_db.objects.get(id=mob_id)
-    print("Ukládá se do databáze")
-# vytvoření nové mobky v databázi:
-    Monsters_Active.objects.create(
+    # vytvoření nové mobky v aktivní databázi:
+    new_mob = Monsters_Active.objects.create(
         api_index=mob.api_index,
         name_cz=mob.name_cz,
         name_en=mob.name_en,
@@ -307,11 +321,18 @@ def active_mob_db_save(mob_id):
         image_url=mob.image_url,
         raw_data=mob.raw_data
     )
-    print("Uloženo do databáze")
+    log_success("Monstrum připraveno do hry", f"{new_mob.name_cz or new_mob.name_en} (CR {new_mob.formatted_cr}, {new_mob.hit_points} HP, AC {new_mob.armor_class}) [ID: {new_mob.id}]")
+    return new_mob
 
 @dm_required
 def remove_mob(request, mob_id):
-    Monsters_Active.objects.filter(id=mob_id).delete()
+    mob = Monsters_Active.objects.filter(id=mob_id).first()
+    if mob:
+        name = mob.name_cz or mob.name_en
+        mob.delete()
+        log_mob("Monstrum odstraněno ze hry", f"{name} [ID: {mob_id}]")
+    else:
+        log_warning("Pokus o smazání neexistujícího monstra", f"ID: {mob_id}")
     return redirect('dm_site_app:monster_gen_page')
 
 @dm_required
@@ -326,6 +347,14 @@ def mob_dead(request):
     if request.method == 'POST':
         mob_id = request.POST.get('mob_id')
         killer_id = request.POST.get('killer')
+
+        mob = Monsters_Active.objects.filter(id=mob_id).first()
+        killer = Char_info.objects.filter(id=killer_id).first()
+        mob_name = (mob.name_cz or mob.name_en) if mob else f"ID {mob_id}"
+        killer_name = killer.char_name if killer else f"ID {killer_id}"
+
+        log_arena("Smrtící úder zaznamenán! 💀", f"Monstrum '{mob_name}' skoleno postavou '{killer_name}'")
+
         # TODO: Zde si DM doplní vlastní logiku
         return redirect('dm_site_app:pvp_arena')
     return redirect('dm_site_app:pvp_arena')

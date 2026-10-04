@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .models import Player, Char_info, Achivements_players, Achivements_database
 from .forms import PlayerLoginForm, PlayerRegistrationForm
+from dnd_atarax.terminal import log_player, log_warning, log_info
 
 
 def get_player_and_character(request, char_id=None):
@@ -52,9 +53,11 @@ def index(request):
             if reg_form.is_valid():
                 user = reg_form.save()
                 login(request, user)
+                log_player("Registrace nového hráče", f"Uživatel '{user.username}' ({user.player.nickname})")
                 messages.success(request, f"Registrace proběhla úspěšně! Vítej, {user.player.nickname or user.username}.")
                 return redirect('player_site_app:prehled_postav')
             else:
+                log_warning("Chyba při registraci hráče", "Neplatná data ve formuláři")
                 messages.error(request, "Opravte prosím chyby v registračním formuláři.")
 
         elif action == 'login':
@@ -63,6 +66,8 @@ def index(request):
                 user = login_form.get_user()
                 login(request, user)
                 Player.objects.get_or_create(user=user, defaults={'nickname': user.username})
+                role = "DM / Staff 🛡️" if user.is_staff else "Hráč 🧙"
+                log_player("Přihlášení uživatele", f"'{user.username}' [{role}]")
                 messages.success(request, "Přihlášení proběhlo úspěšně. Vítej zpět!")
                 next_url = request.GET.get('next')
                 if next_url:
@@ -72,6 +77,8 @@ def index(request):
                 else:
                     return redirect('player_site_app:prehled_postav')
             else:
+                username_attempt = request.POST.get('username', 'neznámý')
+                log_warning("Neúspěšné přihlášení", f"Neplatné jméno nebo heslo pro '{username_attempt}'")
                 messages.error(request, "Neplatné uživatelské jméno nebo heslo.")
 
     return render(request, 'player_site_app/login_index.html', {
@@ -82,7 +89,9 @@ def index(request):
 
 def logout_view(request):
     """Odhlásí hráče a přesměruje na login."""
+    user_name = request.user.username if request.user.is_authenticated else "Neznámý"
     logout(request)
+    log_player("Odhlášení uživatele", f"'{user_name}'")
     messages.info(request, "Byl jsi úspěšně odhlášen.")
     return redirect('player_site_app:index')
 

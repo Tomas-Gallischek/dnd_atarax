@@ -1,9 +1,9 @@
 from .models import Achivements_database, Achivements_players, Player, Char_info, Logs
+from dnd_atarax.terminal import log_gold
 
 
 def golds_achivement(char_id, amount):
-    
-# identifikace
+    # identifikace
     this_achivement = Achivements_database.objects.get(name="Zbohatlík")
     this_char = Char_info.objects.get(id=char_id)
     current_achivement = Achivements_players.objects.filter(char=this_char, Achivement=this_achivement)
@@ -12,10 +12,10 @@ def golds_achivement(char_id, amount):
     else:
         current_achivement = Achivements_players.objects.create(char=this_char, Achivement=this_achivement, current_value=amount)
 
-# Zápis a kontrola
-    new_total_gold = this_char.total_golds + amount # Nové celkové goldy
+    # Zápis a kontrola
+    new_total_gold = this_char.total_golds + amount  # Nové celkové goldy
     current_achivement.current_value = new_total_gold 
-    current_achivement.save() # zapsání a uložení do databáze (kontrola se provede automaticky) 
+    current_achivement.save()  # zapsání a uložení do databáze (kontrola se provede automaticky) 
 
     log = Logs(
         player=this_char.player,
@@ -24,6 +24,8 @@ def golds_achivement(char_id, amount):
         value=current_achivement.current_value
     )
     log.save()
+
+    log_gold("Úspěch 'Zbohatlík' aktualizován", f"{this_char.char_name}: {current_achivement.current_value} gp celkem")
 
     return "OK"
 

@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 from datetime import datetime
+from dnd_atarax.terminal import log_info, log_success, log_warning, log_error
 
 def run_command(cmd, check=True):
     result = subprocess.run(cmd, shell=True)
@@ -21,31 +22,31 @@ def main():
         commit_msg = f"Update: {now_str}"
 
     # 1. Pouze vygenerujeme migrační plány podle aktuálního kódu
-    print("-> Generování nových migračních souborů (makemigrations)...")
+    log_info("Generování nových migračních souborů", "makemigrations")
     run_command("python manage.py makemigrations")
 
     # 2. Přidáme všechny soubory (včetně nových migrací) do Gitu
-    print("-> Přidávání změn (git add .)...")
+    log_info("Přidávání změn do indexu", "git add .")
     run_command("git add .")
 
     # Kontrola, zda existují změny k commitu
     status = subprocess.run("git status --porcelain", shell=True, capture_output=True, text=True)
     if status.stdout.strip():
-        print(f"-> Vytváření commitu: \"{commit_msg}\"...")
+        log_info("Vytváření commitu", f'"{commit_msg}"')
         run_command(f'git commit -m "{commit_msg}"')
     else:
-        print("-> Žádné nové změny k uložení do commitu.")
+        log_warning("Git status", "Žádné nové změny k uložení do commitu.")
 
     # 3. Odeslání na GitHub
-    print("-> Odesílání na GitHub (git push)...")
+    log_info("Odesílání na vzdálený repozitář", "git push")
     push_res = run_command("git push", check=False)
 
     if push_res.returncode == 0:
         # Vyčištění konzole po úspěšném odeslání
         os.system("cls")
-        print(f"✓ Migrační plány vygenerovány, úspěšně commitnuto a odesláno na GitHub! ({now_str})")
+        log_success("Git synchronizace dokončena!", f"Migrace připraveny, commitnuto a odesláno na GitHub ({now_str})")
     else:
-        print("\n[!] Chyba: Odeslání na vzdálený repozitář (git push) selhalo.")
+        log_error("Git push selhal", "Odeslání na vzdálený repozitář selhalo.")
         sys.exit(push_res.returncode)
 
 
