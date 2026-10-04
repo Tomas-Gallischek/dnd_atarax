@@ -207,7 +207,7 @@ def active_mob_db_save(mob_id):
         charisma=mob.charisma,
         saving_throws=mob.saving_throws,
         skills=mob.skills,
-        damage_vulnerability=mob.damage_vulnerability,
+        damage_vulnerabilities=mob.damage_vulnerabilities,
         damage_resistances=mob.damage_resistances,
         damage_immunities=mob.damage_immunities,
         condition_immunities=mob.condition_immunities,
