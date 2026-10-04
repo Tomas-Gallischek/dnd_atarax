@@ -48,7 +48,14 @@
                      data-current-hp="{{ mob.current_hp_val }}"
                      data-max-hp="{{ mob.max_hp }}">
 
-                <div class="defeated-banner">Pororažen</div>
+                <button type="button" 
+                        class="defeated-banner defeated-banner-btn" 
+                        data-action="open-kill-modal" 
+                        data-mob-id="{{ mob.id }}" 
+                        data-mob-name="{{ mob.name_cz|default:mob.name_en }}"
+                        title="Klikněte pro zaznamenání smrtícího úderu hráče">
+                    💀 Poražen
+                </button>
 
                 <div>
                     <!-- Hlavička karty -->
@@ -605,6 +612,59 @@
     </div>
 </dialog>
 
+<!-- NATIVNÍ MODÁLNÍ OKNO PRO ZAZNAMENÁNÍ ZABITÍ MONSTRA -->
+<dialog id="killRecordModal" class="kill-record-dialog" closedby="any" aria-labelledby="killModalTitle">
+    <div class="kill-modal-content">
+        <header class="kill-modal-header">
+            <div class="kill-modal-title-group">
+                <span class="kill-badge">⚔️ Bojový záznam</span>
+                <h3 id="killModalTitle" class="kill-modal-title">Smrtící úder</h3>
+                <p class="kill-modal-subtitle">Vyberte hrdinu, který monstrum zneškodnil</p>
+            </div>
+            <button type="button" class="modal-close-btn" id="killModalCloseBtn" aria-label="Zavřít okno (Esc)" title="Zavřít (Esc)">
+                ✕
+            </button>
+        </header>
+
+        <form action="{% url 'dm_site_app:mob_dead' %}" method="post" id="killRecordForm" class="kill-modal-form">
+            {% csrf_token %}
+            <input type="hidden" name="mob_id" id="killFormMobId" value="">
+
+            <div class="kill-target-card">
+                <span class="kill-target-label">Poražené monstrum:</span>
+                <span class="kill-target-name" id="killTargetMobName">—</span>
+            </div>
+
+            <div class="kill-form-group">
+                <label for="killPlayerSelect" class="kill-form-label">
+                    <span>👑</span> Kdo zasadil smrtící ránu?
+                </label>
+                <div class="kill-select-wrap">
+                    <select name="killer" id="killPlayerSelect" class="kill-form-select" required>
+                        <option value="" disabled selected>-- Vyberte postavu hráče --</option>
+                        {% for p in all_players %}
+                        <option value="{{ p.id }}">
+                            {{ p.name }} ({{ p.character_class|default:"Dobrodruh" }})
+                        </option>
+                        {% empty %}
+                        <option value="" disabled>Žádné postavy hráčů nejsou v boji</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="kill-modal-actions">
+                <button type="button" class="btn-kill-cancel" id="killModalCancelBtn">
+                    Zrušit
+                </button>
+                <button type="submit" class="btn-kill-submit">
+                    <span>⚔️</span> Vybrat
+                </button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
 <!-- CSRF Token pro AJAX požadavky -->
 {% csrf_token %}
 
@@ -821,13 +881,25 @@ document.addEventListener("DOMContentLoaded", () => {
         detailModal.showModal();
     }
 
-    // Kliknutí pro otevření detailu (portrét, tlačítko detailu nebo hlavička karty)
+    // Kliknutí pro otevření detailu nebo zaznamenání zabití
     document.addEventListener("click", (e) => {
-        // Ignorovat, pokud uživatel kliknul do spodní části karty (změna životů)
+        // 1. Kliknutí na banner "Poražen" pro zaznamenání zabití
+        const killTrigger = e.target.closest("[data-action='open-kill-modal'], .defeated-banner-btn");
+        if (killTrigger) {
+            e.stopPropagation();
+            e.preventDefault();
+            const mobId = killTrigger.dataset.mobId;
+            const mobName = killTrigger.dataset.mobName;
+            openKillModal(mobId, mobName);
+            return;
+        }
+
+        // 2. Ignorovat, pokud uživatel kliknul do spodní části karty (změna životů)
         if (e.target.closest(".health-control-wrap") || e.target.closest(".btn-hp")) {
             return;
         }
 
+        // 3. Otevření detailního okna postavy / monstra
         const trigger = e.target.closest(".portrait-container, .btn-card-inspect, .card-header");
         if (trigger) {
             const card = trigger.closest(".character-card");
@@ -837,14 +909,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // Zavření okna křížkem (X)
+    // Zavření okna detailu křížkem (X)
     if (modalCloseBtn && detailModal) {
         modalCloseBtn.addEventListener("click", () => {
             detailModal.close();
         });
     }
 
-    // Fallback pro kliknutí na pozadí dialogu (light-dismiss pro starší prohlížeče)
+    // Fallback pro kliknutí na pozadí dialogu detailu (light-dismiss)
     if (detailModal && !('closedBy' in HTMLDialogElement.prototype)) {
         detailModal.addEventListener("click", (event) => {
             if (event.target !== detailModal) return;
@@ -857,6 +929,48 @@ document.addEventListener("DOMContentLoaded", () => {
             );
             if (!isContent) {
                 detailModal.close();
+            }
+        });
+    }
+
+    // =========================================================================
+    // 6. OBSLUHA MODÁLNÍHO OKNA ZAZNAMENÁNÍ ZABITÍ (Kill Record Modal)
+    // =========================================================================
+    const killModal = document.getElementById("killRecordModal");
+    const killModalCloseBtn = document.getElementById("killModalCloseBtn");
+    const killModalCancelBtn = document.getElementById("killModalCancelBtn");
+    const killFormMobId = document.getElementById("killFormMobId");
+    const killTargetMobName = document.getElementById("killTargetMobName");
+    const killPlayerSelect = document.getElementById("killPlayerSelect");
+
+    function openKillModal(mobId, mobName) {
+        if (!killModal) return;
+        if (killFormMobId) killFormMobId.value = mobId;
+        if (killTargetMobName) killTargetMobName.textContent = mobName || `Monstrum #${mobId}`;
+        if (killPlayerSelect) killPlayerSelect.selectedIndex = 0;
+        killModal.showModal();
+    }
+
+    if (killModalCloseBtn && killModal) {
+        killModalCloseBtn.addEventListener("click", () => killModal.close());
+    }
+    if (killModalCancelBtn && killModal) {
+        killModalCancelBtn.addEventListener("click", () => killModal.close());
+    }
+
+    // Fallback pro kliknutí na pozadí kill dialogu (light-dismiss)
+    if (killModal && !('closedBy' in HTMLDialogElement.prototype)) {
+        killModal.addEventListener("click", (event) => {
+            if (event.target !== killModal) return;
+            const rect = killModal.getBoundingClientRect();
+            const isContent = (
+                rect.top <= event.clientY &&
+                event.clientY <= rect.top + rect.height &&
+                rect.left <= event.clientX &&
+                event.clientX <= rect.left + rect.width
+            );
+            if (!isContent) {
+                killModal.close();
             }
         });
     }

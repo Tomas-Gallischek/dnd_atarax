@@ -9,7 +9,6 @@ from .models import Locations, Npc, Monsters_All_db, Monsters_Active
 from player_site_app.models import Player, Char_info, Logs
 from player_site_app.achivements import golds_achivement
 
-
 def dm_required(view_func):
     """
     Dekorátor pro DM sekci.
@@ -31,7 +30,6 @@ def dm_required(view_func):
         return view_func(request, *args, **kwargs)
     return _wrapped_view
 
-
 @dm_required
 def index(request):
     """1. DM Dashboard"""
@@ -39,14 +37,12 @@ def index(request):
         'current_page': 'index_dashboard',
     })
 
-
 @dm_required
 def tools(request):
     """2. Nástroje DM"""
     return render(request, 'dm_site_app/tools.html', {
         'current_page': 'tools',
     })
-
 
 @dm_required
 def npc(request):
@@ -58,10 +54,8 @@ def npc(request):
     }
     return render(request, 'dm_site_app/npc.html', context)
 
-
 # Zpětná kompatibilita pro název funkce npcs
 npcs = npc
-
 
 @dm_required
 def locations(request):
@@ -73,7 +67,6 @@ def locations(request):
     }
     return render(request, 'dm_site_app/locations.html', context)
 
-
 @dm_required
 def notes(request):
     """5. Poznámky DM"""
@@ -81,14 +74,12 @@ def notes(request):
         'current_page': 'notes',
     })
 
-
 @dm_required
 def lore(request):
     """6. Lore s možností sdílet hráčům"""
     return render(request, 'dm_site_app/lore.html', {
         'current_page': 'lore',
     })
-
 
 @dm_required
 def golds_management(request):
@@ -99,7 +90,6 @@ def golds_management(request):
         'current_page': 'golds_management',
     }
     return render(request, 'dm_site_app/golds_management.html', context)
-
 
 @dm_required
 def add_gold(request):
@@ -137,7 +127,6 @@ def add_gold(request):
             log.save()
 
     return redirect('dm_site_app:golds-management')
-
 
 @dm_required
 def monster_gen_page(request):
@@ -217,7 +206,6 @@ def pvp_arena(request):
         'all_active_mobs': all_active_mobs,
         'all_players': all_players,
     })
-
 
 @dm_required
 def api_update_hp(request):
@@ -320,19 +308,24 @@ def active_mob_db_save(mob_id):
         raw_data=mob.raw_data
     )
     print("Uloženo do databáze")
-    
 
 @dm_required
 def remove_mob(request, mob_id):
     Monsters_Active.objects.filter(id=mob_id).delete()
-    return redirect('dm_site_app:monster_gen_page')    
-    
+    return redirect('dm_site_app:monster_gen_page')
 
-    
-
-
-    
-
-
-    
-    
+@dm_required
+def mob_dead(request):
+    """
+    Zpracování zabití monstra hráčem.
+    Logiku si doplní DM (uživatel).
+    Přijímá POST data:
+      - mob_id: ID zabitého monstra
+      - killer: ID postavy hráče, který zasadil smrtící úder
+    """
+    if request.method == 'POST':
+        mob_id = request.POST.get('mob_id')
+        killer_id = request.POST.get('killer')
+        # TODO: Zde si DM doplní vlastní logiku
+        return redirect('dm_site_app:pvp_arena')
+    return redirect('dm_site_app:pvp_arena')

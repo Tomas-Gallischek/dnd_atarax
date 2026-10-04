@@ -263,10 +263,38 @@
     z-index: 10;
     text-transform: uppercase;
     letter-spacing: 1px;
+    user-select: none;
 }
 
 .character-card.is-defeated .defeated-banner {
     display: block;
+}
+
+/* Interactive defeated banner button for monsters */
+.defeated-banner-btn {
+    pointer-events: auto !important;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    outline: none;
+    display: none;
+}
+
+.character-card.is-defeated .defeated-banner-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.defeated-banner-btn:hover {
+    background: #dc2626;
+    border-color: #ffffff;
+    transform: translate(-50%, -50%) rotate(-8deg) scale(1.08);
+    box-shadow: 0 8px 24px rgba(220, 38, 38, 0.65), 0 0 15px rgba(239, 68, 68, 0.8);
+    color: #ffffff;
+}
+
+.defeated-banner-btn:active {
+    transform: translate(-50%, -50%) rotate(-8deg) scale(0.96);
 }
 
 /* Card Header */
@@ -1082,6 +1110,209 @@
     align-items: center;
     gap: 12px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6), 0 0 10px rgba(180, 83, 9, 0.25);
+}
+
+/* ==========================================================================
+   KILL RECORD MODAL DIALOG (<dialog id="killRecordModal">)
+   ========================================================================== */
+
+.kill-record-dialog {
+    margin: auto;
+    border: none;
+    padding: 0;
+    background: transparent;
+    max-width: 480px;
+    width: min(480px, 92vw);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.95), 0 0 35px rgba(220, 38, 38, 0.45);
+    z-index: 1000;
+}
+
+.kill-record-dialog::backdrop {
+    background-color: rgba(6, 5, 8, 0.82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: modalBackdropFadeIn 0.2s ease forwards;
+}
+
+.kill-record-dialog[open] {
+    animation: modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.kill-modal-content {
+    background: #171114;
+    border: 2px solid #991b1b;
+    border-radius: 16px;
+    overflow: hidden;
+    color: #f1f5f9;
+    font-family: var(--font-sans);
+    box-shadow: inset 0 0 30px rgba(220, 38, 38, 0.15);
+}
+
+.kill-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem 1rem 1.5rem;
+    background: #201316;
+    border-bottom: 1px solid rgba(220, 38, 38, 0.3);
+}
+
+.kill-modal-title-group {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.kill-badge {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    font-weight: 800;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    width: fit-content;
+    background: rgba(220, 38, 38, 0.25);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    margin-bottom: 2px;
+}
+
+.kill-modal-title {
+    font-family: var(--font-serif);
+    font-size: 1.4rem;
+    margin: 0;
+    color: #fef2f2;
+    line-height: 1.2;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.kill-modal-subtitle {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin: 0;
+}
+
+.kill-modal-form {
+    padding: 1.25rem 1.5rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.kill-target-card {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.kill-target-label {
+    color: #94a3b8;
+    font-size: 0.85rem;
+}
+
+.kill-target-name {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #fca5a5;
+}
+
+.kill-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.kill-form-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fef3c7;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.kill-select-wrap {
+    position: relative;
+}
+
+.kill-form-select {
+    width: 100%;
+    padding: 11px 14px;
+    background: #0f0c0e;
+    border: 1px solid #78350f;
+    border-radius: 8px;
+    color: #f8fafc;
+    font-size: 0.95rem;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.kill-form-select:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+}
+
+.kill-modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 0.5rem;
+}
+
+.btn-kill-cancel {
+    flex: 1;
+    padding: 11px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-kill-cancel:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+
+.btn-kill-submit {
+    flex: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px;
+    background: linear-gradient(135deg, #b91c1c, #dc2626);
+    border: 1px solid #ef4444;
+    color: #ffffff;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.4);
+    transition: all 0.2s ease;
+}
+
+.btn-kill-submit:hover {
+    background: linear-gradient(135deg, #dc2626, #ef4444);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6);
+    transform: translateY(-1px);
+}
+
+.btn-kill-submit:active {
+    transform: scale(0.98);
 }
 
 /* Responsive Breakpoints */
