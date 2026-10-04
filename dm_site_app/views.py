@@ -221,7 +221,7 @@ def in_fight_switch(request):
         mob = Monsters_Active.objects.get(id=mob_id)
         mob.in_fight = action
         mob.save()
-        return redirect('dm_site_app:pvp_arena')
+        return redirect('dm_site_app:pvp_pre')
     else:
         messages.error(request, "Chyba při vybirani monstra")
         return redirect('dm_site_app:pvp_pre') 
