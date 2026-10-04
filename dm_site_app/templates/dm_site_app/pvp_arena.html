@@ -52,7 +52,7 @@
 
                 <div>
                     <!-- Hlavička karty -->
-                    <div class="card-header">
+                    <div class="card-header" data-action="open-detail" role="button" tabindex="0" title="Klikněte pro zobrazení detailů">
                         <div class="card-title-wrap">
                             <h3>{{ mob.name_cz|default:mob.name_en }}</h3>
                             <p class="card-subtitle">
@@ -60,15 +60,20 @@
                                 {% if mob.alignment %}&bull; {{ mob.alignment }}{% endif %}
                             </p>
                         </div>
-                        <div class="card-cr-badge" title="Nebezpečnost (Challenge Rating)">
-                            CR {{ mob.formatted_cr|default:mob.challenge_rating|default:"—" }}
+                        <div class="card-header-actions">
+                            <div class="card-cr-badge" title="Nebezpečnost (Challenge Rating)">
+                                CR {{ mob.formatted_cr|default:mob.challenge_rating|default:"—" }}
+                            </div>
+                            <button type="button" class="btn-card-inspect" title="Zobrazit podrobné statistiky" aria-label="Zobrazit detail">
+                                🔍 Detail
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Hlavní část karty: Portrét + Flyout detaily + Obrana -->
+                    <!-- Hlavní část karty: Portrét + Rychlá obrana -->
                     <div class="card-main">
-                        <!-- Portrét s rozbalovacím tooltipem na hover -->
-                        <div class="portrait-container" tabindex="0" aria-label="Zobrazit detailní statistiky">
+                        <!-- Portrét s proklikem na modální okno -->
+                        <div class="portrait-container" data-action="open-detail" role="button" tabindex="0" title="Klikněte pro zobrazení detailů" aria-label="Zobrazit detailní statistiky">
                             {% if mob.image_url %}
                                 <img src="{{ mob.image_url }}" alt="{{ mob.name_cz }}" class="card-portrait" loading="lazy">
                             {% else %}
@@ -76,86 +81,7 @@
                                     🐉
                                 </div>
                             {% endif %}
-                            <div class="portrait-hover-hint">🔍 Detaily</div>
-
-                            <!-- DETAILNÍ FLYOUT POPUP (Po najetí myši na obrázek) -->
-                            <div class="detail-flyout">
-                                <h4 class="flyout-heading">{{ mob.name_cz }} {% if mob.name_en %}<small>({{ mob.name_en }})</small>{% endif %}</h4>
-                                
-                                <div class="flyout-section">
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Typ:</span> {{ mob.size }} {{ mob.monster_type }}{% if mob.subtype %} ({{ mob.subtype }}){% endif %}
-                                    </p>
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Zbroj:</span> AC {{ mob.armor_class|default:10 }} {% if mob.armor_desc %}({{ mob.armor_desc }}){% endif %}
-                                    </p>
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Životy kostky:</span> {{ mob.hit_dice|default:"—" }}
-                                    </p>
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Rychlost:</span> {{ mob.speed|default:"30 stop" }}
-                                    </p>
-                                </div>
-
-                                {% if mob.saving_throws %}
-                                <div class="flyout-block">
-                                    <span class="flyout-label">Záchranné hody:</span>
-                                    <span class="flyout-text">{{ mob.saving_throws }}</span>
-                                </div>
-                                {% endif %}
-
-                                {% if mob.skills %}
-                                <div class="flyout-block">
-                                    <span class="flyout-label">Dovednosti:</span>
-                                    <span class="flyout-text">{{ mob.skills }}</span>
-                                </div>
-                                {% endif %}
-
-                                {% if mob.damage_resistances or mob.damage_immunities or mob.damage_vulnerabilities or mob.condition_immunities %}
-                                <div class="flyout-block">
-                                    <div class="flyout-block-title">Odolnosti a imunity</div>
-                                    {% if mob.damage_resistances %}<p class="flyout-text"><span class="flyout-label">Odolnosti:</span> {{ mob.damage_resistances }}</p>{% endif %}
-                                    {% if mob.damage_immunities %}<p class="flyout-text"><span class="flyout-label">Imunity na zranění:</span> {{ mob.damage_immunities }}</p>{% endif %}
-                                    {% if mob.condition_immunities %}<p class="flyout-text"><span class="flyout-label">Stavové imunity:</span> {{ mob.condition_immunities }}</p>{% endif %}
-                                    {% if mob.damage_vulnerabilities %}<p class="flyout-text"><span class="flyout-label">Zranitelnosti:</span> {{ mob.damage_vulnerabilities }}</p>{% endif %}
-                                </div>
-                                {% endif %}
-
-                                {% if mob.senses or mob.languages %}
-                                <div class="flyout-block">
-                                    {% if mob.senses %}<p class="flyout-text"><span class="flyout-label">Smysly:</span> {{ mob.senses }}</p>{% endif %}
-                                    {% if mob.languages %}<p class="flyout-text"><span class="flyout-label">Jazyky:</span> {{ mob.languages }}</p>{% endif %}
-                                </div>
-                                {% endif %}
-
-                                {% if mob.special_abilities %}
-                                <div class="flyout-block">
-                                    <div class="flyout-block-title">Zvláštní schopnosti</div>
-                                    <p class="flyout-text">{{ mob.special_abilities|linebreaksbr }}</p>
-                                </div>
-                                {% endif %}
-
-                                {% if mob.actions %}
-                                <div class="flyout-block">
-                                    <div class="flyout-block-title">Bojové akce (Útoky)</div>
-                                    <p class="flyout-text">{{ mob.actions|linebreaksbr }}</p>
-                                </div>
-                                {% endif %}
-
-                                {% if mob.reactions %}
-                                <div class="flyout-block">
-                                    <div class="flyout-block-title">Reakce</div>
-                                    <p class="flyout-text">{{ mob.reactions|linebreaksbr }}</p>
-                                </div>
-                                {% endif %}
-
-                                {% if mob.legendary_actions %}
-                                <div class="flyout-block">
-                                    <div class="flyout-block-title">Legendární akce</div>
-                                    <p class="flyout-text">{{ mob.legendary_actions|linebreaksbr }}</p>
-                                </div>
-                                {% endif %}
-                            </div>
+                            <div class="portrait-hover-hint">🔍 Detail</div>
                         </div>
 
                         <!-- Rychlé obranné statistiky -->
@@ -234,6 +160,168 @@
                     </div>
                 </div>
 
+                <!-- Skrytá data pro zobrazení v modálním okně detailu -->
+                <div class="character-modal-data" style="display:none;" aria-hidden="true">
+                    <!-- Horní přehled: Portrét + Rychlé statistiky -->
+                    <div class="modal-profile-header">
+                        <div class="modal-portrait-wrap">
+                            {% if mob.image_url %}
+                                <img src="{{ mob.image_url }}" alt="{{ mob.name_cz }}" class="modal-portrait">
+                            {% else %}
+                                <div class="modal-portrait modal-portrait-placeholder">🐉</div>
+                            {% endif %}
+                        </div>
+                        <div class="modal-profile-meta">
+                            <div class="modal-badges-row">
+                                <span class="modal-pill pill-cr">CR {{ mob.formatted_cr|default:mob.challenge_rating|default:"—" }}</span>
+                                <span class="modal-pill pill-xp">{{ mob.xp|default:0 }} XP</span>
+                                {% if mob.proficiency_bonus %}
+                                <span class="modal-pill pill-prof">Zdatnost +{{ mob.proficiency_bonus }}</span>
+                                {% endif %}
+                            </div>
+                            <div class="modal-specs-grid">
+                                <div class="spec-item">
+                                    <span class="spec-label">🛡️ Zbroj:</span>
+                                    <span class="spec-value">AC {{ mob.armor_class|default:10 }} {% if mob.armor_desc %}({{ mob.armor_desc }}){% endif %}</span>
+                                </div>
+                                <div class="spec-item">
+                                    <span class="spec-label">❤️ Životy:</span>
+                                    <span class="spec-value"><strong class="modal-hp-live-val">{{ mob.current_hp_val }}</strong> / {{ mob.max_hp }} HP {% if mob.hit_dice %}({{ mob.hit_dice }}){% endif %}</span>
+                                </div>
+                                <div class="spec-item">
+                                    <span class="spec-label">👢 Rychlost:</span>
+                                    <span class="spec-value">{{ mob.speed|default:"30 stop" }}</span>
+                                </div>
+                                <div class="spec-item">
+                                    <span class="spec-label">📜 Typ:</span>
+                                    <span class="spec-value">{{ mob.size }} {{ mob.monster_type }}{% if mob.subtype %} ({{ mob.subtype }}){% endif %}</span>
+                                </div>
+                                {% if mob.alignment %}
+                                <div class="spec-item">
+                                    <span class="spec-label">⚖️ Přesvědčení:</span>
+                                    <span class="spec-value">{{ mob.alignment }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Základní vlastnosti -->
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading">Základní vlastnosti</h4>
+                        <div class="modal-abilities-grid">
+                            <div class="modal-ability-card">
+                                <span class="ab-name">SIL</span>
+                                <span class="ab-score">{{ mob.strength|default:10 }}</span>
+                                <span class="ab-mod">{{ mob.str_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">OBR</span>
+                                <span class="ab-score">{{ mob.dexterity|default:10 }}</span>
+                                <span class="ab-mod">{{ mob.dex_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">ODL</span>
+                                <span class="ab-score">{{ mob.constitution|default:10 }}</span>
+                                <span class="ab-mod">{{ mob.con_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">INT</span>
+                                <span class="ab-score">{{ mob.intelligence|default:10 }}</span>
+                                <span class="ab-mod">{{ mob.int_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">MDR</span>
+                                <span class="ab-score">{{ mob.wisdom|default:10 }}</span>
+                                <span class="ab-mod">{{ mob.wis_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">CHA</span>
+                                <span class="ab-score">{{ mob.charisma|default:10 }}</span>
+                                <span class="ab-mod">{{ mob.cha_mod }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Záchrany, dovednosti, smysly, jazyky -->
+                    {% if mob.saving_throws or mob.skills or mob.senses or mob.languages %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading">Dovednosti a smysly</h4>
+                        {% if mob.saving_throws %}
+                        <p class="modal-line"><span class="line-label">🎯 Záchranné hody:</span> <span class="line-val">{{ mob.saving_throws }}</span></p>
+                        {% endif %}
+                        {% if mob.skills %}
+                        <p class="modal-line"><span class="line-label">🧗 Dovednosti:</span> <span class="line-val">{{ mob.skills }}</span></p>
+                        {% endif %}
+                        {% if mob.senses %}
+                        <p class="modal-line"><span class="line-label">👁️ Smysly:</span> <span class="line-val">{{ mob.senses }}</span></p>
+                        {% endif %}
+                        {% if mob.languages %}
+                        <p class="modal-line"><span class="line-label">🗣️ Jazyky:</span> <span class="line-val">{{ mob.languages }}</span></p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Odolnosti a imunity -->
+                    {% if mob.damage_resistances or mob.damage_immunities or mob.condition_immunities or mob.damage_vulnerabilities %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading">Obranné vlastnosti a imunity</h4>
+                        {% if mob.damage_resistances %}
+                        <p class="modal-line"><span class="line-label tag-resist">🛡️ Odolnosti:</span> <span class="line-val">{{ mob.damage_resistances }}</span></p>
+                        {% endif %}
+                        {% if mob.damage_immunities %}
+                        <p class="modal-line"><span class="line-label tag-immune">✨ Imunity na zranění:</span> <span class="line-val">{{ mob.damage_immunities }}</span></p>
+                        {% endif %}
+                        {% if mob.condition_immunities %}
+                        <p class="modal-line"><span class="line-label tag-condition">💫 Stavové imunity:</span> <span class="line-val">{{ mob.condition_immunities }}</span></p>
+                        {% endif %}
+                        {% if mob.damage_vulnerabilities %}
+                        <p class="modal-line"><span class="line-label tag-vuln">⚠️ Zranitelnosti:</span> <span class="line-val">{{ mob.damage_vulnerabilities }}</span></p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Zvláštní schopnosti -->
+                    {% if mob.special_abilities %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading action-heading-abilities">⚡ Zvláštní schopnosti</h4>
+                        <div class="modal-text-content">{{ mob.special_abilities|linebreaksbr }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Bojové akce / Útoky -->
+                    {% if mob.actions %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading action-heading-actions">⚔️ Bojové akce (Útoky)</h4>
+                        <div class="modal-text-content">{{ mob.actions|linebreaksbr }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Reakce -->
+                    {% if mob.reactions %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading action-heading-reactions">🛡️ Reakce</h4>
+                        <div class="modal-text-content">{{ mob.reactions|linebreaksbr }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Legendární akce -->
+                    {% if mob.legendary_actions %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading action-heading-legendary">👑 Legendární akce</h4>
+                        <div class="modal-text-content">{{ mob.legendary_actions|linebreaksbr }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Popis -->
+                    {% if mob.description %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading">📖 Popis</h4>
+                        <div class="modal-text-content italic">{{ mob.description|linebreaksbr }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
             </article>
             {% empty %}
             <div class="arena-empty-state">
@@ -274,7 +362,7 @@
 
                 <div>
                     <!-- Hlavička karty -->
-                    <div class="card-header">
+                    <div class="card-header" data-action="open-detail" role="button" tabindex="0" title="Klikněte pro zobrazení detailů">
                         <div class="card-title-wrap">
                             <h3>{{ player.name }}</h3>
                             <p class="card-subtitle">
@@ -282,58 +370,23 @@
                                 {% if player.player.nickname %}&bull; ({{ player.player.nickname }}){% endif %}
                             </p>
                         </div>
-                        <div class="card-cr-badge" title="Úroveň postavy">
-                            Úroveň {{ player.level }}
+                        <div class="card-header-actions">
+                            <div class="card-cr-badge" title="Úroveň postavy">
+                                Úroveň {{ player.level }}
+                            </div>
+                            <button type="button" class="btn-card-inspect" title="Zobrazit podrobné statistiky" aria-label="Zobrazit detail">
+                                🔍 Detail
+                            </button>
                         </div>
                     </div>
 
-                    <!-- Hlavní část karty: Portrét + Flyout detaily + Obrana -->
+                    <!-- Hlavní část karty: Portrét + Rychlá obrana -->
                     <div class="card-main">
-                        <div class="portrait-container" tabindex="0" aria-label="Zobrazit detailní statistiky">
+                        <div class="portrait-container" data-action="open-detail" role="button" tabindex="0" title="Klikněte pro zobrazení detailů" aria-label="Zobrazit detailní statistiky">
                             <div class="card-portrait card-portrait-placeholder">
                                 🧙‍♂️
                             </div>
-                            <div class="portrait-hover-hint">🔍 Detaily</div>
-
-                            <!-- DETAILNÍ FLYOUT POPUP (Hráč) -->
-                            <div class="detail-flyout">
-                                <h4 class="flyout-heading">{{ player.name }}</h4>
-                                
-                                <div class="flyout-section">
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Hráč:</span> {{ player.player.nickname|default:player.player.user.username }}
-                                    </p>
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Povolání:</span> {{ player.character_class }} (Úr. {{ player.level }})
-                                    </p>
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Rasa:</span> {{ player.race|default:"Neuvedeno" }}
-                                    </p>
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Přesvědčení:</span> {{ player.alignment|default:"Neuvedeno" }}
-                                    </p>
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Zázemí:</span> {{ player.background|default:"Neuvedeno" }}
-                                    </p>
-                                    <p class="flyout-text">
-                                        <span class="flyout-label">Rychlost:</span> {{ player.speed|default:30 }} stop
-                                    </p>
-                                </div>
-
-                                {% if player.notes %}
-                                <div class="flyout-block">
-                                    <div class="flyout-block-title">Poznámky DM k postavě</div>
-                                    <p class="flyout-text">{{ player.notes|linebreaksbr }}</p>
-                                </div>
-                                {% endif %}
-
-                                {% if player.backstory %}
-                                <div class="flyout-block">
-                                    <div class="flyout-block-title">Historie / Příběh</div>
-                                    <p class="flyout-text">{{ player.backstory|truncatewords:45|linebreaksbr }}</p>
-                                </div>
-                                {% endif %}
-                            </div>
+                            <div class="portrait-hover-hint">🔍 Detail</div>
                         </div>
 
                         <!-- Rychlé obranné statistiky -->
@@ -412,6 +465,113 @@
                     </div>
                 </div>
 
+                <!-- Skrytá data pro zobrazení v modálním okně detailu -->
+                <div class="character-modal-data" style="display:none;" aria-hidden="true">
+                    <!-- Horní přehled: Portrét + Rychlé statistiky -->
+                    <div class="modal-profile-header">
+                        <div class="modal-portrait-wrap">
+                            <div class="modal-portrait modal-portrait-placeholder">🧙‍♂️</div>
+                        </div>
+                        <div class="modal-profile-meta">
+                            <div class="modal-badges-row">
+                                <span class="modal-pill pill-player-level">Úroveň {{ player.level }}</span>
+                                <span class="modal-pill pill-player-coins">💰 {{ player.gold }} zl {{ player.silver }} st</span>
+                            </div>
+                            <div class="modal-specs-grid">
+                                <div class="spec-item">
+                                    <span class="spec-label">👤 Hráč:</span>
+                                    <span class="spec-value"><strong>{{ player.player.nickname|default:player.player.user.username }}</strong></span>
+                                </div>
+                                <div class="spec-item">
+                                    <span class="spec-label">⚔️ Povolání:</span>
+                                    <span class="spec-value">{{ player.character_class|default:"Dobrodruh" }} (Úr. {{ player.level }})</span>
+                                </div>
+                                <div class="spec-item">
+                                    <span class="spec-label">🛡️ Třída zbroje:</span>
+                                    <span class="spec-value">AC {{ player.armor_class|default:10 }}</span>
+                                </div>
+                                <div class="spec-item">
+                                    <span class="spec-label">❤️ Životy:</span>
+                                    <span class="spec-value"><strong class="modal-hp-live-val">{{ player.current_hp_val }}</strong> / {{ player.max_hp }} HP</span>
+                                </div>
+                                <div class="spec-item">
+                                    <span class="spec-label">🧝 Rasa:</span>
+                                    <span class="spec-value">{{ player.race|default:"Neuvedeno" }}</span>
+                                </div>
+                                <div class="spec-item">
+                                    <span class="spec-label">👢 Rychlost:</span>
+                                    <span class="spec-value">{{ player.speed|default:30 }} stop</span>
+                                </div>
+                                {% if player.alignment %}
+                                <div class="spec-item">
+                                    <span class="spec-label">⚖️ Přesvědčení:</span>
+                                    <span class="spec-value">{{ player.alignment }}</span>
+                                </div>
+                                {% endif %}
+                                {% if player.background %}
+                                <div class="spec-item">
+                                    <span class="spec-label">📜 Zázemí:</span>
+                                    <span class="spec-value">{{ player.background }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Základní vlastnosti -->
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading">Základní vlastnosti</h4>
+                        <div class="modal-abilities-grid">
+                            <div class="modal-ability-card">
+                                <span class="ab-name">SIL</span>
+                                <span class="ab-score">{{ player.strength|default:10 }}</span>
+                                <span class="ab-mod">{{ player.str_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">OBR</span>
+                                <span class="ab-score">{{ player.dexterity|default:10 }}</span>
+                                <span class="ab-mod">{{ player.dex_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">ODL</span>
+                                <span class="ab-score">{{ player.constitution|default:10 }}</span>
+                                <span class="ab-mod">{{ player.con_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">INT</span>
+                                <span class="ab-score">{{ player.intelligence|default:10 }}</span>
+                                <span class="ab-mod">{{ player.int_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">MDR</span>
+                                <span class="ab-score">{{ player.wisdom|default:10 }}</span>
+                                <span class="ab-mod">{{ player.wis_mod }}</span>
+                            </div>
+                            <div class="modal-ability-card">
+                                <span class="ab-name">CHA</span>
+                                <span class="ab-score">{{ player.charisma|default:10 }}</span>
+                                <span class="ab-mod">{{ player.cha_mod }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Poznámky DM -->
+                    {% if player.notes %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading">📝 Poznámky DM k postavě</h4>
+                        <div class="modal-text-content">{{ player.notes|linebreaksbr }}</div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Příběh / Historie postavy -->
+                    {% if player.backstory %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading">📜 Historie a příběh postavy</h4>
+                        <div class="modal-text-content">{{ player.backstory|linebreaksbr }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+
             </article>
             {% empty %}
             <div class="arena-empty-state">
@@ -424,6 +584,26 @@
     </section>
 
 </div>
+
+<!-- NATIVNÍ MODÁLNÍ OKNO PRO DETAIL POSTAVY / MONSTRA -->
+<dialog id="characterDetailModal" class="character-detail-dialog" closedby="any" aria-labelledby="modalCharacterName">
+    <div class="modal-dialog-content">
+        <header class="modal-dialog-header">
+            <div class="modal-header-info">
+                <span id="modalTypeBadge" class="modal-type-badge badge-mob">Monstrum</span>
+                <h2 id="modalCharacterName" class="modal-character-name">Jméno</h2>
+                <p id="modalCharacterMeta" class="modal-character-meta">Podtitul</p>
+            </div>
+            <button type="button" class="modal-close-btn" id="modalCloseBtn" aria-label="Zavřít okno detailu (Esc)" title="Zavřít (Esc)">
+                ✕
+            </button>
+        </header>
+
+        <div class="modal-dialog-body" id="modalDynamicBody">
+            <!-- Dynamicky naplněný obsah z karty -->
+        </div>
+    </div>
+</dialog>
 
 <!-- CSRF Token pro AJAX požadavky -->
 {% csrf_token %}
@@ -579,6 +759,107 @@ document.addEventListener("DOMContentLoaded", () => {
             flushBatchUpdates();
         }
     });
+
+    // =========================================================================
+    // 5. OBSLUHA MODÁLNÍHO OKNA DETAILU (Nativní <dialog>)
+    // =========================================================================
+    const detailModal = document.getElementById("characterDetailModal");
+    const modalCloseBtn = document.getElementById("modalCloseBtn");
+    const modalDynamicBody = document.getElementById("modalDynamicBody");
+    const modalCharacterName = document.getElementById("modalCharacterName");
+    const modalCharacterMeta = document.getElementById("modalCharacterMeta");
+    const modalTypeBadge = document.getElementById("modalTypeBadge");
+
+    function openCharacterDetail(card) {
+        if (!detailModal || !card) return;
+
+        const entityType = card.dataset.entityType; // "mob" nebo "player"
+        const template = card.querySelector(".character-modal-data");
+        if (!template) return;
+
+        // Reset tříd tématu
+        detailModal.classList.remove("theme-mob", "theme-player");
+        if (entityType === "mob") {
+            detailModal.classList.add("theme-mob");
+            if (modalTypeBadge) {
+                modalTypeBadge.textContent = "Monstrum";
+                modalTypeBadge.className = "modal-type-badge badge-mob";
+            }
+        } else {
+            detailModal.classList.add("theme-player");
+            if (modalTypeBadge) {
+                modalTypeBadge.textContent = "Hrdina";
+                modalTypeBadge.className = "modal-type-badge badge-player";
+            }
+        }
+
+        // Nastavení jména a podtitulu
+        const titleEl = card.querySelector(".card-title-wrap h3");
+        const subtitleEl = card.querySelector(".card-subtitle");
+        if (modalCharacterName && titleEl) {
+            modalCharacterName.textContent = titleEl.textContent.trim();
+        }
+        if (modalCharacterMeta && subtitleEl) {
+            modalCharacterMeta.textContent = subtitleEl.textContent.trim();
+        }
+
+        // Vložení obsahu detailu
+        if (modalDynamicBody) {
+            modalDynamicBody.innerHTML = template.innerHTML;
+            
+            // Aktualizace aktuálních životů na živou hodnotu z datasetu karty
+            const liveHp = card.dataset.currentHp;
+            const liveHpEl = modalDynamicBody.querySelector(".modal-hp-live-val");
+            if (liveHpEl && liveHp !== undefined) {
+                liveHpEl.textContent = liveHp;
+            }
+
+            modalDynamicBody.scrollTop = 0;
+        }
+
+        // Otevření nativního dialogu v top-layer
+        detailModal.showModal();
+    }
+
+    // Kliknutí pro otevření detailu (portrét, tlačítko detailu nebo hlavička karty)
+    document.addEventListener("click", (e) => {
+        // Ignorovat, pokud uživatel kliknul do spodní části karty (změna životů)
+        if (e.target.closest(".health-control-wrap") || e.target.closest(".btn-hp")) {
+            return;
+        }
+
+        const trigger = e.target.closest(".portrait-container, .btn-card-inspect, .card-header");
+        if (trigger) {
+            const card = trigger.closest(".character-card");
+            if (card) {
+                openCharacterDetail(card);
+            }
+        }
+    });
+
+    // Zavření okna křížkem (X)
+    if (modalCloseBtn && detailModal) {
+        modalCloseBtn.addEventListener("click", () => {
+            detailModal.close();
+        });
+    }
+
+    // Fallback pro kliknutí na pozadí dialogu (light-dismiss pro starší prohlížeče)
+    if (detailModal && !('closedBy' in HTMLDialogElement.prototype)) {
+        detailModal.addEventListener("click", (event) => {
+            if (event.target !== detailModal) return;
+            const rect = detailModal.getBoundingClientRect();
+            const isContent = (
+                rect.top <= event.clientY &&
+                event.clientY <= rect.top + rect.height &&
+                rect.left <= event.clientX &&
+                event.clientX <= rect.left + rect.width
+            );
+            if (!isContent) {
+                detailModal.close();
+            }
+        });
+    }
 });
 </script>
 {% endblock %}
