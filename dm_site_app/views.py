@@ -180,7 +180,7 @@ def random_monster_gen(request):
             random_mob = random.choice(monsters) 
             active_mob_db_save(random_mob.id)
             print("Uložil se do databáze")
-            return render(request, 'dm_site_app/monster_gen_page.html')
+            return redirect('dm_site_app:monster_gen_page') # Znova načte stránku s novým mobem
         else:
             print("Nenalezeno")
             messages.error(request, "Nenalezeno na daný level")
