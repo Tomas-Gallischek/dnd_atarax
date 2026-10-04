@@ -182,7 +182,7 @@ def random_monster_gen(request):
             print("Nenalezeno")
             messages.error(request, "Nenalezeno na daný level")
             return redirect('dm_site_app:monster_gen_page')
-
+@dm_required
 def specific_monster_gen(request):
     if request.method == 'POST':
         monster_id = request.POST.get('monster_id')
@@ -193,7 +193,17 @@ def specific_monster_gen(request):
     else:
         messages.error(request, "Chyba při vybirani monstra")
         return redirect('dm_site_app:monster_gen_page')
-
+        
+@dm_required
+def pvp_pre(request):
+    return render(request, 'dm_site_app/pvp_pre.html', {
+        'current_page': 'pvp_pre',
+    })
+@dm_required
+def pvp_arena(request):
+    return render(request, 'dm_site_app/pvp_arena.html', {
+        'current_page': 'pvp_arena',
+    })
 
 
 def active_mob_db_save(mob_id):
