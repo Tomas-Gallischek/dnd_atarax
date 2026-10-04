@@ -144,7 +144,7 @@ def monster_gen_page(request):
         'current_page': 'monster_gen',
     }
 
-    return render(request, 'dm_site_app/monster_gen_page;.html', context)
+    return render(request, 'dm_site_app/monster_gen_page.html', context)
 
 @dm_required
 def random_monster_gen(request):
