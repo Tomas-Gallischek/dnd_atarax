@@ -216,12 +216,20 @@ def pvp_arena(request):
 @dm_required
 def in_fight_switch(request):
     if request.method == 'POST':
-        mob_id = request.POST.get('mob_id')
-        action = request.POST.get('in_fight')
-        mob = get_object_or_404(Monsters_Active, id=mob_id)
-        mob.in_fight = (action == 'True')
-        mob.save()
-        return redirect('dm_site_app:pvp_pre')
+        source_id = request.POST.get('source_id') # ID
+        action = request.POST.get('in_fight') # True / False
+        source = request.POST.get('source') # mob/ player
+
+        if source == "mob":
+            mob = get_object_or_404(Monsters_Active, id=source_id)
+            mob.in_fight = (action == 'True') # Musí být takto, jinak to python vždycky zapíše jako "True"
+            mob.save()
+            return redirect('dm_site_app:pvp_pre')
+        elif source == "player":
+            player = Char_info.objects.get(id=source_id)
+            player.in_fight = (action == 'True') # Musí být takto, jinak to python vždycky zapíše jako "True"
+            player.save()
+            return redirect('dm_site_app:pvp_pre')
     else:
         messages.error(request, "Chyba při vybirani monstra")
         return redirect('dm_site_app:pvp_pre') 

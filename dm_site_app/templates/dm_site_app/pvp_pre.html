@@ -18,6 +18,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="mob_id" value="{{ mob.id }}">
                 <input type="hidden" name="in_fight" value="False">
+                <input type="hidden" name="source" value="mob">
                 <button type="submit" class="btn btn-danger">Odebrat ze souboje</button>
             </form>
         {% else %}
@@ -25,6 +26,7 @@
                 {% csrf_token %}
                 <input type="hidden" name="mob_id" value="{{ mob.id }}">
                 <input type="hidden" name="in_fight" value="True">
+                <input type="hidden" name="source" value="mob">
                 <button type="submit" class="btn btn-success">Vybrat do souboje</button>
             </form>
         {% endif %}
@@ -38,15 +40,31 @@
 
 <ul>
 {% for player in all_players %}
-    <li>
-        {{ player.name }}
+    <li style="margin-bottom: 8px;">
+        <strong>{{ player.name }}</strong> 
+        {% if player.in_fight %}
+            <span style="color: green; font-weight: bold;">(V boji)</span>
+            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" style="display: inline; margin-left: 8px;">
+                {% csrf_token %}
+                <input type="hidden" name="source_id" value="{{ player.id }}">
+                <input type="hidden" name="in_fight" value="False">
+                <input type="hidden" name="source" value="player">
+                <button type="submit" class="btn btn-danger">Odebrat ze souboje</button>
+            </form>
+        {% else %}
+            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" style="display: inline; margin-left: 8px;">
+                {% csrf_token %}
+                <input type="hidden" name="source_id" value="{{ player.id }}">
+                <input type="hidden" name="in_fight" value="True">
+                <input type="hidden" name="source" value="player">
+                <button type="submit" class="btn btn-success">Vybrat do souboje</button>
+            </form>
+        {% endif %}
     </li>
 {% empty %}
     <li>Žádní hráči k dispozici.</li>
 {% endfor %}
 </ul>
-
-
 
 
 {% endblock %}
