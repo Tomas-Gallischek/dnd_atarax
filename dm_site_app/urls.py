@@ -20,4 +20,5 @@ urlpatterns = [
     path('specific_monster_gen/', views.specific_monster_gen, name='specific_monster_gen'),
     path('pvp_pre', views.pvp_pre, name='pvp_pre'),
     path('pvp_arena', views.pvp_arena, name='pvp_arena'),
+    path('in_fight_switch', views.in_fight_switch, name='in_fight_switch'),
 ]

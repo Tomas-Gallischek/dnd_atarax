@@ -12,9 +12,21 @@
     <ul>
         <li>
             {{ mob.name }} - {{ mob.challenge_rating }}
-            <form action="" method="post">
-                <button type="submit">Vybrat</button>
-            </form>
+            {% if mob.in_fight == False %}
+                <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="mob_id" value="{{ mob.id }}">
+                    <input type="hidden" name="in_fight" value="True">
+                    <button type="submit">Vybrat do souboje</button>
+                </form>
+            {% else %}
+                <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="mob_id" value="{{ mob.id }}">
+                    <input type="hidden" name="in_fight" value="False">
+                    <button type="submit">Odebrat ze souboje</button>
+                </form>
+            {% endif %}
         </li>
     </ul>
 {% endfor %}
