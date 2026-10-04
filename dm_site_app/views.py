@@ -157,6 +157,7 @@ def monster_gen_page(request):
 @dm_required
 def random_monster_gen(request):
     if request.method == 'POST':
+        print("Supuštěn POST")
         mob_lvl = int(request.POST.get('mob_lvl')) # 1-30 (v databázi 0-29)
         mob_dificulty = int(request.POST.get('mob_dificulty')) # Obtížnost v rámci daného levelu
 
@@ -172,19 +173,22 @@ def random_monster_gen(request):
 
 # Vyhledá všechny monstra které mají CR o 0,5 menší nebo větší
         monsters = Monsters_All_db.objects.filter(challenge_rating__gte=final_lvl_min, challenge_rating__lte=final_lvl_max)
-        
+        print("Nalezeno monster: ", monsters)
         # Vybere náhodné monstrum
         if monsters:
+            print("Vybral se random mob")
             random_mob = random.choice(monsters) 
             active_mob_db_save(random_mob.id)
-
+            print("Uložil se do databáze")
             return render(request, 'dm_site_app/monster_gen_page.html')
         else:
+            print("Nenalezeno")
             messages.error(request, "Nenalezeno na daný level")
             return redirect('dm_site_app:monster_gen_page')
 
 def active_mob_db_save(mob_id):
     mob = Monsters_All_db.objects.get(id=mob_id)
+    print("Ukládá se do databáze")
 # vytvoření nové mobky v databázi:
     Monsters_Active.objects.create(
         api_index=mob.api_index,
@@ -224,6 +228,7 @@ def active_mob_db_save(mob_id):
         image_url=mob.image_url,
         raw_data=mob.raw_data
     )
+    print("Uloženo do databáze")
     
 
     
