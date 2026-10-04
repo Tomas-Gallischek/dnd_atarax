@@ -345,7 +345,7 @@ def mob_dead(request):
         mob = Monsters_Active.objects.filter(id=mob_id).first()
         killer = Char_info.objects.filter(id=killer_id).first()
         mob_name = (mob.name_cz or mob.name_en) if mob else f"ID {mob_id}"
-        killer_name = killer.char_name if killer else f"ID {killer_id}"
+        killer_name = killer.name if killer else f"ID {killer_id}"
 
         log_arena("Smrtící úder zaznamenán! 💀", f"Monstrum '{mob_name}' skoleno postavou '{killer_name}'")
 
@@ -362,6 +362,12 @@ def mob_dead(request):
         )
         log.save()
 
+# ODEBRÁNÍ MONSTRA
+
+        mob.delete()
+        log_mob("Monstrum odstraněno ze hry", f"{mob_name} [ID: {mob_id}]")
 
         return redirect('dm_site_app:pvp_arena')
     return redirect('dm_site_app:pvp_arena')
+
+
