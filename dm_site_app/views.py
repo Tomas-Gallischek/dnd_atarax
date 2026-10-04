@@ -1,5 +1,5 @@
 from django.utils import functional
-from dm_site_app.models import Monsters_All_db
+from dm_site_app.models import Monsters_All_db, Monsters_Active
 from functools import wraps
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
@@ -141,9 +141,16 @@ def add_gold(request):
 @dm_required
 def monster_gen_page(request):
 
-    context = {
-        'current_page': 'monster_gen',
-    }
+    active_mobs = Monsters_Active.objects.all()
+    
+    if active_mobs:
+        context = {
+            'active_mobs_names': active_mobs.name_cz,
+        }
+    else:
+        context = {
+            'active_mobs_names': "Nic nenalezeno",
+        }
 
     return render(request, 'dm_site_app/monster_gen_page.html', context)
 
@@ -167,23 +174,64 @@ def random_monster_gen(request):
         monsters = Monsters_All_db.objects.filter(challenge_rating__gte=final_lvl_min, challenge_rating__lte=final_lvl_max)
         
         # Vybere náhodné monstrum
-        random_mob = random.choice(monsters)
+        if monsters:
+            random_mob = random.choice(monsters) 
+            active_mob_db_save(random_mob.id)
 
-        print(f"TEST: MOB LEVEL: {final_lvl}")
-        print(f"TEST: MOB LISTA: {monsters}")
-        print(f"TEST: MOB: {random_mob}")
+            return render(request, 'dm_site_app/monster_gen_page.html')
+        else:
+            messages.error(request, "Nenalezeno na daný level")
+            return redirect('dm_site_app:monster_gen_page')
 
-        context = {
-            'mob_name': random_mob.name_cz,
-            'mob_challenge_rating': random_mob.challenge_rating,
-        }
-        
-        return render(request, 'dm_site_app/monster_gen_page.html', context)
+def active_mob_db_save(mob_id):
+    mob = Monsters_All_db.objects.get(id=mob_id)
+# vytvoření nové mobky v databázi:
+    Monsters_Active.objects.create(
+        api_index=mob.api_index,
+        name_cz=mob.name_cz,
+        name_en=mob.name_en,
+        size=mob.size,
+        monster_type=mob.monster_type,
+        subtype=mob.subtype,
+        alignment=mob.alignment,
+        armor_class=mob.armor_class,
+        armor_desc=mob.armor_desc,
+        hit_points=mob.hit_points,
+        hit_dice=mob.hit_dice,
+        speed=mob.speed,
+        strength=mob.strength,
+        dexterity=mob.dexterity,
+        constitution=mob.constitution,
+        intelligence=mob.intelligence,
+        wisdom=mob.wisdom,
+        charisma=mob.charisma,
+        saving_throws=mob.saving_throws,
+        skills=mob.skills,
+        damage_vulnerability=mob.damage_vulnerability,
+        damage_resistances=mob.damage_resistances,
+        damage_immunities=mob.damage_immunities,
+        condition_immunities=mob.condition_immunities,
+        senses=mob.senses,
+        languages=mob.languages,
+        challenge_rating=mob.challenge_rating,
+        xp=mob.xp,
+        proficiency_bonus=mob.proficiency_bonus,
+        special_abilities=mob.special_abilities,
+        actions=mob.actions,
+        legendary_actions=mob.legendary_actions,
+        reactions=mob.reactions,
+        description=mob.description,
+        image_url=mob.image_url,
+        raw_data=mob.raw_data
+    )
+    
 
+    
+    
 
-    else:
-        print("TEST: NEJSEM POST")
-        return redirect('dm_site_app:monster_gen_page')
+    
+    
+
     
 
 
