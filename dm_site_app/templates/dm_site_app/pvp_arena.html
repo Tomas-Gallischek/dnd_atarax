@@ -4,6 +4,48 @@
 
 {% block dm_content %}
 
-    <h1>Aréna</h1>
+    <h1>Aréna:</h1>
+
+    <h1>Mobs:</h1>
+
+        {% for mob in all_active_mobs %}
+            <p>Name: {{ mob.name }}</p>
+            <p>HP: {{ mob.current_hp }} / {{ mob.max_hp }}</p>
+            <p>AC: {{ mob.ac }}</p>
+            <p>Speed: {{ mob.speed }}</p>
+            <p>Stats: {{ mob.strength }}, {{ mob.dexterity }}, {{ mob.constitution }}, {{ mob.intelligence }}, {{ mob.wisdom }}, {{ mob.charisma }}</p>
+            <p>Skills: {{ mob.skills }}</p>
+            <p>Senses: {{ mob.senses }}</p>
+            <p>Languages: {{ mob.languages }}</p>
+            <p>Challenge Rating: {{ mob.challenge_rating }}</p>
+            <p>Traits: {{ mob.traits }}</p>
+            <p>Actions: {{ mob.actions }}</p>
+            <p>Reactions: {{ mob.reactions }}</p>
+            <p>Legendary Actions: {{ mob.legendary_actions }}</p>
+            <p>Legendary Resistance: {{ mob.legendary_resistance }}</p>
+            <p>In Fight: {{ mob.in_fight }}</p>
+            <p>In Arena: {{ mob.in_arena }}</p>
+        {% endfor %}
+
+    <h1>Hráči:</h1>
+
+    {% for player in all_players %}
+        <p>Name: {{ player.name }}</p>
+        <p>HP: {{ player.current_hp }} / {{ player.max_hp }}</p>
+        <p>AC: {{ player.ac }}</p>
+        <p>Speed: {{ player.speed }}</p>
+        <p>Stats: {{ player.strength }}, {{ player.dexterity }}, {{ player.constitution }}, {{ player.intelligence }}, {{ player.wisdom }}, {{ player.charisma }}</p>
+        <p>Skills: {{ player.skills }}</p>
+        <p>Senses: {{ player.senses }}</p>
+        <p>Languages: {{ player.languages }}</p>
+        <p>Challenge Rating: {{ player.challenge_rating }}</p>
+        <p>Traits: {{ player.traits }}</p>
+        <p>Actions: {{ player.actions }}</p>
+        <p>Reactions: {{ player.reactions }}</p>
+        <p>Legendary Actions: {{ player.legendary_actions }}</p>
+        <p>Legendary Resistance: {{ player.legendary_resistance }}</p>
+        <p>In Fight: {{ player.in_fight }}</p>
+        <p>In Arena: {{ player.in_arena }}</p>
+    {% endfor %}
 
 {% endblock %}

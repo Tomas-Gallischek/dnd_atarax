@@ -214,6 +214,17 @@ def pvp_arena(request):
     })
 
 @dm_required
+def pvp_arena(request):
+    all_active_mobs = Monsters_Active.objects.filter(in_fight=True)
+    all_players = Char_info.objects.filter(in_fight=True)
+
+    return render(request, 'dm_site_app/pvp_arena.html', {
+        'current_page': 'pvp_arena',
+        'all_active_mobs': all_active_mobs,
+        'all_players': all_players,
+    })
+
+@dm_required
 def in_fight_switch(request):
     if request.method == 'POST':
         source_id = request.POST.get('source_id') # ID
@@ -234,7 +245,7 @@ def in_fight_switch(request):
         messages.error(request, "Chyba při vybirani monstra")
         return redirect('dm_site_app:pvp_pre') 
 
-
+@dm_required
 def active_mob_db_save(mob_id):
     mob = Monsters_All_db.objects.get(id=mob_id)
     print("Ukládá se do databáze")
