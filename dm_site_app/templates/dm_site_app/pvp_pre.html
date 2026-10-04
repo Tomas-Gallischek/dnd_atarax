@@ -67,6 +67,10 @@
 </ul>
 
 
-<button onclick="location.href='/dm_site_app/pvp_arena'" class="btn btn-success">Vstup do Arény</button>
+<form action="{% url 'dm_site_app:pvp_arena' %}" method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-success">Vstup do Arény</button>
+</form>
+
 
 {% endblock %}
