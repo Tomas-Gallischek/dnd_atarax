@@ -27,11 +27,11 @@ def loot_temna_esence(mob_id, killer_id):
         log_error("Hráč nenalezen", f"ID: {killer_id}")
         return
     
-    min_value = mob.challenge_rating * 2
+    min_value = int(mob.challenge_rating * 2)
     if min_value < 1:
         min_value = 1
 
-    max_value = mob.challenge_rating * 4
+    max_value = int(mob.challenge_rating * 4)
     if max_value < 2:
         max_value = 2
 
@@ -39,7 +39,7 @@ def loot_temna_esence(mob_id, killer_id):
         min_value = max_value
         max_value = min_value
     
-    plus_temna_esence = random.randint(min_value, max_value)
+    plus_temna_esence = random.randint(int(min_value), int(max_value))
     player.temna_esence += plus_temna_esence
     player.save()
 
