@@ -355,3 +355,39 @@ class Logs(models.Model):
 
     def __str__(self):
         return f"{self.player} - {self.character} - {self.message} - {self.value}"
+
+
+EsenceShopChoices = [
+    ('borders', 'Rámečky'),
+    ('backgrounds', 'Pozadí'),
+]
+
+class Esence_Items_Shop(models.Model):
+    name = models.CharField(max_length=100, verbose_name="Jméno")
+    category = models.CharField(max_length=100, verbose_name="Kategorie", choices=EsenceShopChoices)
+    image = models.FileField(upload_to='esence_items', verbose_name="Obrázek")
+    cost = models.IntegerField(default=0, verbose_name="Cena")
+
+    def __str__(self):
+        return f"{self.name} - {self.category} - {self.cost} Temné Esence"
+
+class Esence_Items_Owners(models.Model):
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name='esence_items',
+        verbose_name="Hráč"
+    )
+    item = models.ForeignKey(
+        Esence_Items_Shop,
+        on_delete=models.CASCADE,
+        related_name='esence_items',
+        verbose_name="Předmět"
+    )
+
+    def __str__(self):
+        return f"{self.player} - {self.item}"
+        
+    
+    
+    
