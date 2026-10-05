@@ -561,3 +561,25 @@
     flex-wrap: wrap;
     font-size: 0.75rem;
 }
+
+/* Character Header with Hero Avatar */
+.char-header-with-avatar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.char-header-avatar-wrap {
+    flex-shrink: 0;
+}
+
+.char-header-title-flex {
+    flex: 1;
+    min-width: 220px;
+}
+
+.player-nav-user-details {
+    display: flex;
+    flex-direction: column;
+}

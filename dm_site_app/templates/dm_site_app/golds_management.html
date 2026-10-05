@@ -13,20 +13,24 @@
 {% for char in all_chars %}
     <div class="atarax-card">
         <div class="atarax-card-header">
-            <h2 class="atarax-card-title">
-                <span>🛡️</span> {{ char.name }}
-            </h2>
+            <div class="char-avatar-group">
+                <img src="{{ char.profile_image_url }}" alt="{{ char.name }}" class="char-avatar char-avatar-md">
+                <div>
+                    <h2 class="atarax-card-title">
+                        <span>🛡️</span> {{ char.name }}
+                    </h2>
+                    <p class="atarax-header-subtitle">
+                        <strong>Hráč:</strong> {{ char.player.nickname|default:char.player.user.username }}
+                        {% if char.character_class %}&bull; {{ char.character_class }}{% endif %}
+                        (Úroveň {{ char.level }})
+                    </p>
+                </div>
+            </div>
             <div class="currency-pill-group">
                 <span class="currency-pill currency-gold">💰 {{ char.gold }} zl</span>
                 <span class="currency-pill currency-silver">🪙 {{ char.silver }} st</span>
             </div>
         </div>
-
-        <p class="atarax-empty-desc">
-            <strong>Hráč:</strong> {{ char.player.nickname|default:char.player.user.username }}
-            {% if char.character_class %}&bull; {{ char.character_class }}{% endif %}
-            (Úroveň {{ char.level }})
-        </p>
 
         <form action="{% url 'dm_site_app:add_gold' %}" method="post" class="atarax-form-inline">
             {% csrf_token %}

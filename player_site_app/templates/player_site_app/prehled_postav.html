@@ -24,21 +24,26 @@
     <ul class="char-selection-list">
         {% for char in characters %}
         <li class="char-selection-item">
-            <div>
-                <a href="{% url 'player_site_app:char_overview' char.id %}" class="char-selection-name">
-                    {{ char.name }}
+            <div class="char-avatar-group">
+                <a href="{% url 'player_site_app:char_overview' char.id %}">
+                    <img src="{{ char.profile_image_url }}" alt="{{ char.name }}" class="char-avatar char-avatar-md">
                 </a>
-                <div class="char-selection-meta">
-                    <span class="badge badge-gold">Úroveň {{ char.level }}</span>
-                    {% if char.character_class %}
-                        <span class="badge badge-silver">{{ char.character_class }}</span>
-                    {% endif %}
-                    {% if char.race %}
-                        <span class="badge badge-sapphire">{{ char.race }}</span>
-                    {% endif %}
-                    &bull;
-                    <span class="currency-pill currency-gold">💰 {{ char.gold }} zl</span>
-                    <span class="currency-pill currency-silver">🪙 {{ char.silver }} st</span>
+                <div>
+                    <a href="{% url 'player_site_app:char_overview' char.id %}" class="char-selection-name">
+                        {{ char.name }}
+                    </a>
+                    <div class="char-selection-meta">
+                        <span class="badge badge-gold">Úroveň {{ char.level }}</span>
+                        {% if char.character_class %}
+                            <span class="badge badge-silver">{{ char.character_class }}</span>
+                        {% endif %}
+                        {% if char.race %}
+                            <span class="badge badge-sapphire">{{ char.race }}</span>
+                        {% endif %}
+                        &bull;
+                        <span class="currency-pill currency-gold">💰 {{ char.gold }} zl</span>
+                        <span class="currency-pill currency-silver">🪙 {{ char.silver }} st</span>
+                    </div>
                 </div>
             </div>
 

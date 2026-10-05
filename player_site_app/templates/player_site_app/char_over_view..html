@@ -4,8 +4,11 @@
 
 {% block player_content %}
 {% if character %}
-<div class="atarax-page-header">
-    <div class="atarax-header-title-group">
+<div class="atarax-page-header char-header-with-avatar">
+    <div class="char-header-avatar-wrap">
+        <img src="{{ character.profile_image_url }}" alt="{{ character.name }}" class="char-avatar char-avatar-hero">
+    </div>
+    <div class="atarax-header-title-group char-header-title-flex">
         <h1><span>🛡️</span> {{ character.name }}</h1>
         <p class="atarax-header-subtitle">
             {{ character.character_class|default:"Dobrodruh" }} (Úroveň {{ character.level }})

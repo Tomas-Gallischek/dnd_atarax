@@ -60,6 +60,7 @@ class PlayerAdmin(admin.ModelAdmin):
 @admin.register(Char_info)
 class CharInfoAdmin(admin.ModelAdmin):
     list_display = (
+        'avatar_preview',
         'name',
         'player',
         'character_class',
@@ -75,6 +76,13 @@ class CharInfoAdmin(admin.ModelAdmin):
     ordering = ('-level', 'name')
     inlines = [ItemsActiveInline]
 
+    @admin.display(description='Avatar')
+    def avatar_preview(self, obj):
+        return format_html(
+            '<img src="{}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #d4af37;" />',
+            obj.profile_image_url
+        )
+
     @admin.display(description='Předměty')
     def items_count(self, obj):
         return obj.items.count()
@@ -84,6 +92,7 @@ class CharInfoAdmin(admin.ModelAdmin):
             'fields': (
                 'player',
                 ('name', 'character_class', 'level'),
+                ('image', 'image_url'),
                 ('race', 'background', 'alignment'),
                 'experience_points',
             ),

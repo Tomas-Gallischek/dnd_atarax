@@ -57,6 +57,19 @@ class Char_info(models.Model):
 
     # Základní identita
     name = models.CharField(max_length=100, verbose_name="Jméno postavy")
+    image = models.FileField(
+        upload_to='characters/',
+        blank=True,
+        null=True,
+        default='characters/default_avatar.jpg',
+        verbose_name="Profilový obrázek"
+    )
+    image_url = models.CharField(
+        max_length=500,
+        blank=True,
+        null=True,
+        verbose_name="Externí URL profilového obrázku"
+    )
     race = models.CharField(max_length=50, blank=True, null=True, verbose_name="Rasa")
     character_class = models.CharField(max_length=50, blank=True, null=True, verbose_name="Povolání")
     level = models.IntegerField(default=1, verbose_name="Úroveň")
@@ -96,6 +109,9 @@ class Char_info(models.Model):
         ordering = ['-level', 'name']
 
     def save(self, *args, **kwargs):
+        if not self.image and not self.image_url:
+            self.image = 'characters/default_avatar.jpg'
+
         while self.silver >= 10:
             self.gold += 1
             self.silver -= 10
@@ -109,6 +125,17 @@ class Char_info(models.Model):
             self.silver = 0
 
         super().save(*args, **kwargs)
+
+    @property
+    def profile_image_url(self):
+        if self.image:
+            try:
+                return self.image.url
+            except Exception:
+                pass
+        if self.image_url:
+            return self.image_url
+        return '/static/img/default_avatar.jpg'
 
     def __str__(self):
         cls_str = f" ({self.character_class})" if self.character_class else ""

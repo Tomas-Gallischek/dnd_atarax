@@ -83,12 +83,15 @@
             <div class="combat-mobs-list">
                 {% for player_item in all_players %}
                 <div class="combat-mob-row">
-                    <div>
-                        <div class="combat-mob-title">{{ player_item.name }}</div>
-                        <span class="badge badge-silver">Úroveň {{ player_item.level }}</span>
-                        {% if player_item.in_fight %}
-                            <span class="badge badge-emerald">V boji</span>
-                        {% endif %}
+                    <div class="char-avatar-group">
+                        <img src="{{ player_item.profile_image_url }}" alt="{{ player_item.name }}" class="char-avatar char-avatar-sm">
+                        <div>
+                            <div class="combat-mob-title">{{ player_item.name }}</div>
+                            <span class="badge badge-silver">Úroveň {{ player_item.level }}</span>
+                            {% if player_item.in_fight %}
+                                <span class="badge badge-emerald">V boji</span>
+                            {% endif %}
+                        </div>
                     </div>
 
                     {% if player_item.in_fight %}

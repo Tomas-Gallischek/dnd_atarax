@@ -11,15 +11,27 @@
 {% if request.user.is_authenticated %}
 <div class="player-nav-container" id="playerNavContainer">
     <button type="button" class="player-nav-toggle-btn" id="playerNavToggleBtn" aria-label="Menu hráče">
-        <span class="player-nav-toggle-icon">&#9776;</span>
-        <span>Nabídka</span>
+        {% if active_character %}
+            <img src="{{ active_character.profile_image_url }}" alt="{{ active_character.name }}" class="char-avatar char-avatar-xs">
+            <span>{{ active_character.name }}</span>
+        {% else %}
+            <span class="player-nav-toggle-icon">&#9776;</span>
+            <span>Nabídka</span>
+        {% endif %}
     </button>
 
     <div class="player-nav-dropdown" id="playerNavDropdown">
         <div class="player-nav-user-info">
-            Hráč: <strong>{{ player.nickname|default:request.user.username }}</strong>
             {% if active_character %}
-                <span class="char-tag">Postava: {{ active_character.name }} (Úr. {{ active_character.level }})</span>
+                <div class="char-avatar-group">
+                    <img src="{{ active_character.profile_image_url }}" alt="{{ active_character.name }}" class="char-avatar char-avatar-sm">
+                    <div class="player-nav-user-details">
+                        <span>Hráč: <strong>{{ player.nickname|default:request.user.username }}</strong></span>
+                        <span class="char-tag">{{ active_character.name }} (Úr. {{ active_character.level }})</span>
+                    </div>
+                </div>
+            {% else %}
+                Hráč: <strong>{{ player.nickname|default:request.user.username }}</strong>
             {% endif %}
         </div>
 
