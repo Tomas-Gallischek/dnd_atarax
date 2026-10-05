@@ -299,21 +299,25 @@ def active_mob_db_save(mob_id):
         gold_base = 0
         silver_base = 0
         chance = 0
+        plus_gold = 0
+        plus_silver = 0
 
-    random_multi = int(round(mob.challenge_rating))
-    if random_multi < 2:
-        random_multi = 2
-    random_bonus = random.uniform(1, random_multi)
-    
-    actual_gold = random.randint(1,gold_base)
-    actual_silver = random.randint(1,silver_base)
+# spustí se jen pokud může mít mobka u sebe goldy
+    if chance > 0:
+        random_multi = int(round(mob.challenge_rating))
+        if random_multi < 2:
+            random_multi = 2
+        random_bonus = random.uniform(1, random_multi)
+        
+        actual_gold = random.randint(1,gold_base)
+        actual_silver = random.randint(1,silver_base)
 
-    plus_gold = int(round(actual_gold * random_bonus))
-    plus_silver = int(round(actual_silver * random_bonus))
+        plus_gold = int(round(actual_gold * random_bonus))
+        plus_silver = int(round(actual_silver * random_bonus))
 
-    while plus_silver >= 10:
-        plus_gold += 1
-        plus_silver -= 10
+        while plus_silver >= 10:
+            plus_gold += 1
+            plus_silver -= 10
 
     # vytvoření nové mobky v aktivní databázi:
     new_mob = Monsters_Active.objects.create(
