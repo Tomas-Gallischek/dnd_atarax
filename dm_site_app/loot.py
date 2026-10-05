@@ -21,8 +21,9 @@ def loot_temna_esence(mob_id, killer_id):
         log_error("Monstrum nenalezeno", f"ID: {mob_id}")
         return
     try:
-        player = Char_info.objects.get(id=killer_id)
-    except Char_info.DoesNotExist:
+        char = Char_info.objects.get(id=killer_id)
+        player = char.player
+    except (Player.DoesNotExist, Char_info.DoesNotExist):
         log_error("Hráč nenalezen", f"ID: {killer_id}")
         return
     
