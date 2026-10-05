@@ -42,11 +42,48 @@ class AchivementsPlayersForDatabaseInline(admin.TabularInline):
     verbose_name_plural = "Hráči s tímto úspěchem"
 
 
+class EsenceItemsOwnersForPlayerInline(admin.TabularInline):
+    model = Esence_Items_Owners
+    fk_name = 'player'
+    extra = 0
+    autocomplete_fields = ('item',)
+    show_change_link = True
+    verbose_name = "Vlastněný esence předmět"
+    verbose_name_plural = "Vlastněné esence předměty (Rámečky / Pozadí)"
+
+
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ('user', 'nickname', 'characters_count', 'achievements_count', 'created_at')
+    list_display = ('user', 'nickname', 'active_frame_preview', 'temna_esence', 'characters_count', 'achievements_count', 'created_at')
     search_fields = ('user__username', 'user__email', 'nickname')
-    inlines = [CharInfoInline, AchivementsPlayersForPlayerInline]
+    fields = ('user', 'nickname', 'bio', 'temna_esence', 'pin_code', 'active_ramecek', 'admin')
+    inlines = [CharInfoInline, AchivementsPlayersForPlayerInline, EsenceItemsOwnersForPlayerInline]
+
+    @admin.display(description='Aktivní rámeček')
+    def active_frame_preview(self, obj):
+        if obj.active_frame_url:
+            return format_html(
+                '<div style="display: flex; align-items: center; gap: 8px;">'
+                '<img src="{}" style="width: 28px; height: 28px; object-fit: contain; vertical-align: middle;" />'
+                '<span>{}</span>'
+                '</div>',
+                obj.active_frame_url,
+                obj.active_ramecek.item.name
+            )
+        return "—"
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "active_ramecek":
+            # Filtrovat pouze na rámečky (category='borders'), které tento hráč vlastní
+            object_id = request.resolver_match.kwargs.get('object_id') if request.resolver_match else None
+            if object_id:
+                kwargs["queryset"] = Esence_Items_Owners.objects.filter(
+                    player_id=object_id,
+                    item__category='borders'
+                ).select_related('item', 'player')
+            else:
+                kwargs["queryset"] = Esence_Items_Owners.objects.none()
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     @admin.display(description='Počet postav')
     def characters_count(self, obj):
@@ -78,9 +115,16 @@ class CharInfoAdmin(admin.ModelAdmin):
 
     @admin.display(description='Avatar')
     def avatar_preview(self, obj):
+        frame_html = ''
+        if obj.frame_url:
+            frame_html = f'<img src="{obj.frame_url}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 48px; pointer-events: none; object-fit: contain;" />'
         return format_html(
-            '<img src="{}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #d4af37;" />',
-            obj.profile_image_url
+            '<div style="position: relative; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;">'
+            '<img src="{}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #d4af37;" />'
+            '{}'
+            '</div>',
+            obj.profile_image_url,
+            format_html(frame_html)
         )
 
     @admin.display(description='Předměty')
@@ -307,8 +351,40 @@ class LogsAdmin(admin.ModelAdmin):
 
 @admin.register(Esence_Items_Shop)
 class Esence_Items_ShopAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('name', 'category', 'cost', 'image_preview')
+    list_filter = ('category',)
+    search_fields = ('name',)
+
+    @admin.display(description='Náhled')
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="width: 44px; height: 44px; object-fit: contain; background: #16121f; border-radius: 6px; padding: 2px; border: 1px solid #4a3b63;" />',
+                obj.image.url
+            )
+        return "—"
+
 
 @admin.register(Esence_Items_Owners)
 class Esence_Items_OwnersAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('player', 'item', 'item_category', 'item_cost', 'item_preview')
+    list_filter = ('item__category', 'player')
+    search_fields = ('player__nickname', 'player__user__username', 'item__name')
+    autocomplete_fields = ('player', 'item')
+
+    @admin.display(description='Kategorie')
+    def item_category(self, obj):
+        return obj.item.get_category_display() if obj.item else "—"
+
+    @admin.display(description='Cena')
+    def item_cost(self, obj):
+        return f"{obj.item.cost} TE" if obj.item else "—"
+
+    @admin.display(description='Náhled')
+    def item_preview(self, obj):
+        if obj.item and obj.item.image:
+            return format_html(
+                '<img src="{}" style="width: 44px; height: 44px; object-fit: contain; background: #16121f; border-radius: 6px; padding: 2px; border: 1px solid #4a3b63;" />',
+                obj.item.image.url
+            )
+        return "—"

@@ -1,6 +1,7 @@
 from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
 import random
 
 
@@ -30,11 +31,25 @@ class Player(models.Model):
     temna_esence = models.IntegerField(default=0, verbose_name="Temná esence", blank=True, null=True)
     pin_code = models.IntegerField(default=0, verbose_name="Pin kod", blank=True, null=True)
 
+    active_ramecek = models.ForeignKey(
+        "Esence_Items_Owners",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='active_in_players',
+        verbose_name="Aktivní rámeček"
+    )
+
     admin = models.BooleanField(default=False, verbose_name="Jsi administrátor", blank=True, null=True)
 
     class Meta:
         verbose_name = "Hráč"
         verbose_name_plural = "Hráči"
+
+    def clean(self):
+        super().clean()
+        if self.active_ramecek and self.active_ramecek.player_id != self.id:
+            raise ValidationError({'active_ramecek': "Vybraný rámeček nevlastní tento hráč!"})
 
     def save(self, *args, **kwargs):
         if self.user.is_staff == True:
@@ -42,6 +57,16 @@ class Player(models.Model):
         else:
             self.admin = False
         super().save(*args, **kwargs)
+
+    @property
+    def active_frame_url(self):
+        """Vrátí URL aktivního rámečku hráče (nebo None)."""
+        if self.active_ramecek and self.active_ramecek.item and self.active_ramecek.item.image:
+            try:
+                return self.active_ramecek.item.image.url
+            except Exception:
+                return None
+        return None
 
     def __str__(self):
         return self.nickname or self.user.username
@@ -136,6 +161,17 @@ class Char_info(models.Model):
         if self.image_url:
             return self.image_url
         return '/static/img/default_avatar.jpg'
+
+    @property
+    def frame_url(self):
+        """Vrátí URL aktivního rámečku hráče pro tuto postavu (nebo None)."""
+        if self.player:
+            return self.player.active_frame_url
+        return None
+
+    @property
+    def active_frame_url(self):
+        return self.frame_url
 
     def __str__(self):
         cls_str = f" ({self.character_class})" if self.character_class else ""
@@ -385,8 +421,12 @@ class Esence_Items_Owners(models.Model):
         verbose_name="Předmět"
     )
 
+    class Meta:
+        verbose_name = "Vlastněný předmět z Esence Shopu"
+        verbose_name_plural = "Vlastněné předměty z Esence Shopu"
+
     def __str__(self):
-        return f"{self.player} - {self.item}"
+        return f"{self.item.name} ({self.player})"
         
     
     

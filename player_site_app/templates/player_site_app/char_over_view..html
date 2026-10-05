@@ -7,6 +7,9 @@
 <div class="atarax-page-header char-header-with-avatar">
     <div class="char-header-avatar-wrap">
         <img src="{{ character.profile_image_url }}" alt="{{ character.name }}" class="char-avatar char-avatar-hero">
+        {% if character.frame_url %}
+        <img src="{{ character.frame_url }}" alt="Rámeček" class="char-avatar-frame" aria-hidden="true">
+        {% endif %}
     </div>
     <div class="atarax-header-title-group char-header-title-flex">
         <h1><span>🛡️</span> {{ character.name }}</h1>

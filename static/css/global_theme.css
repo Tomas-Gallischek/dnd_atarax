@@ -763,8 +763,18 @@ select option {
 }
 
 /* ==========================================================================
-   Character Avatar Components
+   Character Avatar Components & Frames
    ========================================================================== */
+
+.char-avatar-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
+    text-decoration: none;
+}
 
 .char-avatar {
     display: inline-block;
@@ -777,10 +787,31 @@ select option {
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.char-avatar:hover {
+.char-avatar-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140%;
+    height: 140%;
+    max-width: none;
+    pointer-events: none;
+    z-index: 2;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+    transition: transform 0.2s ease;
+}
+
+.char-avatar-wrap:hover .char-avatar,
+.char-header-avatar-wrap:hover .char-avatar {
     transform: scale(1.05);
     border-color: var(--gold-400);
     box-shadow: 0 0 16px rgba(245, 158, 11, 0.45);
+}
+
+.char-avatar-wrap:hover .char-avatar-frame,
+.char-header-avatar-wrap:hover .char-avatar-frame {
+    transform: translate(-50%, -50%) scale(1.06);
 }
 
 .char-avatar-xs {
@@ -813,6 +844,21 @@ select option {
     border-width: 3px;
     border-radius: 16px;
     box-shadow: 0 0 20px rgba(245, 158, 11, 0.35), var(--shadow-md);
+}
+
+.char-avatar-wrap .char-avatar-hero + .char-avatar-frame,
+.char-header-avatar-wrap .char-avatar-frame {
+    width: 146%;
+    height: 146%;
+}
+
+.char-header-avatar-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    line-height: 0;
 }
 
 .char-avatar-group {

@@ -14,7 +14,12 @@
     <div class="atarax-card">
         <div class="atarax-card-header">
             <div class="char-avatar-group">
-                <img src="{{ char.profile_image_url }}" alt="{{ char.name }}" class="char-avatar char-avatar-md">
+                <span class="char-avatar-wrap">
+                    <img src="{{ char.profile_image_url }}" alt="{{ char.name }}" class="char-avatar char-avatar-md">
+                    {% if char.frame_url %}
+                    <img src="{{ char.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                    {% endif %}
+                </span>
                 <div>
                     <h2 class="atarax-card-title">
                         <span>🛡️</span> {{ char.name }}

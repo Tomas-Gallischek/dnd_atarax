@@ -25,8 +25,11 @@
         {% for char in characters %}
         <li class="char-selection-item">
             <div class="char-avatar-group">
-                <a href="{% url 'player_site_app:char_overview' char.id %}">
+                <a href="{% url 'player_site_app:char_overview' char.id %}" class="char-avatar-wrap">
                     <img src="{{ char.profile_image_url }}" alt="{{ char.name }}" class="char-avatar char-avatar-md">
+                    {% if char.frame_url %}
+                    <img src="{{ char.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                    {% endif %}
                 </a>
                 <div>
                     <a href="{% url 'player_site_app:char_overview' char.id %}" class="char-selection-name">

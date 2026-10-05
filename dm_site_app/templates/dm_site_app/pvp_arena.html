@@ -391,6 +391,9 @@
                     <div class="card-main">
                         <div class="portrait-container" data-action="open-detail" role="button" tabindex="0" title="Klikněte pro zobrazení detailů" aria-label="Zobrazit detailní statistiky">
                             <img src="{{ player.profile_image_url }}" alt="{{ player.name }}" class="card-portrait" loading="lazy">
+                            {% if player.frame_url %}
+                            <img src="{{ player.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                            {% endif %}
                             <div class="portrait-hover-hint">🔍 Detail</div>
                         </div>
 
@@ -476,6 +479,9 @@
                     <div class="modal-profile-header">
                         <div class="modal-portrait-wrap">
                             <img src="{{ player.profile_image_url }}" alt="{{ player.name }}" class="modal-portrait">
+                            {% if player.frame_url %}
+                            <img src="{{ player.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                            {% endif %}
                         </div>
                         <div class="modal-profile-meta">
                             <div class="modal-badges-row">

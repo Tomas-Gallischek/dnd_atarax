@@ -12,7 +12,12 @@
 <div class="player-nav-container" id="playerNavContainer">
     <button type="button" class="player-nav-toggle-btn" id="playerNavToggleBtn" aria-label="Menu hráče">
         {% if active_character %}
-            <img src="{{ active_character.profile_image_url }}" alt="{{ active_character.name }}" class="char-avatar char-avatar-xs">
+            <span class="char-avatar-wrap">
+                <img src="{{ active_character.profile_image_url }}" alt="{{ active_character.name }}" class="char-avatar char-avatar-xs">
+                {% if active_character.frame_url %}
+                <img src="{{ active_character.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                {% endif %}
+            </span>
             <span>{{ active_character.name }}</span>
         {% else %}
             <span class="player-nav-toggle-icon">&#9776;</span>
@@ -24,7 +29,12 @@
         <div class="player-nav-user-info">
             {% if active_character %}
                 <div class="char-avatar-group">
-                    <img src="{{ active_character.profile_image_url }}" alt="{{ active_character.name }}" class="char-avatar char-avatar-sm">
+                    <span class="char-avatar-wrap">
+                        <img src="{{ active_character.profile_image_url }}" alt="{{ active_character.name }}" class="char-avatar char-avatar-sm">
+                        {% if active_character.frame_url %}
+                        <img src="{{ active_character.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                        {% endif %}
+                    </span>
                     <div class="player-nav-user-details">
                         <span>Hráč: <strong>{{ player.nickname|default:request.user.username }}</strong></span>
                         <span class="char-tag">{{ active_character.name }} (Úr. {{ active_character.level }})</span>

@@ -84,7 +84,12 @@
                 {% for player_item in all_players %}
                 <div class="combat-mob-row">
                     <div class="char-avatar-group">
-                        <img src="{{ player_item.profile_image_url }}" alt="{{ player_item.name }}" class="char-avatar char-avatar-sm">
+                        <span class="char-avatar-wrap">
+                            <img src="{{ player_item.profile_image_url }}" alt="{{ player_item.name }}" class="char-avatar char-avatar-sm">
+                            {% if player_item.frame_url %}
+                            <img src="{{ player_item.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                            {% endif %}
+                        </span>
                         <div>
                             <div class="combat-mob-title">{{ player_item.name }}</div>
                             <span class="badge badge-silver">Úroveň {{ player_item.level }}</span>

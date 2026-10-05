@@ -859,6 +859,10 @@
 
 .modal-portrait-wrap {
     flex-shrink: 0;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .modal-portrait {
