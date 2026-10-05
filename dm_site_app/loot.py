@@ -46,7 +46,7 @@ def loot_temna_esence(mob_id, killer_id):
 # ACHIVEMENT
     esencionik_ach(char_id=killer_id, amount=plus_temna_esence)
 
-    log_success("Temná esence", f"Hráč: {player.name} (Hráč: {player.player.nickname}) -> Přidáno: {plus_temna_esence} Temné esence")
+    log_success("Temná esence", f"Postava: {char.name} | Hráč: {player.nickname} -> Přidáno: {plus_temna_esence} Temné esence")
     
     return
 
