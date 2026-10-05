@@ -6,7 +6,11 @@
 <div class="atarax-page-header">
     <div class="atarax-header-title-group">
         <h1><span>📜</span> Deník Postavy</h1>
-        <p class="atarax-header-subtitle">Přehled a správa vybraného hrdiny.</p>
+        <p class="atarax-header-subtitle">
+            {% for item in inv_all_items %}
+                {{ item.Item.name }}
+            {% endfor %}
+        </p>
     </div>
 </div>
 {% endblock %}

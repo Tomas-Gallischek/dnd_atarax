@@ -5,6 +5,7 @@ from django.contrib import messages
 from .models import Player, Char_info, Achivements_players, Achivements_database
 from .forms import PlayerLoginForm, PlayerRegistrationForm
 from dnd_atarax.terminal import log_player, log_warning, log_info
+from dm_site_app.models import Items_Active
 
 
 def get_player_and_character(request, char_id=None):
@@ -132,11 +133,14 @@ def inv_view(request, char_id=None):
     """2. Inventář aktivní postavy."""
     player, character = get_player_and_character(request, char_id)
 
+    inv_all_items = Items_Active.objects.filter(char_own=character.id).select_related('Item')
+
     return render(request, 'player_site_app/inv.html', {
         'player': player,
         'character': character,
         'active_character': character,
         'current_page': 'inv',
+        'inv_all_items': inv_all_items,
     })
 
 
