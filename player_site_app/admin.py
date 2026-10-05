@@ -3,6 +3,18 @@ from django.utils.html import format_html
 from .models import Player, Char_info, Achivements_database, Achivements_players, Logs
 
 
+from dm_site_app.models import Items_Active
+
+
+class ItemsActiveInline(admin.TabularInline):
+    model = Items_Active
+    extra = 0
+    fields = ('name_cz', 'category', 'cost_gold', 'cost_silver', 'damage', 'armor_class', 'properties')
+    show_change_link = True
+    verbose_name = "Vlastněný předmět"
+    verbose_name_plural = "Vlastněné předměty (Inventář)"
+
+
 class CharInfoInline(admin.TabularInline):
     model = Char_info
     extra = 0
@@ -53,6 +65,7 @@ class CharInfoAdmin(admin.ModelAdmin):
         'character_class',
         'race',
         'level',
+        'items_count',
         'hit_points_current',
         'hit_points_max',
         'armor_class',
@@ -60,6 +73,11 @@ class CharInfoAdmin(admin.ModelAdmin):
     list_filter = ('character_class', 'race', 'level', 'player')
     search_fields = ('name', 'player__user__username', 'player__nickname', 'backstory')
     ordering = ('-level', 'name')
+    inlines = [ItemsActiveInline]
+
+    @admin.display(description='Předměty')
+    def items_count(self, obj):
+        return obj.items.count()
 
     fieldsets = (
         ('Hráč a identita postavy', {

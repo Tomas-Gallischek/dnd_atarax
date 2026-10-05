@@ -77,8 +77,15 @@ class Items_All_db(models.Model):
         return f"{self.name_cz} ({self.category})"
 
 class Items_Active(models.Model):
-    # Identifikátory
-    api_index = models.CharField(max_length=100, unique=True, verbose_name="API Index", blank=True, null=True)
+    char_own = models.ForeignKey(
+        'player_site_app.Char_info',
+        on_delete=models.CASCADE,
+        related_name='items',
+        verbose_name="Vlastník (Postava)",
+        null=True,
+        blank=True
+    )
+    api_index = models.CharField(max_length=100, verbose_name="API Index", blank=True, null=True)
     name_cz = models.CharField(max_length=150, verbose_name="Český název", blank=True, null=True)
     name_en = models.CharField(max_length=150, verbose_name="Anglický název", blank=True, null=True)
     

@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.utils import functional
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Locations, Npc, Monsters_All_db, Monsters_Active
+from .models import Locations, Npc, Monsters_All_db, Monsters_Active, Items_All_db, Items_Active
 from player_site_app.models import Player, Char_info, Logs
 from player_site_app.achivements import zbohatlik_ach, smrtici_stroj_ach
 from dnd_atarax.terminal import (
@@ -424,7 +424,7 @@ def mob_dead(request):
 @dm_required
 def loot_management(request):
 
-    all_chars = Char_info.objects.all()
+    all_chars = Char_info.objects.all().select_related('player')
 
     all_lootable_monsters = Monsters_Active.objects.filter(loot_able=True)
     alive_monsters = all_lootable_monsters.filter(is_dead=False)
@@ -433,19 +433,25 @@ def loot_management(request):
     all_lootable_npc = Npc.objects.filter(loot_able=True)
     alive_npc = all_lootable_npc.filter(is_dead=False)
     dead_npc = all_lootable_npc.filter(is_dead=True)
-    
+
+    all_items = Items_All_db.objects.all().order_by('name_cz')
+    categories = sorted(list(set(Items_All_db.objects.values_list('category', flat=True).exclude(category__isnull=True).exclude(category=''))))
+
     context = {
         'all_chars': all_chars,
         'alive_monsters': alive_monsters,
         'dead_monsters': dead_monsters,
         'alive_npc': alive_npc,
         'dead_npc': dead_npc,
+        'all_items': all_items,
+        'categories': categories,
         'current_page': 'loot_management',
     }
     
     return render(request, 'dm_site_app/loot_management.html', context)
 
 
+@dm_required
 def plus_loot_gold(request):
     if request.method == 'POST':
         mob_id = int(request.POST.get('mob_id'))
@@ -481,7 +487,7 @@ def plus_loot_gold(request):
     log = Logs(
         player=character.player,
         character=character,
-        message=f"Postava {character.name} získala {plus_gold} zlata a {plus_silver}",
+        message=f"Postava {character.name} získala {plus_gold} zlata a {plus_silver} stříbra",
         value=plus_total_gold,
     )
     log.save()
@@ -492,3 +498,65 @@ def plus_loot_gold(request):
     source_target.save()
 
     return redirect('dm_site_app:loot_management')
+
+
+@dm_required
+def assign_loot_items(request):
+    if request.method != 'POST':
+        return redirect('dm_site_app:loot_management')
+
+    character_id = request.POST.get('character_id')
+    item_ids = request.POST.getlist('item_ids')
+    if not item_ids and request.POST.get('item_ids_str'):
+        item_ids = [i.strip() for i in request.POST.get('item_ids_str', '').split(',') if i.strip()]
+
+    if not character_id or not item_ids:
+        messages.warning(request, "Vyberte prosím postavu i alespoň jeden předmět.")
+        return redirect('dm_site_app:loot_management')
+
+    character = Char_info.objects.filter(id=character_id).first()
+    if not character:
+        messages.error(request, "Vybraná postava neexistuje.")
+        return redirect('dm_site_app:loot_management')
+
+    added_names = []
+    for item_id in item_ids:
+        try:
+            item_id_int = int(item_id)
+        except (ValueError, TypeError):
+            continue
+
+        item_template = Items_All_db.objects.filter(id=item_id_int).first()
+        if item_template:
+            active_item = Items_Active.objects.create(
+                char_own=character,
+                api_index=item_template.api_index,
+                name_cz=item_template.name_cz,
+                name_en=item_template.name_en,
+                category=item_template.category,
+                cost_gold=item_template.cost_gold,
+                cost_silver=item_template.cost_silver,
+                weight=item_template.weight,
+                damage=item_template.damage,
+                armor_class=item_template.armor_class,
+                properties=item_template.properties,
+                description=item_template.description,
+            )
+            added_names.append(active_item.name_cz or active_item.name_en or f"Předmět #{active_item.id}")
+
+    if added_names:
+        items_summary = ", ".join(added_names)
+        messages.success(request, f"Postavě {character.name} bylo připsáno {len(added_names)} předmětů: {items_summary}")
+        log = Logs(
+            player=character.player,
+            character=character,
+            message=f"Postava {character.name} získala {len(added_names)} předmětů ({items_summary})",
+            value=float(len(added_names))
+        )
+        log.save()
+        log_success("Předměty připsány", f"Postava {character.name} získala: {items_summary}")
+    else:
+        messages.warning(request, "Nebyly nalezeny žádné platné předměty k připsání.")
+
+    return redirect('dm_site_app:loot_management')
+
