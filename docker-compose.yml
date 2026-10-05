@@ -29,6 +29,8 @@ services:
       - DB_PORT=${DB_PORT}
     depends_on:
       - db
+    volumes:
+      - ./media:/app/media
 
 volumes:
   dnd_db_data:
