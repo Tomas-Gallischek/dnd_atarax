@@ -283,15 +283,15 @@ def in_fight_switch(request):
 def active_mob_db_save(mob_id):
     mob = Monsters_All_db.objects.get(id=mob_id)
 
-    if mob.monster_type == 'humanoid':
+    if mob.monster_type == 'humanoid' or mob.monster_type == 'Humanoid':
         gold_base = 2
         silver_base = 6
         chance = 80
-    elif mob.monster_type == 'undead':
+    elif mob.monster_type == 'undead' or mob.monster_type == 'Undead':
         gold_base = 2
         silver_base = 2
         chance = 10
-    elif mob.monster_type == 'monstrosity':
+    elif mob.monster_type == 'monstrosity' or mob.monster_type == 'Monstrosity':
         gold_base = 2
         silver_base = 2
         chance = 10
@@ -303,6 +303,10 @@ def active_mob_db_save(mob_id):
         plus_silver = 0
 
 # spustí se jen pokud může mít mobka u sebe goldy
+    print("--- GENERACE ZLATA U MONSTER --- ")
+    print(f"Šance: {chance}%")
+    print(f"Gold base: {gold_base}")
+    print(f"Silver base: {silver_base}")
     if chance > 0:
         random_multi = int(round(mob.challenge_rating))
         if random_multi < 2:
