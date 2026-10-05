@@ -1,193 +1,9 @@
 {% extends "base.html" %}
 
+{% load static %}
+
 {% block extra_head %}
-<style>
-    /* DM Navigace - styly pro rozbalovací nabídku */
-    .dm-nav-container {
-        position: fixed;
-        top: 14px;
-        left: 14px;
-        z-index: 10000;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    .dm-nav-toggle-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: #1c1917;
-        color: #f5f5f4;
-        border: 1px solid #78350f;
-        border-radius: 8px;
-        padding: 8px 14px;
-        font-size: 0.95rem;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
-        transition: all 0.2s ease;
-    }
-
-    .dm-nav-toggle-btn:hover {
-        background: #292524;
-        border-color: #b45309;
-        transform: translateY(-1px);
-    }
-
-    .dm-nav-dropdown {
-        display: none;
-        position: absolute;
-        top: calc(100% + 8px);
-        left: 0;
-        width: 270px;
-        background: #1c1917;
-        border: 1px solid #44403c;
-        border-radius: 10px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-        overflow: hidden;
-        animation: dmFadeIn 0.15s ease-out;
-    }
-
-    .dm-nav-dropdown.show {
-        display: block;
-    }
-
-    @keyframes dmFadeIn {
-        from { opacity: 0; transform: translateY(-6px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .dm-nav-user-info {
-        padding: 12px 16px;
-        background: #292524;
-        border-bottom: 1px solid #44403c;
-        font-size: 0.85rem;
-        color: #a8a29e;
-    }
-
-    .dm-nav-user-info strong {
-        display: block;
-        color: #f5f5f4;
-        font-size: 0.95rem;
-    }
-
-    .dm-role-tag {
-        display: inline-block;
-        margin-top: 4px;
-        padding: 2px 8px;
-        background: #b45309;
-        color: #fff;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        font-weight: bold;
-        letter-spacing: 0.5px;
-    }
-
-    .dm-nav-list {
-        list-style: none;
-        margin: 0;
-        padding: 6px 0;
-    }
-
-    .dm-nav-item a {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 9px 16px;
-        color: #d6d3d1;
-        text-decoration: none;
-        font-size: 0.9rem;
-        transition: background 0.15s, color 0.15s;
-    }
-
-    .dm-nav-item a:hover {
-        background: #292524;
-        color: #fbbf24;
-    }
-
-    .dm-nav-item a.active {
-        background: #292524;
-        color: #fbbf24;
-        font-weight: 600;
-        border-left: 3px solid #f59e0b;
-    }
-
-    .dm-nav-divider {
-        margin: 6px 0;
-        border: none;
-        border-top: 1px solid #44403c;
-    }
-
-    .dm-nav-item a.dm-nav-player-link {
-        color: #38bdf8;
-    }
-
-    .dm-nav-item a.dm-nav-player-link:hover {
-        background: rgba(56, 189, 248, 0.1);
-        color: #7dd3fc;
-    }
-
-    .dm-nav-logout {
-        padding: 8px 12px;
-        background: #141211;
-        border-top: 1px solid #292524;
-    }
-
-    .dm-nav-logout a {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        padding: 8px 12px;
-        color: #f87171;
-        background: rgba(239, 68, 68, 0.1);
-        border: 1px solid rgba(239, 68, 68, 0.2);
-        border-radius: 6px;
-        text-decoration: none;
-        font-size: 0.88rem;
-        font-weight: 600;
-        transition: all 0.15s;
-    }
-
-    .dm-nav-logout a:hover {
-        background: rgba(239, 68, 68, 0.2);
-        color: #fca5a5;
-        border-color: rgba(239, 68, 68, 0.4);
-    }
-
-    .dm-page-body {
-        padding-top: 65px;
-        padding-left: 20px;
-        padding-right: 20px;
-        max-width: 1200px;
-        margin: 0 auto;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    }
-
-    .dm-alert-msg {
-        padding: 10px 14px;
-        margin-bottom: 8px;
-        border-radius: 6px;
-        font-size: 0.95rem;
-    }
-
-    .dm-alert-error {
-        background-color: #fee2e2;
-        color: #991b1b;
-        border: 1px solid #f87171;
-    }
-
-    .dm-alert-success {
-        background-color: #dcfce7;
-        color: #166534;
-        border: 1px solid #86efac;
-    }
-
-    .dm-alert-info {
-        background-color: #e0f2fe;
-        color: #075985;
-        border: 1px solid #7dd3fc;
-    }
-</style>
+<link rel="stylesheet" href="{% static 'dm_site_app/css/dm_theme.css' %}">
 {% block extra_dm_head %}{% endblock %}
 {% endblock %}
 
@@ -195,7 +11,7 @@
 {% if request.user.is_authenticated and request.user.is_staff %}
 <div class="dm-nav-container" id="dmNavContainer">
     <button type="button" class="dm-nav-toggle-btn" id="dmNavToggleBtn" aria-label="Menu DM" aria-expanded="false">
-        <span style="font-size: 1.1rem; line-height: 1;">&#9776;</span>
+        <span class="dm-nav-toggle-icon">&#9776;</span>
         <span>DM Nabídka</span>
     </button>
 
@@ -281,7 +97,7 @@
 
 <div class="dm-page-body">
     {% if messages %}
-    <div style="margin-bottom: 1.5rem;">
+    <div class="dm-messages-container">
         {% for message in messages %}
         <div class="dm-alert-msg {% if message.tags == 'error' %}dm-alert-error{% elif message.tags == 'success' %}dm-alert-success{% else %}dm-alert-info{% endif %}">
             {{ message }}

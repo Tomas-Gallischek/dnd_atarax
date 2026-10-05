@@ -1,22 +1,44 @@
 {% extends "dm_site_app/base_dm.html" %}
 
-{% block title %}DnD Atarax - NPC{% endblock %}
+{% block title %}DnD Atarax - Přehled NPC{% endblock %}
 
 {% block dm_content %}
-<h1>NPC</h1>
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>👥</span> Nehráčské postavy (NPC)</h1>
+        <p class="atarax-header-subtitle">Katalog vedlejších postav, obyvatel měst a spojenců či nepřátel v herním světě.</p>
+    </div>
+</div>
 
 {% if npcs %}
-    <ul style="list-style: none; padding-left: 0; margin-top: 1rem;">
+    <div class="grid-2">
         {% for npc_item in npcs %}
-        <li style="padding: 12px; margin-bottom: 8px; border: 1px solid #44403c; border-radius: 8px; background: #292524; color: #f5f5f4;">
-            <strong>{{ npc_item.name }}</strong>
-            {% if npc_item.gender %}({{ npc_item.get_gender_display }}){% endif %}
-            {% if npc_item.location %} - Lokace: {{ npc_item.location.name }}{% endif %}
-            {% if npc_item.description %}<p style="margin-top: 6px; color: #d6d3d1;">{{ npc_item.description }}</p>{% endif %}
-        </li>
+        <article class="dm-item-card">
+            <div class="dm-item-header">
+                <h2 class="dm-item-title">{{ npc_item.name }}</h2>
+                <div>
+                    {% if npc_item.gender %}
+                        <span class="badge badge-silver">{{ npc_item.get_gender_display }}</span>
+                    {% endif %}
+                    {% if npc_item.location %}
+                        <span class="badge badge-gold">📍 {{ npc_item.location.name }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if npc_item.description %}
+                <p class="dm-item-desc">{{ npc_item.description }}</p>
+            {% else %}
+                <p class="no-sources-muted">Bez doplňujícího popisu.</p>
+            {% endif %}
+        </article>
         {% endfor %}
-    </ul>
+    </div>
 {% else %}
-    <p style="color: #a8a29e; margin-top: 1rem;">Žádná NPC zatím nebyla vytvořena.</p>
+    <div class="atarax-empty-state">
+        <div class="atarax-empty-icon">👤</div>
+        <h3 class="atarax-empty-title">Žádná NPC nenalezena</h3>
+        <p class="atarax-empty-desc">Zatím nebyla vytvořena žádná nehráčská postava v databázi.</p>
+    </div>
 {% endif %}
 {% endblock %}

@@ -3,39 +3,76 @@
 {% block title %}DnD Atarax - Roleplay informace{% endblock %}
 
 {% block player_content %}
-<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
-    <h1>Roleplay - informace</h1>
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>🎭</span> Roleplay & Osobnost</h1>
+        <p class="atarax-header-subtitle">
+            {% if character %}
+                Zázemí, povaha a příběh hrdiny <strong>{{ character.name }}</strong>
+            {% else %}
+                Osobnostní rysy, ideály, pouta a historie postavy
+            {% endif %}
+        </p>
+    </div>
+</div>
 
-    {% if character %}
-    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff; margin-bottom: 1.5rem;">
-        <h2>Osobnost a zázemí ({{ character.name }})</h2>
-        <p><strong>Zázemí (Background):</strong> {{ character.background|default:"Neuvedeno" }}</p>
-        <p><strong>Přesvědčení (Alignment):</strong> {{ character.alignment|default:"Neuvedeno" }}</p>
+{% if character %}
+<div class="atarax-card">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title">
+            <span>📜</span> Osobnost a zázemí ({{ character.name }})
+        </h2>
+    </div>
 
-        <h3 style="margin-top: 1.5rem;">Historie a příběh</h3>
+    <table class="char-identity-table">
+        <tr>
+            <td class="char-identity-label">Zázemí (Background):</td>
+            <td>{{ character.background|default:"Neuvedeno" }}</td>
+        </tr>
+        <tr>
+            <td class="char-identity-label">Přesvědčení (Alignment):</td>
+            <td>{{ character.alignment|default:"Neuvedeno" }}</td>
+        </tr>
+    </table>
+
+    <div class="mt-3">
+        <h3 class="atarax-card-title"><span>📖</span> Historie a původ</h3>
         {% if character.backstory %}
-            <div style="line-height: 1.6; color: #334155;">{{ character.backstory|linebreaks }}</div>
+            <div class="dm-item-desc">{{ character.backstory|linebreaks }}</div>
         {% else %}
-            <p style="color: #64748b;">Zatím nebyl vyplněn žádný příběh.</p>
+            <p class="no-sources-muted">Zatím nebyl vyplněn žádný příběh.</p>
         {% endif %}
+    </div>
 
-        <h3 style="margin-top: 1.5rem;">Poznámky</h3>
+    <div class="mt-3">
+        <h3 class="atarax-card-title"><span>📝</span> Poznámky k hraní</h3>
         {% if character.notes %}
-            <div style="line-height: 1.6; color: #334155;">{{ character.notes|linebreaks }}</div>
+            <div class="dm-item-desc">{{ character.notes|linebreaks }}</div>
         {% else %}
-            <p style="color: #64748b;">Žádné poznámky.</p>
+            <p class="no-sources-muted">Žádné poznámky.</p>
         {% endif %}
     </div>
+</div>
 
-    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
-        <h2>Možnost nasdílet ostatním</h2>
-        <p style="color: #64748b;">Sdílení profilu postavy pro ostatní hráče a DM.</p>
+<div class="atarax-card">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title">
+            <span>🔗</span> Sdílení s družinou
+        </h2>
     </div>
-    {% else %}
-    <div style="border: 1px dashed #94a3b8; padding: 2rem; border-radius: 8px; text-align: center; background: #f8fafc;">
-        <p style="color: #64748b;">Nemáš vybranou žádnou postavu pro zobrazení roleplay informací.</p>
-        <a href="{% url 'player_site_app:prehled_postav' %}" style="display: inline-block; margin-top: 0.5rem; color: #0284c7; font-weight: 600;">Přejít na Přehled postav &rarr;</a>
-    </div>
-    {% endif %}
-</main>
+    <p class="dm-item-desc">
+        Možnost nasdílet vybrané části svého příběhu a osobnosti ostatním hráčům v družině i Pánovi jeskyně.
+    </p>
+</div>
+
+{% else %}
+<div class="atarax-empty-state">
+    <div class="atarax-empty-icon">🎭</div>
+    <h3 class="atarax-empty-title">Nemáš vybranou žádnou postavu pro zobrazení roleplay informací</h3>
+    <p class="atarax-empty-desc">Vyberte si svou postavu v přehledu, abyste viděli její osobnost a zázemí.</p>
+    <a href="{% url 'player_site_app:prehled_postav' %}" class="btn btn-sapphire btn-lg mt-2">
+        Přejít na Přehled postav &rarr;
+    </a>
+</div>
+{% endif %}
 {% endblock %}

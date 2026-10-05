@@ -3,20 +3,45 @@
 {% block title %}DnD Atarax - Schopnosti a kouzla{% endblock %}
 
 {% block player_content %}
-<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
-    <h1>Dovednosti + triky + kouzla</h1>
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>⚡</span> Schopnosti, Triky a Kouzla</h1>
+        <p class="atarax-header-subtitle">
+            {% if character %}
+                Přehled magie a dovedností postavy <strong>{{ character.name }}</strong>
+            {% else %}
+                Přehled magických triků, rasových rysů a schopností
+            {% endif %}
+        </p>
+    </div>
+</div>
 
-    {% if character %}
-    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff; margin-bottom: 1.5rem;">
-        <h2>Schopnosti a rysy ({{ character.name }})</h2>
-        <p><strong>Povolání:</strong> {{ character.character_class|default:"Neuvedeno" }} (Úroveň {{ character.level }})</p>
-        <p><strong>Rasa:</strong> {{ character.race|default:"Neuvedeno" }}</p>
+{% if character %}
+<div class="atarax-card">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title">
+            <span>✨</span> Rysy povolání a rasy ({{ character.name }})
+        </h2>
+        <div>
+            <span class="badge badge-gold">Úroveň {{ character.level }}</span>
+            {% if character.character_class %}<span class="badge badge-silver">{{ character.character_class }}</span>{% endif %}
+            {% if character.race %}<span class="badge badge-sapphire">{{ character.race }}</span>{% endif %}
+        </div>
     </div>
-    {% else %}
-    <div style="border: 1px dashed #94a3b8; padding: 2rem; border-radius: 8px; text-align: center; background: #f8fafc;">
-        <p style="color: #64748b;">Nemáš vybranou žádnou postavu pro zobrazení schopností.</p>
-        <a href="{% url 'player_site_app:prehled_postav' %}" style="display: inline-block; margin-top: 0.5rem; color: #0284c7; font-weight: 600;">Přejít na Přehled postav &rarr;</a>
-    </div>
-    {% endif %}
-</main>
+
+    <p class="dm-item-desc">
+        Zde se zobrazují naučená kouzla, sloty pro sesílání, pasivní a aktivní bojové dovednosti.
+    </p>
+</div>
+
+{% else %}
+<div class="atarax-empty-state">
+    <div class="atarax-empty-icon">⚡</div>
+    <h3 class="atarax-empty-title">Nemáš vybranou žádnou postavu pro zobrazení schopností</h3>
+    <p class="atarax-empty-desc">Vyberte si svou postavu v přehledu, abyste viděli její kouzla a dovednosti.</p>
+    <a href="{% url 'player_site_app:prehled_postav' %}" class="btn btn-sapphire btn-lg mt-2">
+        Přejít na Přehled postav &rarr;
+    </a>
+</div>
+{% endif %}
 {% endblock %}

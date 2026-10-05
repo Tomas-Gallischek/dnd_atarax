@@ -3,17 +3,60 @@
 {% block title %}DnD Atarax - DM Dashboard{% endblock %}
 
 {% block dm_content %}
-<div class="dm-dashboard">
-    <h1>DM - Dashboard</h1>
-    <p>Vítej v administraci Pána jeskyně. Pomocí rozbalovací nabídky vlevo nahoře můžeš přecházet mezi všemi sekcemi.</p>
-
-    <div style="margin-top: 2rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-        <a href="{% url 'dm_site_app:tools' %}" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; background: #292524; color: #f5f5f4; text-decoration: none; border: 1px solid #44403c; border-radius: 8px; font-weight: 600;">
-            <span>&#128295;</span> Nástroje DM
-        </a>
-        <a href="{% url 'player_site_app:prehled_postav' %}" style="display: inline-flex; align-items: center; gap: 8px; padding: 12px 18px; background: #0284c7; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600;">
-            <span>&#128101;</span> Přehled postav (Hráčská sekce)
-        </a>
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>👑</span> Administrace Pána Jeskyně</h1>
+        <p class="atarax-header-subtitle">Centrální řídicí panel pro správu kampaně, bojových střetů, odměn a herního světa.</p>
     </div>
+</div>
+
+<div class="dm-hub-grid">
+    <a href="{% url 'dm_site_app:pvp_arena' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">⚔️</span>
+        <div class="dm-hub-content">
+            <h3>Bojová Aréna</h3>
+            <p>Sledování kol, správa životů a bojových střetů v reálném čase</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:loot_management' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">💰</span>
+        <div class="dm-hub-content">
+            <h3>Loot & Poklady</h3>
+            <p>Přidělování mincí a kompendium vybavení pro postavy</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:tools' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">🔧</span>
+        <div class="dm-hub-content">
+            <h3>Nástroje DM</h3>
+            <p>Generátor monster a rychlá správa financí družiny</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:npc' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">👤</span>
+        <div class="dm-hub-content">
+            <h3>Přehled NPC</h3>
+            <p>Katalog vedlejších postav, jejich role a vazby na lokace</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:locations' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">🗺️</span>
+        <div class="dm-hub-content">
+            <h3>Mapy & Lokace</h3>
+            <p>Správa dungeonů, měst, pevností a herních oblastí</p>
+        </div>
+    </a>
+
+    <a href="{% url 'player_site_app:prehled_postav' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">👥</span>
+        <div class="dm-hub-content">
+            <h3>Hráčská sekce</h3>
+            <p>Nahlédnout do přehledu postav a inventářů hráčů</p>
+        </div>
+    </a>
 </div>
 {% endblock %}

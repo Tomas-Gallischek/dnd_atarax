@@ -3,15 +3,35 @@
 {% block title %}DnD Atarax - Lokace a Mapy{% endblock %}
 
 {% block dm_content %}
-<h1>Mapy a Lokace</h1>
-
-{% for location in locations %}
-    <div style="margin-top: 1rem; padding: 14px; border: 1px solid #44403c; border-radius: 8px; background: #292524; color: #f5f5f4;">
-        <h2 style="margin-top: 0; color: #fbbf24;">{{ location.name }}</h2>
-        <p>{{ location.description }}</p>
-        <p style="color: #a8a29e; font-size: 0.9rem;"><strong>Typ:</strong> {{ location.get_type_display|default:location.type }}</p>
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>🗺️</span> Mapy a Lokace</h1>
+        <p class="atarax-header-subtitle">Dungeony, sídla, divočina a významná místa světa Atarax.</p>
     </div>
-{% empty %}
-    <p style="color: #a8a29e; margin-top: 1rem;">Žádné lokace nejsou k dispozici.</p>
-{% endfor %}
+</div>
+
+{% if locations %}
+    <div class="grid-2">
+        {% for location in locations %}
+        <article class="dm-item-card">
+            <div class="dm-item-header">
+                <h2 class="dm-item-title">📍 {{ location.name }}</h2>
+                <span class="badge badge-gold">{{ location.get_type_display|default:location.type }}</span>
+            </div>
+
+            {% if location.description %}
+                <p class="dm-item-desc">{{ location.description }}</p>
+            {% else %}
+                <p class="no-sources-muted">Bez podrobnějšího popisu lokace.</p>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="atarax-empty-state">
+        <div class="atarax-empty-icon">🗺️</div>
+        <h3 class="atarax-empty-title">Žádné lokace nejsou k dispozici</h3>
+        <p class="atarax-empty-desc">V kampani zatím nebyly zapsány žádné herní lokace.</p>
+    </div>
+{% endif %}
 {% endblock %}

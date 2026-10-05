@@ -3,24 +3,44 @@
 {% block title %}DnD Atarax - DM Nástroje{% endblock %}
 
 {% block dm_content %}
-<h1>DM Nástroje</h1>
-
-<div class="container" style="margin-top: 1.5rem;">
-    <a href="{% url 'dm_site_app:golds-management' %}" style="display: inline-block; padding: 10px 18px; background: #b45309; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600;">
-        Správa zlaťáků
-    </a>
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>🔧</span> Nástroje Pána Jeskyně</h1>
+        <p class="atarax-header-subtitle">Rychlé utility pro správu ekonomiky postav, generování nestvůr a distribuci kořisti.</p>
+    </div>
 </div>
 
-<div class="container" style="margin-top: 1.5rem;">
-    <a href="{% url 'dm_site_app:monster_gen_page' %}" style="display: inline-block; padding: 10px 18px; background: #b45309; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600;">
-        Generátor monster
+<div class="dm-hub-grid">
+    <a href="{% url 'dm_site_app:golds-management' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">🪙</span>
+        <div class="dm-hub-content">
+            <h3>Správa zlaťáků</h3>
+            <p>Rychlé připisování a odebírání mincí z měšců jednotlivých postav</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:monster_gen_page' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">👾</span>
+        <div class="dm-hub-content">
+            <h3>Generátor monster</h3>
+            <p>Náhodná generace dle CR i výběr konkrétních bestií do střetu</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:loot_management' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">💰</span>
+        <div class="dm-hub-content">
+            <h3>Správa lootů</h3>
+            <p>Zlaťáky z monster a katalog předmětů pro hráče</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:pvp_pre' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">⚔️</span>
+        <div class="dm-hub-content">
+            <h3>Příprava na souboj</h3>
+            <p>Výběr aktivních monster a hrdinů vstupujících do arény</p>
+        </div>
     </a>
 </div>
-
-<div class="container" style="margin-top: 1.5rem;">
-    <a href="{% url 'dm_site_app:loot_management' %}" style="display: inline-block; padding: 10px 18px; background: #b45309; color: #fff; text-decoration: none; border-radius: 6px; font-weight: 600;">
-        Správa lootů
-    </a>
-</div>
-
 {% endblock %}

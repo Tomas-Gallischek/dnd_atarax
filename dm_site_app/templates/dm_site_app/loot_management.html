@@ -2,578 +2,10 @@
 
 {% block title %}DnD Atarax - Správa kořisti a předmětů{% endblock %}
 
+{% load static %}
+
 {% block extra_dm_head %}
-<style>
-    /* Hlavní kontejner a hlavička */
-    .loot-container {
-        color: #f4f4f5;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        padding-bottom: 90px; /* prostor pro případnou fixní lištu */
-    }
-
-    .loot-header {
-        margin-bottom: 2rem;
-        border-bottom: 1px solid #3f3f46;
-        padding-bottom: 1rem;
-    }
-
-    .loot-title-group h1 {
-        margin: 0;
-        font-size: 1.85rem;
-        font-weight: 800;
-        color: #f59e0b;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .loot-subtitle {
-        margin: 6px 0 0 0;
-        color: #a1a1aa;
-        font-size: 0.95rem;
-    }
-
-    /* Sekce mincí (Monstra & NPC) */
-    .gold-sources-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-        gap: 1.5rem;
-        margin-bottom: 2.5rem;
-    }
-
-    .source-card {
-        background: #18181b;
-        border: 1px solid #27272a;
-        border-radius: 10px;
-        padding: 1.25rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    .source-card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 1rem;
-        border-bottom: 1px solid #27272a;
-        padding-bottom: 0.6rem;
-    }
-
-    .source-card-title {
-        font-size: 1.15rem;
-        font-weight: 700;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .title-mobs { color: #f87171; }
-    .title-npc { color: #60a5fa; }
-
-    .group-subheading {
-        font-size: 0.85rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #71717a;
-        margin: 10px 0 6px 0;
-    }
-
-    .loot-gold-row {
-        background: #27272a;
-        border: 1px solid #3f3f46;
-        border-radius: 6px;
-        padding: 8px 12px;
-        margin-bottom: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    .loot-entity-info {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .entity-name {
-        font-weight: 600;
-        color: #fafafa;
-    }
-
-    .coins-badge {
-        background: #451a03;
-        color: #fbbf24;
-        border: 1px solid #b45309;
-        font-size: 0.8rem;
-        font-weight: 700;
-        padding: 2px 7px;
-        border-radius: 4px;
-        white-space: nowrap;
-    }
-
-    .form-gold-transfer {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-    }
-
-    .select-char-sm {
-        background: #18181b;
-        color: #e4e4e7;
-        border: 1px solid #52525b;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 0.85rem;
-        max-width: 170px;
-    }
-
-    .btn-add-gold {
-        background: #16a34a;
-        color: #fff;
-        border: none;
-        border-radius: 4px;
-        padding: 5px 10px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.15s;
-    }
-
-    .btn-add-gold:hover {
-        background: #15803d;
-    }
-
-    .no-sources-muted {
-        color: #71717a;
-        font-size: 0.85rem;
-        font-style: italic;
-        padding: 6px 0;
-    }
-
-    /* Sekce katalogu předmětů */
-    .items-section {
-        background: #18181b;
-        border: 1px solid #27272a;
-        border-radius: 12px;
-        padding: 1.5rem;
-        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
-        margin-top: 2rem;
-    }
-
-    .items-section-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-bottom: 1.25rem;
-    }
-
-    .items-section-title {
-        font-size: 1.45rem;
-        font-weight: 800;
-        margin: 0;
-        color: #fafafa;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    /* Ovládací panel / Filtry */
-    .items-toolbar {
-        background: #27272a;
-        border: 1px solid #3f3f46;
-        border-radius: 8px;
-        padding: 12px 14px;
-        margin-bottom: 1.25rem;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 12px;
-    }
-
-    .search-input-wrap {
-        flex: 1 1 240px;
-        position: relative;
-    }
-
-    .loot-input-search {
-        width: 100%;
-        box-sizing: border-box;
-        background: #18181b;
-        color: #fafafa;
-        border: 1px solid #52525b;
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 0.92rem;
-        outline: none;
-        transition: border-color 0.15s, box-shadow 0.15s;
-    }
-
-    .loot-input-search:focus {
-        border-color: #f59e0b;
-        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
-    }
-
-    .loot-filter-select {
-        background: #18181b;
-        color: #fafafa;
-        border: 1px solid #52525b;
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 0.9rem;
-        outline: none;
-        cursor: pointer;
-        min-width: 160px;
-    }
-
-    .loot-filter-select:focus {
-        border-color: #f59e0b;
-    }
-
-    .toolbar-actions {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
-    }
-
-    .btn-subtle {
-        background: #3f3f46;
-        color: #e4e4e7;
-        border: 1px solid #52525b;
-        border-radius: 6px;
-        padding: 7px 12px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: background 0.15s, color 0.15s;
-    }
-
-    .btn-subtle:hover {
-        background: #52525b;
-        color: #fff;
-    }
-
-    .items-count-indicator {
-        font-size: 0.88rem;
-        color: #a1a1aa;
-        margin-left: auto;
-    }
-
-    /* Tabulka předmětů */
-    .table-responsive {
-        overflow-x: auto;
-        border: 1px solid #27272a;
-        border-radius: 8px;
-        max-height: 600px;
-        position: relative;
-    }
-
-    .items-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.88rem;
-        text-align: left;
-    }
-
-    .items-table thead {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        background: #27272a;
-    }
-
-    .items-table th {
-        padding: 10px 14px;
-        font-size: 0.8rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: #a1a1aa;
-        border-bottom: 2px solid #3f3f46;
-        white-space: nowrap;
-    }
-
-    .items-table td {
-        padding: 10px 14px;
-        border-bottom: 1px solid #27272a;
-        color: #e4e4e7;
-        vertical-align: middle;
-    }
-
-    .items-table tbody tr {
-        transition: background 0.12s;
-    }
-
-    .items-table tbody tr:hover {
-        background: rgba(255, 255, 255, 0.03);
-    }
-
-    .items-table tbody tr.is-selected {
-        background: rgba(16, 185, 129, 0.12) !important;
-    }
-
-    .items-table tbody tr.is-selected td {
-        border-bottom-color: rgba(16, 185, 129, 0.3);
-    }
-
-    /* Prvky v řádku */
-    .btn-row-select {
-        background: #27272a;
-        color: #e4e4e7;
-        border: 1px solid #52525b;
-        border-radius: 6px;
-        padding: 5px 10px;
-        font-size: 0.82rem;
-        font-weight: 700;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        white-space: nowrap;
-        transition: all 0.15s ease;
-    }
-
-    .btn-row-select:hover {
-        background: #3b82f6;
-        border-color: #60a5fa;
-        color: #fff;
-    }
-
-    .btn-row-select.is-selected {
-        background: #10b981;
-        border-color: #34d399;
-        color: #064e3b;
-        font-weight: 800;
-    }
-
-    .item-name-cell {
-        min-width: 170px;
-    }
-
-    .item-name-cz {
-        display: block;
-        font-weight: 700;
-        color: #fafafa;
-        font-size: 0.95rem;
-    }
-
-    .item-name-en {
-        display: block;
-        font-size: 0.78rem;
-        color: #71717a;
-        font-style: italic;
-    }
-
-    .badge-category {
-        display: inline-block;
-        background: #1e1b4b;
-        color: #a5b4fc;
-        border: 1px solid #4338ca;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-
-    .badge-price {
-        display: inline-block;
-        background: #451a03;
-        color: #fde68a;
-        border: 1px solid #b45309;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.82rem;
-        font-weight: 700;
-        white-space: nowrap;
-    }
-
-    .item-stats-cell {
-        min-width: 140px;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-    }
-
-    .badge-spec {
-        font-size: 0.75rem;
-        font-weight: 600;
-        padding: 2px 6px;
-        border-radius: 4px;
-        white-space: nowrap;
-    }
-
-    .badge-dmg {
-        background: rgba(239, 68, 68, 0.15);
-        color: #fca5a5;
-        border: 1px solid rgba(239, 68, 68, 0.4);
-    }
-
-    .badge-ac {
-        background: rgba(59, 130, 246, 0.15);
-        color: #93c5fd;
-        border: 1px solid rgba(59, 130, 246, 0.4);
-    }
-
-    .badge-prop {
-        background: rgba(168, 85, 247, 0.15);
-        color: #d8b4fe;
-        border: 1px solid rgba(168, 85, 247, 0.4);
-    }
-
-    .spec-empty {
-        color: #52525b;
-    }
-
-    .item-desc-cell {
-        max-width: 280px;
-        color: #a1a1aa;
-        font-size: 0.82rem;
-        line-height: 1.35;
-        white-space: normal;
-    }
-
-    /* Formulář pro připsání předmětů pod tabulkou */
-    .assign-panel {
-        margin-top: 1.5rem;
-        background: #27272a;
-        border: 2px solid #b45309;
-        border-radius: 10px;
-        padding: 1.25rem;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    }
-
-    .assign-panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 0.75rem;
-    }
-
-    .assign-panel-title {
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: #fbbf24;
-        margin: 0;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
-
-    .selected-chips-container {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        background: #18181b;
-        border: 1px solid #3f3f46;
-        border-radius: 6px;
-        padding: 8px 10px;
-        min-height: 42px;
-        align-items: center;
-        margin-bottom: 1rem;
-    }
-
-    .no-selection-hint {
-        color: #71717a;
-        font-size: 0.85rem;
-        font-style: italic;
-    }
-
-    .selected-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background: #064e3b;
-        color: #a7f3d0;
-        border: 1px solid #059669;
-        border-radius: 6px;
-        padding: 3px 8px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        animation: fadeIn 0.15s ease-out;
-    }
-
-    .btn-chip-remove {
-        background: transparent;
-        border: none;
-        color: #a7f3d0;
-        cursor: pointer;
-        font-weight: bold;
-        padding: 0 2px;
-        font-size: 0.95rem;
-        line-height: 1;
-        opacity: 0.8;
-    }
-
-    .btn-chip-remove:hover {
-        opacity: 1;
-        color: #f87171;
-    }
-
-    .assign-form-controls {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 12px;
-    }
-
-    .assign-char-select {
-        flex: 1 1 240px;
-        background: #18181b;
-        color: #fafafa;
-        border: 1px solid #78350f;
-        border-radius: 6px;
-        padding: 10px 14px;
-        font-size: 0.95rem;
-        font-weight: 600;
-        outline: none;
-        cursor: pointer;
-    }
-
-    .assign-char-select:focus {
-        border-color: #f59e0b;
-        box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3);
-    }
-
-    .btn-submit-assign {
-        background: linear-gradient(135deg, #f59e0b, #d97706);
-        color: #18181b;
-        border: none;
-        border-radius: 6px;
-        padding: 10px 22px;
-        font-size: 0.95rem;
-        font-weight: 800;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
-    }
-
-    .btn-submit-assign:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
-    }
-
-    .btn-submit-assign:disabled {
-        opacity: 0.45;
-        cursor: not-allowed;
-        background: #3f3f46;
-        color: #a1a1aa;
-    }
-
-    @keyframes fadeIn {
-        from { opacity: 0; transform: scale(0.95); }
-        to { opacity: 1; transform: scale(1); }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'dm_site_app/css/loot_management.css' %}">
 {% endblock %}
 
 {% block dm_content %}
@@ -596,7 +28,7 @@
                 <h2 class="source-card-title title-mobs">
                     <span>💀</span> Monstra s mincemi
                 </h2>
-                <span class="badge-category" style="background:#450a0a; border-color:#991b1b; color:#fca5a5;">
+                <span class="badge-category badge-category-mobs">
                     {{ alive_monsters|length|add:dead_monsters|length }} připraveno
                 </span>
             </div>
@@ -658,7 +90,7 @@
                 <h2 class="source-card-title title-npc">
                     <span>👤</span> NPC postavy s mincemi
                 </h2>
-                <span class="badge-category" style="background:#172554; border-color:#1e40af; color:#bfdbfe;">
+                <span class="badge-category badge-category-npc">
                     {{ alive_npc|length|add:dead_npc|length }} připraveno
                 </span>
             </div>
@@ -781,7 +213,7 @@
             <table class="items-table" id="itemsTable">
                 <thead>
                     <tr>
-                        <th style="width: 90px; text-align: center;">Výběr</th>
+                        <th class="th-select-col">Výběr</th>
                         <th>Název předmětu</th>
                         <th>Kategorie</th>
                         <th>Cena</th>
@@ -802,7 +234,7 @@
                         data-name-sort="{{ item.name_cz|default:item.name_en|default:'' }}">
                         
                         <!-- 1. Tlačítko Vybrat -->
-                        <td style="text-align: center;">
+                        <td class="td-center">
                             <button type="button" 
                                     class="btn-row-select" 
                                     data-action="toggle-select"
@@ -868,7 +300,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 2rem; color: #71717a;">
+                        <td colspan="7" class="td-empty-table">
                             V kompendiu se nenacházejí žádné předměty.
                         </td>
                     </tr>
@@ -883,8 +315,8 @@
                 <h3 class="assign-panel-title">
                     <span>🎁</span> Připsání vybraných předmětů hráči
                 </h3>
-                <span id="selectionSummaryBadge" style="font-size: 0.88rem; color: #a1a1aa;">
-                    Vybráno: <strong id="selectedItemsCount" style="color: #fbbf24;">0</strong> předmětů
+                <span id="selectionSummaryBadge" class="selection-summary-text">
+                    Vybráno: <strong id="selectedItemsCount" class="selection-summary-count">0</strong> předmětů
                 </span>
             </div>
 
@@ -900,7 +332,7 @@
                 <div id="hiddenItemInputs"></div>
 
                 <div class="assign-form-controls">
-                    <label for="targetCharacterSelect" style="color: #fafafa; font-weight: 600; font-size: 0.95rem;">
+                    <label for="targetCharacterSelect" class="assign-label">
                         Příjemce:
                     </label>
                     <select name="character_id" id="targetCharacterSelect" class="assign-char-select" required>

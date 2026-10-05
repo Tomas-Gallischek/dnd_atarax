@@ -1,0 +1,308 @@
+/* ==========================================================================
+   DnD Atarax - DM Site App Stylesheet
+   Dungeon Master interface, floating navigation & administrative tools
+   ========================================================================== */
+
+/* DM Floating Navigation */
+.dm-nav-container {
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 10000;
+    font-family: var(--font-sans);
+}
+
+.dm-nav-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #18151f;
+    color: #fef3c7;
+    border: 1px solid var(--border-gold);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    transition: all 0.2s ease;
+}
+
+.dm-nav-toggle-btn:hover {
+    background: #24202d;
+    border-color: var(--gold-400);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(245, 158, 11, 0.25);
+}
+
+.dm-nav-toggle-icon {
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.dm-nav-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    width: 280px;
+    background: #15121b;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
+    overflow: hidden;
+    animation: dmNavFadeIn 0.16s ease-out;
+}
+
+.dm-nav-dropdown.show {
+    display: block;
+}
+
+@keyframes dmNavFadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dm-nav-user-info {
+    padding: 12px 16px;
+    background: #1f1b26;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.dm-nav-user-info strong {
+    display: block;
+    color: #fef3c7;
+    font-size: 0.95rem;
+}
+
+.dm-role-tag {
+    display: inline-block;
+    margin-top: 4px;
+    padding: 2px 8px;
+    background: linear-gradient(135deg, #b45309, #78350f);
+    color: #ffffff;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.dm-nav-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px 0;
+}
+
+.dm-nav-item a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 16px;
+    color: var(--text-silver);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dm-nav-item a:hover {
+    background: #231e2b;
+    color: var(--gold-400);
+}
+
+.dm-nav-item a.active {
+    background: #25202e;
+    color: var(--gold-400);
+    font-weight: 700;
+    border-left: 3px solid var(--gold-500);
+}
+
+.dm-nav-divider {
+    margin: 6px 0;
+    border: none;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.dm-nav-item a.dm-nav-player-link {
+    color: #38bdf8;
+}
+
+.dm-nav-item a.dm-nav-player-link:hover {
+    background: rgba(56, 189, 248, 0.1);
+    color: #7dd3fc;
+}
+
+.dm-nav-logout {
+    padding: 10px 14px;
+    background: #0f0d14;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.dm-nav-logout a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 12px;
+    color: #fca5a5;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    font-size: 0.88rem;
+    font-weight: 700;
+    transition: all 0.15s ease;
+}
+
+.dm-nav-logout a:hover {
+    background: rgba(239, 68, 68, 0.22);
+    color: #ffffff;
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Page Layout for DM Views */
+.dm-page-body {
+    padding-top: 65px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 60px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.dm-messages-container {
+    margin-bottom: 1.5rem;
+}
+
+/* DM Quick Hub / Dashboard Links */
+.dm-hub-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.75rem;
+}
+
+.dm-hub-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 1.2rem 1.4rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    color: var(--text-silver);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.dm-hub-card:hover {
+    background: var(--bg-card-elevated);
+    border-color: var(--border-gold);
+    color: #fef3c7;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.dm-hub-icon {
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.dm-hub-content h3 {
+    margin: 0 0 4px 0;
+    font-size: 1.1rem;
+    color: var(--gold-400);
+}
+
+.dm-hub-content p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* DM List Items & Cards */
+.dm-item-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.15s ease;
+}
+
+.dm-item-card:hover {
+    border-color: rgba(245, 158, 11, 0.35);
+}
+
+.dm-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 0.6rem;
+}
+
+.dm-item-title {
+    margin: 0;
+    font-size: 1.15rem;
+    color: var(--gold-400);
+}
+
+.dm-item-desc {
+    color: var(--text-silver);
+    font-size: 0.92rem;
+    margin: 0.5rem 0 0 0;
+    line-height: 1.5;
+}
+
+.dm-item-meta {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* Monster Gen / Fighting List */
+.combat-mob-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+}
+
+.combat-mob-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.combat-mob-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid var(--border-card);
+}
+
+.combat-mob-title {
+    font-weight: 700;
+    color: #f8fafc;
+    font-size: 1rem;
+}
+
+.combat-status-tag {
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+}

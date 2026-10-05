@@ -1,14 +1,23 @@
 {% extends "player_site_app/player_base.html" %}
 
-{% block title %}DnD Atarax - Kronika{% endblock %}
+{% block title %}DnD Atarax - Kronika kampaně{% endblock %}
 
 {% block player_content %}
-<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
-    <h1>Kronika kampaně</h1>
-
-    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
-        <h2>Zápisy z dobrodružství</h2>
-        <p style="color: #64748b;">Zde se budou zaznamenávat události, zážitky a příběhy z vašich herních sezení.</p>
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>📜</span> Kronika Kampaně</h1>
+        <p class="atarax-header-subtitle">Zápisy z proběhlých herních sezení, zápisky dobrodruhů a historie družiny.</p>
     </div>
-</main>
+</div>
+
+<div class="atarax-card">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title">
+            <span>📖</span> Zápisy z dobrodružství
+        </h2>
+    </div>
+    <p class="dm-item-desc">
+        Zde se budou zaznamenávat klíčové události, zážitky a příběhy z vašich herních sezení v Ataraxu.
+    </p>
+</div>
 {% endblock %}

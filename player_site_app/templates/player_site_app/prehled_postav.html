@@ -3,51 +3,58 @@
 {% block title %}DnD Atarax - Přehled postav{% endblock %}
 
 {% block player_content %}
-<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
-    <style>
-        .alert-msg { padding: 10px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        .alert-error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
-        .alert-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
-        .alert-info { background-color: #e2e3e5; color: #383d41; border-color: #d6d8db; }
-    </style>
-
-    {% if messages %}
-    <div style="margin-bottom: 1.5rem;">
-        {% for message in messages %}
-        <div class="alert-msg {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>👥</span> Přehled mých postav</h1>
+        <p class="atarax-header-subtitle">Vyberte si hrdinu, za kterého chcete hrát a nahlížet do jeho deníku, inventáře a statistik.</p>
     </div>
-    {% endif %}
+</div>
 
-    <h1>Přehled postav</h1>
+{% if messages %}
+<div class="dm-messages-container">
+    {% for message in messages %}
+    <div class="atarax-alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 
-    {% if characters %}
-        <ul style="list-style-type: none; padding-left: 0;">
-            {% for char in characters %}
-            <li style="padding: 14px; margin-bottom: 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <a href="{% url 'player_site_app:char_overview' char.id %}" style="font-size: 1.25rem; font-weight: bold; text-decoration: none; color: #0284c7;">
-                        {{ char.name }}
-                    </a>
-                    <div style="color: #64748b; font-size: 0.9rem; margin-top: 4px;">
-                        Úroveň {{ char.level }}{% if char.character_class %}, {{ char.character_class }}{% endif %}{% if char.race %}, {{ char.race }}{% endif %}
-                        | Peníze: <span style="color: #b45309; font-weight: 600;">{{ char.gold }} zl</span>, <span style="color: #64748b; font-weight: 600;">{{ char.silver }} st</span>
-                    </div>
+{% if characters %}
+    <ul class="char-selection-list">
+        {% for char in characters %}
+        <li class="char-selection-item">
+            <div>
+                <a href="{% url 'player_site_app:char_overview' char.id %}" class="char-selection-name">
+                    {{ char.name }}
+                </a>
+                <div class="char-selection-meta">
+                    <span class="badge badge-gold">Úroveň {{ char.level }}</span>
+                    {% if char.character_class %}
+                        <span class="badge badge-silver">{{ char.character_class }}</span>
+                    {% endif %}
+                    {% if char.race %}
+                        <span class="badge badge-sapphire">{{ char.race }}</span>
+                    {% endif %}
+                    &bull;
+                    <span class="currency-pill currency-gold">💰 {{ char.gold }} zl</span>
+                    <span class="currency-pill currency-silver">🪙 {{ char.silver }} st</span>
                 </div>
-                <div>
-                    <a href="{% url 'player_site_app:char_overview' char.id %}" style="padding: 6px 14px; background: #0284c7; color: #fff; border-radius: 6px; text-decoration: none; font-size: 0.85rem; font-weight: 600;">
-                        Zobrazit &rarr;
-                    </a>
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-    {% else %}
-        <div style="border: 1px dashed #94a3b8; padding: 2rem; border-radius: 8px; text-align: center; background: #f8fafc;">
-            <p style="font-size: 1.1rem; color: #64748b; margin: 0;">žádná postava</p>
-        </div>
-    {% endif %}
-</main>
+            </div>
+
+            <div>
+                <a href="{% url 'player_site_app:char_overview' char.id %}" class="btn btn-sapphire">
+                    <span>Otevřít deník</span> &rarr;
+                </a>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="atarax-empty-state">
+        <div class="atarax-empty-icon">🛡️</div>
+        <h3 class="atarax-empty-title">Zatím nemáš vytvořenou žádnou postavu</h3>
+        <p class="atarax-empty-desc">Požádej svého Pána jeskyně (DM) o přiřazení nebo vytvoření nové postavy do kampaně.</p>
+    </div>
+{% endif %}
 {% endblock %}

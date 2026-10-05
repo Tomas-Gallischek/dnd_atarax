@@ -1,68 +1,110 @@
 {% extends "dm_site_app/base_dm.html" %}
 
-{% block title %}DnD Atarax - Generátor NPC{% endblock %}
+{% block title %}DnD Atarax - Generátor Monster{% endblock %}
 
 {% block dm_content %}
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>👾</span> Generátor a Správa Monster</h1>
+        <p class="atarax-header-subtitle">Vytváření a nasazování nestvůr do probíhajícího dobrodružství a arény.</p>
+    </div>
+</div>
 
-<h1>Aktivní monstra:</h1>
+<!-- 1. Aktivní monstra -->
+<section class="atarax-card">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title title-ruby">
+            <span>💀</span> Aktivní monstra ve hře
+        </h2>
+        <span class="badge badge-ruby">{{ active_mobs_list|length }} aktivních</span>
+    </div>
 
-{% if active_mobs_list %}
+    {% if active_mobs_list %}
+        <div class="combat-mobs-list">
+            {% for mob in active_mobs_list %}
+            <div class="combat-mob-row">
+                <div class="combat-mob-info">
+                    {% if mob.image_url %}
+                        <img src="{{ mob.image_url }}" alt="{{ mob.name_cz }}" class="combat-mob-avatar">
+                    {% endif %}
+                    <div>
+                        <div class="combat-mob-title">{{ mob.name_cz|default:mob.name_en }}</div>
+                        <span class="badge badge-gold">CR {{ mob.challenge_rating }}</span>
+                    </div>
+                </div>
 
-    {% for mob in active_mobs_list %}
-    
-        <h2>{{ mob.name_cz }} CR: {{ mob.challenge_rating }}</h2>
-        <img src="{{ mob.image_url }}" alt="{{ mob.name_cz }}" style="max-width: 50px; max-height: 50px;">
-        <form action="{% url 'dm_site_app:remove_mob' mob.id %}" method="POST" style="display: inline;">
+                <form action="{% url 'dm_site_app:remove_mob' mob.id %}" method="POST">
+                    {% csrf_token %}
+                    <button class="btn btn-ruby btn-sm" type="submit">
+                        <span>✕</span> Odstranit
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="atarax-empty-state">
+            <div class="atarax-empty-icon">🛡️</div>
+            <h3 class="atarax-empty-title">Žádná aktivní monstra</h3>
+            <p class="atarax-empty-desc">Aktuálně nejsou do scény nasazena žádná monstra. Můžete je vygenerovat níže.</p>
+        </div>
+    {% endif %}
+</section>
+
+<!-- 2. Generace a výběr monster -->
+<div class="grid-2">
+    <!-- Náhodná generace -->
+    <section class="atarax-card">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>🎲</span> Náhodné monstrum
+            </h2>
+        </div>
+
+        <form action="{% url 'dm_site_app:random_monster_gen' %}" method="POST">
             {% csrf_token %}
-            <button class="btn btn-danger" type="submit">Odstranit</button>
+            <div class="atarax-form-group">
+                <label for="mob_lvl">Úroveň nestvůry (CR 0–30):</label>
+                <input type="number" id="mob_lvl" name="mob_lvl" placeholder="např. 3" min="0" max="30" class="atarax-input" required>
+            </div>
+
+            <div class="atarax-form-group">
+                <label for="mob_dificulty">Obtížnost v rámci úrovně (1–5):</label>
+                <input type="number" id="mob_dificulty" name="mob_dificulty" placeholder="např. 2" step="1" min="1" max="5" class="atarax-input" required>
+            </div>
+
+            <button type="submit" name="generate" class="btn btn-gold">
+                <span>⚡</span> Generovat náhodně
+            </button>
         </form>
-        <hr>
-    
-    {% endfor %}
+    </section>
 
-{% else %}
-    <p style="color: #888;">Žádná aktivní monstra.</p>
-{% endif %}
+    <!-- Konkrétní výběr -->
+    <section class="atarax-card">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>📖</span> Výběr z bestiáře
+            </h2>
+        </div>
 
+        <form action="{% url 'dm_site_app:specific_monster_gen' %}" method="POST">
+            {% csrf_token %}
+            <div class="atarax-form-group">
+                <label for="monster">Vyber monstrum:</label>
+                <select name="monster_id" id="monster" class="atarax-select" required>
+                    <option value="" disabled selected>-- Vyberte monstrum z bestiáře --</option>
+                    {% for mob in all_monsters %}
+                        <option value="{{ mob.id }}">
+                            {{ mob.name_cz|default:mob.name_en }} (CR: {{ mob.challenge_rating }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-
-<hr>
-
-<h1>Generace monster:</h1>
-
-<form action="{% url 'dm_site_app:random_monster_gen' %}" method="POST">
-    {% csrf_token %}
-    <input type="number" name="mob_lvl" placeholder="Úroveň nestvůry" min="0" max="30" required>
-    <input type="number" name="mob_dificulty" placeholder="Obtížnost v rámci úrovně (1-5)" step="1" min="1" max="5" required>
-    <button type="submit" name="generate" class="btn btn-primary">Generovat</button>
-</form>
-
-<hr>
-
-<h1>Výběr konkrétního monstra:</h1>
-
-<form action="{% url 'dm_site_app:specific_monster_gen' %}" method="POST">
-    {% csrf_token %}
-
-<label for="monster">Vyber monstrum:</label>
-
-<select name="monster_id" id="monster" class="form-select" required>
-    <option value="" disabled selected>-- Vyber monstrum --</option>
-    {% for mob in all_monsters %}
-        <option value="{{ mob.id }}">
-            {{ mob.name_cz }} CR: {{ mob.challenge_rating }}
-        </option>
-    {% endfor %}
-</select>
-
-<button class="btn btn-success mt-2" type="submit">
-    Vybrat
-</button>
-
-
-</form>
-
-
-
-
+            <button class="btn btn-emerald" type="submit">
+                <span>✓</span> Nasadit monstrum
+            </button>
+        </form>
+    </section>
+</div>
 {% endblock %}

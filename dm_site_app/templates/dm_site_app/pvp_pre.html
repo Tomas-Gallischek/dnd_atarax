@@ -1,76 +1,123 @@
 {% extends "dm_site_app/base_dm.html" %}
 
-{% block title %}Příprava na souboj{% endblock %}
+{% block title %}DnD Atarax - Příprava na souboj{% endblock %}
 
 {% block dm_content %}
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>⚔️</span> Příprava na souboj</h1>
+        <p class="atarax-header-subtitle">Vyberte monstra a hrdiny, kteří se zúčastní nadcházejícího střetu v Aréně.</p>
+    </div>
 
-<h1>Výběr postav do soubojů:</h1>
+    <div class="atarax-header-actions">
+        <form action="{% url 'dm_site_app:pvp_arena' %}" method="post">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-gold btn-lg">
+                <span>⚔️</span> Vstoupit do Arény
+            </button>
+        </form>
+    </div>
+</div>
 
-<h1>MOBS:</h1>
+<div class="grid-2">
+    <!-- Monstra -->
+    <section class="atarax-card">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title title-ruby">
+                <span>💀</span> Monstra (Nepřátelé)
+            </h2>
+            <span class="badge badge-ruby">{{ all_active_mobs|length }} celkem</span>
+        </div>
 
-<ul>
-{% for mob in all_active_mobs %}
-    <li style="margin-bottom: 8px;">
-        <strong>{{ mob.name_cz }}</strong> - CR: {{ mob.challenge_rating }}
-        {% if mob.in_fight %}
-            <span style="color: green; font-weight: bold;">(V boji)</span>
-            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" style="display: inline; margin-left: 8px;">
-                {% csrf_token %}
-                <input type="hidden" name="source_id" value="{{ mob.id }}">
-                <input type="hidden" name="in_fight" value="False">
-                <input type="hidden" name="source" value="mob">
-                <button type="submit" class="btn btn-danger">Odebrat ze souboje</button>
-            </form>
+        {% if all_active_mobs %}
+            <div class="combat-mobs-list">
+                {% for mob in all_active_mobs %}
+                <div class="combat-mob-row">
+                    <div>
+                        <div class="combat-mob-title">{{ mob.name_cz|default:mob.name_en }}</div>
+                        <span class="badge badge-gold">CR {{ mob.challenge_rating }}</span>
+                        {% if mob.in_fight %}
+                            <span class="badge badge-emerald">V boji</span>
+                        {% endif %}
+                    </div>
+
+                    {% if mob.in_fight %}
+                        <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="source_id" value="{{ mob.id }}">
+                            <input type="hidden" name="in_fight" value="False">
+                            <input type="hidden" name="source" value="mob">
+                            <button type="submit" class="btn btn-ruby btn-sm">Odebrat</button>
+                        </form>
+                    {% else %}
+                        <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="source_id" value="{{ mob.id }}">
+                            <input type="hidden" name="in_fight" value="True">
+                            <input type="hidden" name="source" value="mob">
+                            <button type="submit" class="btn btn-emerald btn-sm">Vybrat do boje</button>
+                        </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
         {% else %}
-            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" style="display: inline; margin-left: 8px;">
-                {% csrf_token %}
-                <input type="hidden" name="source_id" value="{{ mob.id }}">
-                <input type="hidden" name="in_fight" value="True">
-                <input type="hidden" name="source" value="mob">
-                <button type="submit" class="btn btn-success">Vybrat do souboje</button>
-            </form>
+            <div class="atarax-empty-state">
+                <div class="atarax-empty-icon">🛡️</div>
+                <h3 class="atarax-empty-title">Žádná monstra</h3>
+                <p class="atarax-empty-desc">Žádná aktivní monstra nejsou připravena. Přejděte do generátoru monster pro jejich vytvoření.</p>
+            </div>
         {% endif %}
-    </li>
-{% empty %}
-    <li>Žádná aktivní monstra.</li>
-{% endfor %}
-</ul>
+    </section>
 
-<h1>Hráči:</h1>
+    <!-- Hráči -->
+    <section class="atarax-card">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title title-sapphire">
+                <span>🛡️</span> Hráči (Hrdinové)
+            </h2>
+            <span class="badge badge-sapphire">{{ all_players|length }} postav</span>
+        </div>
 
-<ul>
-{% for player in all_players %}
-    <li style="margin-bottom: 8px;">
-        <strong>{{ player.name }}</strong> 
-        {% if player.in_fight %}
-            <span style="color: green; font-weight: bold;">(V boji)</span>
-            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" style="display: inline; margin-left: 8px;">
-                {% csrf_token %}
-                <input type="hidden" name="source_id" value="{{ player.id }}">
-                <input type="hidden" name="in_fight" value="False">
-                <input type="hidden" name="source" value="player">
-                <button type="submit" class="btn btn-danger">Odebrat ze souboje</button>
-            </form>
+        {% if all_players %}
+            <div class="combat-mobs-list">
+                {% for player_item in all_players %}
+                <div class="combat-mob-row">
+                    <div>
+                        <div class="combat-mob-title">{{ player_item.name }}</div>
+                        <span class="badge badge-silver">Úroveň {{ player_item.level }}</span>
+                        {% if player_item.in_fight %}
+                            <span class="badge badge-emerald">V boji</span>
+                        {% endif %}
+                    </div>
+
+                    {% if player_item.in_fight %}
+                        <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="source_id" value="{{ player_item.id }}">
+                            <input type="hidden" name="in_fight" value="False">
+                            <input type="hidden" name="source" value="player">
+                            <button type="submit" class="btn btn-ruby btn-sm">Odebrat</button>
+                        </form>
+                    {% else %}
+                        <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="source_id" value="{{ player_item.id }}">
+                            <input type="hidden" name="in_fight" value="True">
+                            <input type="hidden" name="source" value="player">
+                            <button type="submit" class="btn btn-emerald btn-sm">Vybrat do boje</button>
+                        </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
         {% else %}
-            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" style="display: inline; margin-left: 8px;">
-                {% csrf_token %}
-                <input type="hidden" name="source_id" value="{{ player.id }}">
-                <input type="hidden" name="in_fight" value="True">
-                <input type="hidden" name="source" value="player">
-                <button type="submit" class="btn btn-success">Vybrat do souboje</button>
-            </form>
+            <div class="atarax-empty-state">
+                <div class="atarax-empty-icon">👤</div>
+                <h3 class="atarax-empty-title">Žádní hráči</h3>
+                <p class="atarax-empty-desc">Žádné hráčské postavy nejsou k dispozici.</p>
+            </div>
         {% endif %}
-    </li>
-{% empty %}
-    <li>Žádní hráči k dispozici.</li>
-{% endfor %}
-</ul>
-
-
-<form action="{% url 'dm_site_app:pvp_arena' %}" method="post">
-    {% csrf_token %}
-    <button type="submit" class="btn btn-success">Vstup do Arény</button>
-</form>
-
-
+    </section>
+</div>
 {% endblock %}

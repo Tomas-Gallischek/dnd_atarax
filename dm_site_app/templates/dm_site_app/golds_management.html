@@ -3,25 +3,54 @@
 {% block title %}DnD Atarax - Správa zlaťáků{% endblock %}
 
 {% block dm_content %}
-<h1>Správa zlaťáků</h1>
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>🪙</span> Správa zlaťáků a stříbrňáků</h1>
+        <p class="atarax-header-subtitle">Rychlé přidávání a odebírání měny postavám hráčů.</p>
+    </div>
+</div>
 
 {% for char in all_chars %}
-    <div class="char" style="margin-top: 1rem; padding: 14px; border: 1px solid #44403c; border-radius: 8px; background: #292524; color: #f5f5f4;">
-        <h2 style="margin-top: 0; color: #fbbf24;">{{ char.name }}</h2>
-        <p><strong>Hráč:</strong> {{ char.player.nickname }}</p>
-        <p><strong>Měna:</strong> {{ char.gold }} zlaťáků, {{ char.silver }} stříbrňáků</p>
-        <form action="{% url 'dm_site_app:add_gold' %}" method="post" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+    <div class="atarax-card">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>🛡️</span> {{ char.name }}
+            </h2>
+            <div class="currency-pill-group">
+                <span class="currency-pill currency-gold">💰 {{ char.gold }} zl</span>
+                <span class="currency-pill currency-silver">🪙 {{ char.silver }} st</span>
+            </div>
+        </div>
+
+        <p class="atarax-empty-desc">
+            <strong>Hráč:</strong> {{ char.player.nickname|default:char.player.user.username }}
+            {% if char.character_class %}&bull; {{ char.character_class }}{% endif %}
+            (Úroveň {{ char.level }})
+        </p>
+
+        <form action="{% url 'dm_site_app:add_gold' %}" method="post" class="atarax-form-inline">
             {% csrf_token %}
             <label for="gold_{{ char.id }}">Zlaťáky:</label>
-            <input type="number" id="gold_{{ char.id }}" name="gold" value="0" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #78716c; width: 80px;">
+            <input type="number" id="gold_{{ char.id }}" name="gold" value="0" class="atarax-input input-sm" min="0">
+
             <label for="silver_{{ char.id }}">Stříbrňáky:</label>
-            <input type="number" id="silver_{{ char.id }}" name="silver" value="0" style="padding: 4px 8px; border-radius: 4px; border: 1px solid #78716c; width: 80px;">
+            <input type="number" id="silver_{{ char.id }}" name="silver" value="0" class="atarax-input input-sm" min="0">
+
             <input type="hidden" name="char_id" value="{{ char.id }}">
-            <button type="submit" name="action" value="plus" style="padding: 6px 12px; background: #16a34a; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Přidat</button>
-            <button type="submit" name="action" value="minus" style="padding: 6px 12px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Ubrat</button>
+
+            <button type="submit" name="action" value="plus" class="btn btn-emerald btn-sm">
+                <span>+</span> Přidat
+            </button>
+            <button type="submit" name="action" value="minus" class="btn btn-ruby btn-sm">
+                <span>−</span> Ubrat
+            </button>
         </form>
-    </div>  
+    </div>
 {% empty %}
-    <p style="color: #a8a29e; margin-top: 1rem;">Žádné postavy k dispozici.</p>
+    <div class="atarax-empty-state">
+        <div class="atarax-empty-icon">👥</div>
+        <h3 class="atarax-empty-title">Žádné postavy k dispozici</h3>
+        <p class="atarax-empty-desc">V databázi zatím nejsou žádné vytvořené postavy pro správu mincí.</p>
+    </div>
 {% endfor %}
 {% endblock %}

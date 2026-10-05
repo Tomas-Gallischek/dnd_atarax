@@ -1,50 +1,50 @@
 {% extends "player_site_app/player_base.html" %}
 
-{% block title %}DnD Atarax - Přihlášení a registrace hráče{% endblock %}
+{% block title %}DnD Atarax - Vstup do hry{% endblock %}
 
 {% block player_content %}
-<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
-    <h1>Hráčská sekce - Vítej v Ataraxu</h1>
-
-    <style>
-        .alert-msg { padding: 10px; margin-bottom: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        .alert-error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
-        .alert-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
-        .alert-info { background-color: #e2e3e5; color: #383d41; border-color: #d6d8db; }
-    </style>
-
-    {% if messages %}
-    <div style="margin-bottom: 1.5rem;">
-        {% for message in messages %}
-        <div class="alert-msg {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>🏰</span> Vítej v království Atarax</h1>
+        <p class="atarax-header-subtitle">Přihlaste se ke svému účtu hráče nebo vytvořte novou postavu do probíhající kampaně.</p>
     </div>
-    {% endif %}
+</div>
 
-    <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-        <!-- Formulář pro přihlášení -->
-        <section style="flex: 1; min-width: 280px; border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
-            <h2>Přihlášení</h2>
-            <form method="post" action="{% url 'player_site_app:index' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="login">
-                {{ login_form.as_p }}
-                <button type="submit" style="padding: 9px 18px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Přihlásit se</button>
-            </form>
-        </section>
-
-        <!-- Formulář pro registraci -->
-        <section style="flex: 1; min-width: 280px; border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
-            <h2>Registrace nového hráče</h2>
-            <form method="post" action="{% url 'player_site_app:index' %}">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="register">
-                {{ reg_form.as_p }}
-                <button type="submit" style="padding: 9px 18px; background: #059669; color: #fff; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Zaregistrovat se</button>
-            </form>
-        </section>
+{% if messages %}
+<div class="dm-messages-container">
+    {% for message in messages %}
+    <div class="atarax-alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+        {{ message }}
     </div>
-</main>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="auth-grid">
+    <!-- Formulář pro přihlášení -->
+    <section class="auth-card">
+        <h2><span>🗝️</span> Přihlášení hráče</h2>
+        <form method="post" action="{% url 'player_site_app:index' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" class="auth-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="login">
+            {{ login_form.as_p }}
+            <button type="submit" class="btn btn-gold btn-lg">
+                <span>⚔️</span> Vstoupit do hry
+            </button>
+        </form>
+    </section>
+
+    <!-- Formulář pro registraci -->
+    <section class="auth-card">
+        <h2><span>📜</span> Registrace nového dobrodruha</h2>
+        <form method="post" action="{% url 'player_site_app:index' %}" class="auth-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="register">
+            {{ reg_form.as_p }}
+            <button type="submit" class="btn btn-emerald btn-lg">
+                <span>✓</span> Zaregistrovat účet
+            </button>
+        </form>
+    </section>
+</div>
 {% endblock %}

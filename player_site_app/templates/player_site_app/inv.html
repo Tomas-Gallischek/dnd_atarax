@@ -3,33 +3,62 @@
 {% block title %}DnD Atarax - Inventář{% endblock %}
 
 {% block player_content %}
-<main style="max-width: 800px; margin: 2rem auto; font-family: sans-serif; padding: 0 1rem;">
-    <h1>Inventář</h1>
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>🎒</span> Inventář a Měšec</h1>
+        <p class="atarax-header-subtitle">
+            {% if character %}
+                Výbava a peníze postavy <strong>{{ character.name }}</strong> (Úroveň {{ character.level }})
+            {% else %}
+                Přehled výbavy a financí hrdiny
+            {% endif %}
+        </p>
+    </div>
+</div>
 
-    {% if character %}
-    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff; margin-bottom: 1.5rem;">
-        <h2>Měšec postavy ({{ character.name }})</h2>
-        <div style="display: flex; gap: 2rem; margin-top: 1rem;">
-            <div style="padding: 12px 24px; border: 1px solid #fde68a; background: #fef3c7; border-radius: 8px;">
-                <div style="font-size: 0.85rem; color: #92400e;">Zlaťáky (Gold)</div>
-                <div style="font-size: 1.8rem; font-weight: bold; color: #b45309;">{{ character.gold }} zl</div>
-            </div>
-            <div style="padding: 12px 24px; border: 1px solid #e2e8f0; background: #f1f5f9; border-radius: 8px;">
-                <div style="font-size: 0.85rem; color: #475569;">Stříbrňáky (Silver)</div>
-                <div style="font-size: 1.8rem; font-weight: bold; color: #64748b;">{{ character.silver }} st</div>
-            </div>
+{% if character %}
+<div class="atarax-card">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title">
+            <span>🪙</span> Měšec na mince
+        </h2>
+    </div>
+
+    <div class="grid-2">
+        <div class="stat-box">
+            <div class="stat-label">Zlaťáky (Gold Pieces)</div>
+            <div class="stat-value stat-value-gold">{{ character.gold }} zl</div>
+            <div class="stat-sub">Zlaté mince</div>
+        </div>
+
+        <div class="stat-box">
+            <div class="stat-label">Stříbrňáky (Silver Pieces)</div>
+            <div class="stat-value stat-value-silver">{{ character.silver }} st</div>
+            <div class="stat-sub">Stříbrné mince</div>
         </div>
     </div>
+</div>
 
-    <div style="border: 1px solid #cbd5e1; padding: 1.5rem; border-radius: 8px; background: #fff;">
-        <h2>Vybavení v batohu</h2>
-        <p style="color: #64748b;">Inventář předmětů a vybavení pro postavu {{ character.name }}.</p>
+<div class="atarax-card">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title">
+            <span>⚔️</span> Vybavení a předměty v batohu
+        </h2>
     </div>
-    {% else %}
-    <div style="border: 1px dashed #94a3b8; padding: 2rem; border-radius: 8px; text-align: center; background: #f8fafc;">
-        <p style="color: #64748b;">Nemáš vybranou žádnou postavu pro zobrazení inventáře.</p>
-        <a href="{% url 'player_site_app:prehled_postav' %}" style="display: inline-block; margin-top: 0.5rem; color: #0284c7; font-weight: 600;">Přejít na Přehled postav &rarr;</a>
-    </div>
-    {% endif %}
-</main>
+
+    <p class="dm-item-desc">
+        Předměty, magické artefakty, zbraně a zbroje, které {{ character.name }} nese na svých cestách.
+    </p>
+</div>
+
+{% else %}
+<div class="atarax-empty-state">
+    <div class="atarax-empty-icon">🎒</div>
+    <h3 class="atarax-empty-title">Nemáš vybranou žádnou postavu pro zobrazení inventáře</h3>
+    <p class="atarax-empty-desc">Vyberte si svou postavu v přehledu, abyste mohli nahlédnout do jejího batohu a měšce.</p>
+    <a href="{% url 'player_site_app:prehled_postav' %}" class="btn btn-sapphire btn-lg mt-2">
+        Přejít na Přehled postav &rarr;
+    </a>
+</div>
+{% endif %}
 {% endblock %}
