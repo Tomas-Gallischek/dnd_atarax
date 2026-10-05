@@ -5,19 +5,37 @@
 {% block dm_content %}
 <h1>Loot manager</h1>
 
-<h2>Postavy hráčů</h2>
-{% for char in all_chars %}
-    {{ char.name }}
-{% endfor %}
 
-<h2>Živá monstra</h2>
+<h2>Živá monstra:</h2>
 {% for mob in alive_monsters %}
-    {{ mob.name_cz }}
+    
+    <form action="{% url 'dm_site_app:plus_loot' %}">
+        {% csrf_token %}
+        {{ mob.name_cz }} - {{ mob.loot_gold }}zl - {{ mob.loot_silver }}sp
+        <input type="hidden" name="mob_id" value="{{ mob.id }}">
+        <select name="character_id">
+            {% for char in all_chars %}
+                <option value="{{ char.id }}">{{ char.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
 {% endfor %}
 
-<h2>Mrtvá monstra</h2>
+<h2>Mrtvá monstra:</h2>
 {% for mob in dead_monsters %}
-    {{ mob.name_cz }}
+    
+    <form action="{% url 'dm_site_app:plus_loot' %}">
+        {% csrf_token %}
+        {{ mob.name_cz }} - {{ mob.loot_gold }}zl - {{ mob.loot_silver }}sp
+        <input type="hidden" name="mob_id" value="{{ mob.id }}">
+        <select name="character_id">
+            {% for char in all_chars %}
+                <option value="{{ char.id }}">{{ char.name }}</option>
+            {% endfor %}
+        </select>
+    </form>
+
 {% endfor %}
 
 {% endblock %}
