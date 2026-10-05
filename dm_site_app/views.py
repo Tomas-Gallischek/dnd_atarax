@@ -418,4 +418,8 @@ def mob_dead(request):
         return redirect('dm_site_app:pvp_arena')
     return redirect('dm_site_app:pvp_arena')
 
-
+@dm_required
+def loot_management(request):
+    return render(request, 'dm_site_app/loot_management.html', {
+        'current_page': 'loot_management',
+    })

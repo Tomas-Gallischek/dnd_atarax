@@ -101,9 +101,9 @@
                                 <span class="quick-badge-label">👢 Rychlost</span>
                                 <span class="quick-badge-val">{{ mob.speed|default:"30 ft" }}</span>
                             </div>
-                            <div class="quick-badge" title="Zdatnost / XP">
-                                <span class="quick-badge-label">⭐ XP</span>
-                                <span class="quick-badge-val">{{ mob.xp|default:0 }}</span>
+                            <div class="quick-badge" title="Zlaťáky">
+                                <span class="quick-badge-label">💰 Mince</span>
+                                <span class="quick-badge-val">{{ mob.loot_gold|default:0 }} zl {{ mob.loot_silver|default:0 }} st</span>
                             </div>
                         </div>
                     </div>
@@ -181,7 +181,7 @@
                         <div class="modal-profile-meta">
                             <div class="modal-badges-row">
                                 <span class="modal-pill pill-cr">CR {{ mob.formatted_cr|default:mob.challenge_rating|default:"—" }}</span>
-                                <span class="modal-pill pill-xp">{{ mob.xp|default:0 }} XP</span>
+                                <span class="modal-pill pill-player-coins">💰 {{ mob.loot_gold|default:0 }} zl {{ mob.loot_silver|default:0 }} st</span>
                                 {% if mob.proficiency_bonus %}
                                 <span class="modal-pill pill-prof">Zdatnost +{{ mob.proficiency_bonus }}</span>
                                 {% endif %}
