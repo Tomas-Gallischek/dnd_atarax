@@ -475,3 +475,5 @@ def plus_loot_gold(request):
 # Odebrání
     mob.loot_able = False
     mob.save()
+
+    return redirect('dm_site_app:loot_management')
