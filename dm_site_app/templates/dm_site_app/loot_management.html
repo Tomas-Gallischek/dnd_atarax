@@ -15,6 +15,7 @@
             {% csrf_token %}
             {{ mob.name_cz }} - {{ mob.loot_gold }}zl - {{ mob.loot_silver }}sp
             <input type="hidden" name="mob_id" value="{{ mob.id }}">
+            <input type="hidden" name="source" value="mob">
             <select name="character_id">
                 {% for char in all_chars %}
                     <option value="{{ char.id }}">{{ char.name }}</option>
@@ -35,6 +36,7 @@
         {% csrf_token %}
         {{ mob.name_cz }} - {{ mob.loot_gold }}zl - {{ mob.loot_silver }}sp
         <input type="hidden" name="mob_id" value="{{ mob.id }}">
+        <input type="hidden" name="source" value="mob">
         <select name="character_id">
             {% for char in all_chars %}
                 <option value="{{ char.id }}">{{ char.name }}</option>
@@ -58,6 +60,7 @@
             {% csrf_token %}
             {{ npc.name_cz }} - {{ npc.loot_gold }}zl - {{ npc.loot_silver }}sp
             <input type="hidden" name="mob_id" value="{{ npc.id }}">
+            <input type="hidden" name="source" value="npc">
             <select name="character_id">
                 {% for char in all_chars %}
                     <option value="{{ char.id }}">{{ char.name }}</option>
@@ -79,6 +82,7 @@
         {% csrf_token %}
         {{ npc.name_cz }} - {{ npc.loot_gold }}zl - {{ npc.loot_silver }}sp
         <input type="hidden" name="mob_id" value="{{ npc.id }}">
+        <input type="hidden" name="source" value="npc">
         <select name="character_id">
             {% for char in all_chars %}
                 <option value="{{ char.id }}">{{ char.name }}</option>

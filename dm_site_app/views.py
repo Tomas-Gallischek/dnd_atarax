@@ -450,14 +450,22 @@ def plus_loot_gold(request):
     if request.method == 'POST':
         mob_id = int(request.POST.get('mob_id'))
         character_id = int(request.POST.get('character_id'))
+        source = str(request.POST.get('source'))
     else:
         return redirect('dm_site_app:loot_management') 
 
 # IDENTIFIKACE A PŘEPOČET
-    mob = Monsters_Active.objects.filter(id=mob_id).first()
+    if source == "mob":
+        source_target = Monsters_Active.objects.filter(id=mob_id).first()
+    elif source == "npc":
+        source_target = Npc.objects.filter(id=mob_id).first()
+    else:
+        log_warning("Špatný source", f"Zadaný source {source} neexistuje")
+        return redirect('dm_site_app:loot_management') 
+
     character = Char_info.objects.filter(id=character_id).first()
-    plus_gold = int(mob.loot_gold)
-    plus_silver = int(mob.loot_silver)
+    plus_gold = int(source_target.loot_gold)
+    plus_silver = int(source_target.loot_silver)
     plus_total_gold = float(plus_gold + (plus_silver / 10))
 
 # PŘIPSÁNÍ POSTAVĚ
@@ -473,14 +481,14 @@ def plus_loot_gold(request):
     log = Logs(
         player=character.player,
         character=character,
-        message=f"Postava {character.name} získala {plus_gold} zlata a {plus_silver} stříbra od monstra {mob.name_cz or mob.name_en}",
+        message=f"Postava {character.name} získala {plus_gold} zlata a {plus_silver}",
         value=plus_total_gold,
     )
     log.save()
     log_gold(f"{character_id}, {plus_gold}, {plus_silver}")
 
 # Odebrání
-    mob.loot_able = False
-    mob.save()
+    source_target.loot_able = False
+    source_target.save()
 
     return redirect('dm_site_app:loot_management')
