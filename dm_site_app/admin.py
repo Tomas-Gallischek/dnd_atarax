@@ -1,9 +1,9 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Locations, Npc, NpcLoot, Monsters_All_db, Items_All_db, Monsters_Active, Items_Active
+from .models import Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active, Items_Active
 
 
-@admin.register(Locations, Npc, NpcLoot, Monsters_All_db, Items_All_db, Monsters_Active, Items_Active )
+@admin.register(Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active, Items_Active )
 #všichni
 class CommonAdmin(admin.ModelAdmin):
     pass
@@ -12,8 +12,6 @@ class CommonAdmin(admin.ModelAdmin):
 class LocationAdmin(admin.ModelAdmin):
     pass
 class NpcAdmin(admin.ModelAdmin):
-    pass
-class NpcLootAdmin(admin.ModelAdmin):
     pass
 class Monster_All_dbAdmin(admin.ModelAdmin):
     pass

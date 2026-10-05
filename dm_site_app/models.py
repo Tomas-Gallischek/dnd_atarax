@@ -33,24 +33,19 @@ class Npc(models.Model):
         ('other', 'Jiné'),
     ], verbose_name="Pohlaví")
 
+    loot_gold = models.IntegerField(default=0, verbose_name="Zlaté mince (GP)", blank=True, null=True)
+    loot_silver = models.IntegerField(default=0, verbose_name="Stříbrné mince (SP)", blank=True, null=True)
+    loot_able = models.BooleanField(default=False, verbose_name="možnost lootit")
+
+    is_dead = models.BooleanField(default=False, verbose_name="Je mrtvý")
+    in_fight = models.BooleanField(default=False, verbose_name="V boji")
+
     class Meta:
         verbose_name = "Npc"
         verbose_name_plural = "Npc"
 
     def __str__(self):
         return self.name or "Neznámé NPC"
-
-class NpcLoot(models.Model):
-    npc = models.ForeignKey(Npc, on_delete=models.CASCADE, related_name='loot_items')
-    item_name = models.CharField(max_length=100, verbose_name="Předmět")
-    quantity = models.IntegerField(default=1, verbose_name="Počet")
-    
-    class Meta:
-        verbose_name = "Loot"
-        verbose_name_plural = "Loot"
-
-    def __str__(self):
-        return f"{self.quantity}x {self.item_name}"
 
 
 class Items_All_db(models.Model):

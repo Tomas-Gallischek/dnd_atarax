@@ -425,14 +425,21 @@ def mob_dead(request):
 def loot_management(request):
 
     all_chars = Char_info.objects.all()
+
     all_lootable_monsters = Monsters_Active.objects.filter(loot_able=True)
     alive_monsters = all_lootable_monsters.filter(is_dead=False)
     dead_monsters = all_lootable_monsters.filter(is_dead=True)
+
+    all_lootable_npc = Npc.objects.filter(loot_able=True)
+    alive_npc = all_lootable_npc.filter(is_dead=False)
+    dead_npc = all_lootable_npc.filter(is_dead=True)
     
     context = {
         'all_chars': all_chars,
         'alive_monsters': alive_monsters,
         'dead_monsters': dead_monsters,
+        'alive_npc': alive_npc,
+        'dead_npc': dead_npc,
         'current_page': 'loot_management',
     }
     

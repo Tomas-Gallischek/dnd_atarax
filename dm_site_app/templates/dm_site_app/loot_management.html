@@ -5,26 +5,31 @@
 {% block dm_content %}
 <h1>Loot manager</h1>
 
+<h1>Monstra:</h1>
 
-<h2>Živá monstra:</h2>
-{% for mob in alive_monsters %}
-    
-    <form action="{% url 'dm_site_app:plus_loot_gold' %}" method="post">
-        {% csrf_token %}
-        {{ mob.name_cz }} - {{ mob.loot_gold }}zl - {{ mob.loot_silver }}sp
-        <input type="hidden" name="mob_id" value="{{ mob.id }}">
-        <select name="character_id">
-            {% for char in all_chars %}
-                <option value="{{ char.id }}">{{ char.name }}</option>
-            {% endfor %}
-        </select>
-        <button type="submit">Přidat</button>
-    </form>
+{% if alive_monsters %}
+    <h2>Živí:</h2>
+    {% for mob in alive_monsters %}
+        
+        <form action="{% url 'dm_site_app:plus_loot_gold' %}" method="post">
+            {% csrf_token %}
+            {{ mob.name_cz }} - {{ mob.loot_gold }}zl - {{ mob.loot_silver }}sp
+            <input type="hidden" name="mob_id" value="{{ mob.id }}">
+            <select name="character_id">
+                {% for char in all_chars %}
+                    <option value="{{ char.id }}">{{ char.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Přidat</button>
+        </form>
 
-{% endfor %}
+    {% endfor %}
 
-<h2>Mrtvá monstra:</h2>
-{% for mob in dead_monsters %}
+{% endif %}
+
+{% if dead_monsters %}
+    <h2>Mrtví:</h2>
+    {% for mob in dead_monsters %}
         
     <form action="{% url 'dm_site_app:plus_loot_gold' %}" method="post">
         {% csrf_token %}
@@ -38,6 +43,53 @@
         <button type="submit">Přidat</button>
     </form>
 
-{% endfor %}
+    {% endfor %}
+
+{% endif %}
+
+
+<h1>NPC:</h1>
+
+{% if alive_npc %}
+    <h2>Živí:</h2>
+    {% for npc in alive_npc %}
+        
+        <form action="{% url 'dm_site_app:plus_loot_gold' %}" method="post">
+            {% csrf_token %}
+            {{ npc.name_cz }} - {{ npc.loot_gold }}zl - {{ npc.loot_silver }}sp
+            <input type="hidden" name="mob_id" value="{{ npc.id }}">
+            <select name="character_id">
+                {% for char in all_chars %}
+                    <option value="{{ char.id }}">{{ char.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Přidat</button>
+        </form>
+
+    {% endfor %}
+
+{% endif %}
+
+
+{% if dead_npc %}
+    <h2>Mrtví:</h2>
+    {% for npc in dead_npc %}
+        
+    <form action="{% url 'dm_site_app:plus_loot_gold' %}" method="post">
+        {% csrf_token %}
+        {{ npc.name_cz }} - {{ npc.loot_gold }}zl - {{ npc.loot_silver }}sp
+        <input type="hidden" name="mob_id" value="{{ npc.id }}">
+        <select name="character_id">
+            {% for char in all_chars %}
+                <option value="{{ char.id }}">{{ char.name }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Přidat</button>
+    </form>
+
+    {% endfor %}
+
+{% endif %}
+
 
 {% endblock %}
