@@ -282,6 +282,39 @@ def in_fight_switch(request):
 
 def active_mob_db_save(mob_id):
     mob = Monsters_All_db.objects.get(id=mob_id)
+
+    if mob.monster_type == 'humanoid':
+        gold_base = 2
+        silver_base = 6
+        chance = 80
+    elif mob.monster_type == 'undead':
+        gold_base = 2
+        silver_base = 2
+        chance = 10
+    elif mob.monster_type == 'monstrosity':
+        gold_base = 2
+        silver_base = 2
+        chance = 10
+    else:
+        gold_base = 0
+        silver_base = 0
+        chance = 0
+
+    random_multi = int(round(mob.challenge_rating))
+    if random_multi < 2:
+        random_multi = 2
+    random_bonus = random.uniform(1, random_multi)
+    
+    actual_gold = random.randint(1,gold_base)
+    actual_silver = random.randint(1,silver_base)
+
+    plus_gold = int(round(actual_gold * random_bonus))
+    plus_silver = int(round(actual_silver * random_bonus))
+
+    while plus_silver >= 10:
+        plus_gold += 1
+        plus_silver -= 10
+
     # vytvoření nové mobky v aktivní databázi:
     new_mob = Monsters_Active.objects.create(
         api_index=mob.api_index,
@@ -320,7 +353,9 @@ def active_mob_db_save(mob_id):
         reactions=mob.reactions,
         description=mob.description,
         image_url=mob.image_url,
-        raw_data=mob.raw_data
+        raw_data=mob.raw_data,
+        loot_gold=plus_gold,
+        loot_silver=plus_silver,
     )
     log_success("Monstrum připraveno do hry", f"{new_mob.name_cz or new_mob.name_en} (CR {new_mob.formatted_cr}, {new_mob.hit_points} HP, AC {new_mob.armor_class}) [ID: {new_mob.id}]")
     return new_mob

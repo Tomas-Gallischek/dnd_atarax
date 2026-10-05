@@ -274,13 +274,18 @@ class Monsters_Active(models.Model):
     in_fight = models.BooleanField(default=False, verbose_name="V boji")
     is_dead = models.BooleanField(default=False, verbose_name="Je mrtvý")
 
+    # loot
+    loot_gold = models.IntegerField(default=0, verbose_name="Zlaté mince (GP)", blank=True, null=True)
+    loot_silver = models.IntegerField(default=0, verbose_name="Stříbrné mince (SP)", blank=True, null=True)
+    
+
     class Meta:
         verbose_name = "Aktivní nestvůra"
         verbose_name_plural = "Aktivní nestvůry"
-        ordering = ['challenge_rating', 'name_cz']
+        ordering = ['is_dead', 'challenge_rating', 'name_cz']
 
     def __str__(self):
-        return f"{self.name_cz} (CR {self.formatted_cr})"
+        return f"({'Mrtvý' if self.is_dead else 'Živý'}) - {self.name_cz} (CR {self.formatted_cr})"
 
     @property
     def formatted_cr(self):
