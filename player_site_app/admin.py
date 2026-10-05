@@ -115,16 +115,18 @@ class CharInfoAdmin(admin.ModelAdmin):
 
     @admin.display(description='Avatar')
     def avatar_preview(self, obj):
-        frame_html = ''
         if obj.frame_url:
-            frame_html = f'<img src="{obj.frame_url}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 48px; pointer-events: none; object-fit: contain;" />'
+            return format_html(
+                '<div style="position: relative; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;">'
+                '<img src="{}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #d4af37;" />'
+                '<img src="{}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 48px; height: 48px; pointer-events: none; object-fit: contain;" />'
+                '</div>',
+                obj.profile_image_url,
+                obj.frame_url
+            )
         return format_html(
-            '<div style="position: relative; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center;">'
-            '<img src="{}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #d4af37;" />'
-            '{}'
-            '</div>',
-            obj.profile_image_url,
-            format_html(frame_html)
+            '<img src="{}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 1px solid #d4af37;" />',
+            obj.profile_image_url
         )
 
     @admin.display(description='Předměty')
