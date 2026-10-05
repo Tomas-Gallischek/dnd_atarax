@@ -133,7 +133,14 @@ def inv_view(request, char_id=None):
     """2. Inventář aktivní postavy."""
     player, character = get_player_and_character(request, char_id)
 
-    inv_all_items = Items_Active.objects.filter(char_own=character.id).select_related('Item')
+    categories = []
+    total_weight = 0.0
+    if character:
+        inv_all_items = Items_Active.objects.filter(char_own=character).order_by('name_cz', 'name_en')
+        categories = sorted(list(set(item.category for item in inv_all_items if item.category)))
+        total_weight = sum((item.weight or 0.0) for item in inv_all_items)
+    else:
+        inv_all_items = Items_Active.objects.none()
 
     return render(request, 'player_site_app/inv.html', {
         'player': player,
@@ -141,6 +148,8 @@ def inv_view(request, char_id=None):
         'active_character': character,
         'current_page': 'inv',
         'inv_all_items': inv_all_items,
+        'categories': categories,
+        'total_weight': round(total_weight, 2),
     })
 
 

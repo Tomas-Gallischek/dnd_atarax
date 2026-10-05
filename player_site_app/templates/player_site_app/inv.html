@@ -22,6 +22,7 @@
 </div>
 
 {% if character %}
+<!-- 1. Měšec na mince -->
 <div class="atarax-card">
     <div class="atarax-card-header">
         <h2 class="atarax-card-title">
@@ -44,19 +45,162 @@
     </div>
 </div>
 
+<!-- 2. Vybavení a předměty v batohu -->
 <div class="atarax-card">
-    <div class="atarax-card-header">
-        <h2 class="atarax-card-title">
+    <div class="items-section-header">
+        <h2 class="items-section-title">
             <span>⚔️</span> Vybavení a předměty v batohu
         </h2>
+        <div class="toolbar-actions">
+            <span class="header-stats-badge" title="Celkový počet předmětů v inventáři">
+                📦 {{ inv_all_items|length }} {% if inv_all_items|length == 1 %}předmět{% elif inv_all_items|length >= 2 and inv_all_items|length <= 4 %}předměty{% else %}předmětů{% endif %}
+            </span>
+            <span class="header-stats-badge" title="Celková váha nesených předmětů">
+                ⚖️ Celková váha: <strong>{{ total_weight }} lb</strong>
+            </span>
+        </div>
     </div>
 
-    <p class="dm-item-desc">
-        {% for item in inv_all_items %}
-            {{ item.item.name }}
-            
-        {% endfor %}
-    </p>
+    {% if inv_all_items %}
+    <!-- Filtrační lišta -->
+    <div class="items-toolbar">
+        <!-- Textové vyhledávání -->
+        <div class="search-input-wrap">
+            <input type="text" 
+                   id="itemSearchInput" 
+                   class="loot-input-search" 
+                   placeholder="🔍 Napište název předmětu pro okamžité vyhledání..."
+                   autocomplete="off">
+        </div>
+
+        <!-- Filtr podle kategorie -->
+        <div>
+            <select id="itemCategoryFilter" class="loot-filter-select" aria-label="Filtr kategorie">
+                <option value="all">📂 Všechny kategorie</option>
+                {% for cat in categories %}
+                    <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Řazení tabulky -->
+        <div>
+            <select id="itemSortSelect" class="loot-filter-select" aria-label="Řazení inventáře">
+                <option value="name_asc">🔤 Název (A → Z)</option>
+                <option value="name_desc">🔤 Název (Z → A)</option>
+                <option value="price_desc">💰 Cena (od nejdražšího)</option>
+                <option value="price_asc">💰 Cena (od nejlevnějšího)</option>
+                <option value="weight_desc">⚖️ Váha (od nejtěžšího)</option>
+                <option value="weight_asc">⚖️ Váha (od nejlehčího)</option>
+            </select>
+        </div>
+
+        <!-- Tlačítko resetu -->
+        <button type="button" id="btnResetFilters" class="btn-subtle" title="Obnovit filtry a vyhledávání">
+            ↺ Reset
+        </button>
+
+        <!-- Počítadlo výsledků -->
+        <div class="items-count-indicator">
+            Zobrazeno: <strong id="visibleItemsCount">{{ inv_all_items|length }}</strong> z {{ inv_all_items|length }}
+        </div>
+    </div>
+
+    <!-- Tabulka předmětů v inventáři -->
+    <div class="loot-table-responsive">
+        <table class="items-table" id="itemsTable">
+            <thead>
+                <tr>
+                    <th>Název předmětu</th>
+                    <th>Kategorie</th>
+                    <th>Hodnota</th>
+                    <th>Bojové vlastnosti</th>
+                    <th>Váha</th>
+                    <th>Popis</th>
+                </tr>
+            </thead>
+            <tbody id="itemsTableBody">
+                {% for item in inv_all_items %}
+                <tr class="item-row" 
+                    id="item-row-{{ item.id }}"
+                    data-id="{{ item.id }}"
+                    data-name="{{ item.name_cz|default:''|lower }} {{ item.name_en|default:''|lower }}"
+                    data-category="{{ item.category|default:'' }}"
+                    data-price="{{ item.cost_gold|default:0 }}.{{ item.cost_silver|default:0 }}"
+                    data-weight="{{ item.weight|default:0 }}"
+                    data-name-sort="{{ item.name_cz|default:item.name_en|default:'' }}">
+                    
+                    <!-- 1. Název -->
+                    <td class="item-name-cell">
+                        <strong class="item-name-cz">{{ item.name_cz|default:item.name_en }}</strong>
+                        {% if item.name_en and item.name_en != item.name_cz %}
+                        <span class="item-name-en">{{ item.name_en }}</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- 2. Kategorie -->
+                    <td>
+                        <span class="badge-category">{{ item.category|default:"Obecné" }}</span>
+                    </td>
+
+                    <!-- 3. Cena -->
+                    <td>
+                        <span class="badge-price">
+                            {% if item.cost_gold > 0 %}{{ item.cost_gold }} zl {% endif %}
+                            {% if item.cost_silver > 0 %}{{ item.cost_silver }} st{% endif %}
+                            {% if not item.cost_gold and not item.cost_silver %}0 zl{% endif %}
+                        </span>
+                    </td>
+
+                    <!-- 4. Bojové vlastnosti -->
+                    <td>
+                        <div class="item-stats-cell">
+                            {% if item.damage %}
+                            <span class="badge-spec badge-dmg" title="Poškození zbraně">⚔️ {{ item.damage }}</span>
+                            {% endif %}
+                            {% if item.armor_class %}
+                            <span class="badge-spec badge-ac" title="Bonus k třídě zbroje">🛡️ AC +{{ item.armor_class }}</span>
+                            {% endif %}
+                            {% if item.properties %}
+                            <span class="badge-spec badge-prop" title="Vlastnosti">{{ item.properties }}</span>
+                            {% endif %}
+                            {% if not item.damage and not item.armor_class and not item.properties %}
+                            <span class="spec-empty">—</span>
+                            {% endif %}
+                        </div>
+                    </td>
+
+                    <!-- 5. Váha -->
+                    <td>
+                        {% if item.weight %}{{ item.weight }} lb{% else %}—{% endif %}
+                    </td>
+
+                    <!-- 6. Popis -->
+                    <td>
+                        <div class="item-desc-cell">
+                            {{ item.description|default:"—" }}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+                <tr id="noFilterResultsRow" style="display: none;">
+                    <td colspan="6" class="td-empty-table">
+                        Žádné předměty neodpovídají zadanému filtru nebo hledání.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="atarax-empty-state">
+        <div class="atarax-empty-icon">🎒</div>
+        <h3 class="atarax-empty-title">Tvůj batoh je zatím prázdný</h3>
+        <p class="atarax-empty-desc">Nemáš u sebe žádné předměty ani výbavu. Získej kořist od pána jeskyně nebo navštiv Dungeon Shop.</p>
+        <a href="{% url 'player_site_app:dungeon_shop' %}" class="btn btn-gold btn-md mt-2">
+            <span>🛒</span> Navštívit Dungeon Shop &rarr;
+        </a>
+    </div>
+    {% endif %}
 </div>
 
 {% else %}
@@ -68,5 +212,113 @@
         Přejít na Přehled postav &rarr;
     </a>
 </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if character and inv_all_items %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById("itemSearchInput");
+    const categoryFilter = document.getElementById("itemCategoryFilter");
+    const sortSelect = document.getElementById("itemSortSelect");
+    const btnResetFilters = document.getElementById("btnResetFilters");
+    const visibleCounter = document.getElementById("visibleItemsCount");
+    const tableBody = document.getElementById("itemsTableBody");
+    const noResultsRow = document.getElementById("noFilterResultsRow");
+    
+    if (!tableBody) return;
+    const allRows = Array.from(tableBody.querySelectorAll(".item-row"));
+
+    function applyFilters() {
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+        const selectedCat = categoryFilter ? categoryFilter.value : "all";
+
+        let visibleCount = 0;
+
+        allRows.forEach(row => {
+            const nameData = row.dataset.name || "";
+            const catData = row.dataset.category || "";
+
+            const matchesQuery = !query || nameData.includes(query);
+            const matchesCat = (selectedCat === "all") || (catData === selectedCat);
+
+            if (matchesQuery && matchesCat) {
+                row.style.display = "";
+                visibleCount++;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        if (visibleCounter) {
+            visibleCounter.textContent = visibleCount;
+        }
+
+        if (noResultsRow) {
+            noResultsRow.style.display = (visibleCount === 0) ? "" : "none";
+        }
+
+        applySorting();
+    }
+
+    function applySorting() {
+        const sortVal = sortSelect ? sortSelect.value : "name_asc";
+
+        allRows.sort((a, b) => {
+            if (sortVal === "name_asc") {
+                const nameA = a.dataset.nameSort || "";
+                const nameB = b.dataset.nameSort || "";
+                return nameA.localeCompare(nameB, "cs", { sensitivity: "base" });
+            } else if (sortVal === "name_desc") {
+                const nameA = a.dataset.nameSort || "";
+                const nameB = b.dataset.nameSort || "";
+                return nameB.localeCompare(nameA, "cs", { sensitivity: "base" });
+            } else if (sortVal === "price_desc") {
+                const priceA = parseFloat(a.dataset.price) || 0;
+                const priceB = parseFloat(b.dataset.price) || 0;
+                return priceB - priceA;
+            } else if (sortVal === "price_asc") {
+                const priceA = parseFloat(a.dataset.price) || 0;
+                const priceB = parseFloat(b.dataset.price) || 0;
+                return priceA - priceB;
+            } else if (sortVal === "weight_desc") {
+                const wA = parseFloat(a.dataset.weight) || 0;
+                const wB = parseFloat(b.dataset.weight) || 0;
+                return wB - wA;
+            } else if (sortVal === "weight_asc") {
+                const wA = parseFloat(a.dataset.weight) || 0;
+                const wB = parseFloat(b.dataset.weight) || 0;
+                return wA - wB;
+            }
+            return 0;
+        });
+
+        allRows.forEach(row => tableBody.appendChild(row));
+        if (noResultsRow) {
+            tableBody.appendChild(noResultsRow);
+        }
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener("input", applyFilters);
+    }
+    if (categoryFilter) {
+        categoryFilter.addEventListener("change", applyFilters);
+    }
+    if (sortSelect) {
+        sortSelect.addEventListener("change", applyFilters);
+    }
+    if (btnResetFilters) {
+        btnResetFilters.addEventListener("click", function() {
+            if (searchInput) searchInput.value = "";
+            if (categoryFilter) categoryFilter.value = "all";
+            if (sortSelect) sortSelect.value = "name_asc";
+            applyFilters();
+        });
+    }
+});
+</script>
 {% endif %}
 {% endblock %}

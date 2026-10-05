@@ -820,3 +820,272 @@ select option {
     align-items: center;
     gap: 12px;
 }
+
+/* ==========================================================================
+   Items Catalog & Inventory Table Styles (Unified for Player & DM)
+   ========================================================================== */
+
+.items-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-lg);
+    margin-top: 1.75rem;
+}
+
+.items-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 1.25rem;
+}
+
+.items-section-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0;
+    color: var(--text-white);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.items-toolbar {
+    background: var(--bg-card-elevated);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.search-input-wrap {
+    flex: 1 1 240px;
+    position: relative;
+}
+
+.loot-input-search {
+    width: 100%;
+    box-sizing: border-box;
+    background: #100d15;
+    color: var(--text-white);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 0.92rem;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.loot-input-search:focus {
+    border-color: var(--gold-500);
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+
+.loot-filter-select {
+    background: #100d15;
+    color: var(--text-white);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    outline: none;
+    cursor: pointer;
+    min-width: 160px;
+}
+
+.loot-filter-select:focus {
+    border-color: var(--gold-500);
+}
+
+.items-count-indicator {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+
+.loot-table-responsive {
+    overflow-x: auto;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    max-height: 600px;
+    position: relative;
+}
+
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    text-align: left;
+}
+
+.items-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--bg-card-elevated);
+}
+
+.items-table th {
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--gold-400);
+    border-bottom: 2px solid var(--border-card);
+    white-space: nowrap;
+}
+
+.items-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-silver);
+    vertical-align: middle;
+}
+
+.items-table tbody tr {
+    transition: background 0.12s ease;
+}
+
+.items-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.item-name-cell {
+    min-width: 170px;
+}
+
+.item-name-cz {
+    display: block;
+    font-weight: 700;
+    color: var(--text-white);
+    font-size: 0.95rem;
+}
+
+.item-name-en {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.badge-category {
+    display: inline-block;
+    background: rgba(168, 85, 247, 0.15);
+    color: var(--amethyst-300);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-price {
+    display: inline-block;
+    color: var(--gold-300);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.item-stats-cell {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.badge-spec {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-dmg {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--ruby-300);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.badge-ac {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--sapphire-300);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.badge-prop {
+    background: rgba(100, 116, 139, 0.2);
+    color: #cbd5e1;
+    border: 1px solid rgba(100, 116, 139, 0.35);
+}
+
+.item-desc-cell {
+    max-width: 320px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+.spec-empty {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+}
+
+.td-empty-table {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-dim);
+}
+
+.toolbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-subtle {
+    background: #24202d;
+    color: var(--text-silver);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    padding: 7px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-subtle:hover {
+    background: #312b3c;
+    color: #fff;
+    border-color: var(--gold-600);
+}
+
+.header-stats-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--gold-300);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
