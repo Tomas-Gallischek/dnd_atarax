@@ -52,7 +52,10 @@
     </div>
 
     <p class="dm-item-desc">
-        Předměty, magické artefakty, zbraně a zbroje, které {{ character.name }} nese na svých cestách.
+        {% for item in inv_all_items %}
+            {{ item.item.name }}
+            
+        {% endfor %}
     </p>
 </div>
 
