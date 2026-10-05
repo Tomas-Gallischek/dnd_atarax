@@ -11,7 +11,7 @@ def golds_achivement(char_id, amount):
     if current_achivement.exists():
         current_achivement = current_achivement.first()
     else:
-        current_achivement = Achivements_players.objects.create(char=this_char, Achivement=this_achivement, current_value=amount)
+        current_achivement = Achivements_players.objects.create(player=this_char.player, char=this_char, Achivement=this_achivement, current_value=amount)
 
     # Zápis a kontrola
     new_total_gold = this_char.total_golds + amount  # Nové celkové goldy
@@ -38,7 +38,7 @@ def killer_achivement(char_id, amount):
     if current_achivement.exists():
         current_achivement = current_achivement.first()
     else:
-        current_achivement = Achivements_players.objects.create(char=this_char, Achivement=this_achivement, current_value=amount)
+        current_achivement = Achivements_players.objects.create(player=this_char.player, char=this_char, Achivement=this_achivement, current_value=amount)
 
 # Zápis a kontrola
     old_value = current_achivement.current_value
