@@ -277,31 +277,37 @@ class Achivements_players(models.Model):
         if d_val is not None and d_val > 0 and self.current_value >= d_val:
             if self.current_status != 'diamond':
                 self.current_status = 'diamond'
+                self.player.temna_esence += 1000
             if not self.diamond_obtained_date:
                 self.diamond_obtained_date = timezone.now()
         elif e_val is not None and e_val > 0 and self.current_value >= e_val:
             if self.current_status != 'emerald':
                 self.current_status = 'emerald'
+                self.player.temna_esence += 500
             if not self.emerald_obtained_date:
                 self.emerald_obtained_date = timezone.now()
         elif p_val is not None and p_val > 0 and self.current_value >= p_val:
             if self.current_status != 'platinum':
                 self.current_status = 'platinum'
+                self.player.temna_esence += 250
             if not self.platinum_obtained_date:
                 self.platinum_obtained_date = timezone.now()
         elif g_val is not None and g_val > 0 and self.current_value >= g_val:
             if self.current_status != 'gold':
                 self.current_status = 'gold'
+                self.player.temna_esence += 100
             if not self.gold_obtained_date:
                 self.gold_obtained_date = timezone.now()
         elif s_val is not None and s_val > 0 and self.current_value >= s_val:
             if self.current_status != 'silver':
                 self.current_status = 'silver'
+                self.player.temna_esence += 50
             if not self.silver_obtained_date:
                 self.silver_obtained_date = timezone.now()
         elif b_val is not None and self.current_value >= b_val and (b_val > 0 or self.current_value > 0):
             if self.current_status != 'bronze':
                 self.current_status = 'bronze'
+                self.player.temna_esence += 25
             if not self.bronze_obtained_date:
                 self.bronze_obtained_date = timezone.now()
         else:
