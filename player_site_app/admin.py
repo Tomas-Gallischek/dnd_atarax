@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Player, Char_info, Achivements_database, Achivements_players, Logs
+from .models import Player, Char_info, Achivements_database, Achivements_players, Logs, Esence_Items_Shop, Esence_Items_Owners
 
 
 from dm_site_app.models import Items_Active
@@ -304,3 +304,11 @@ class LogsAdmin(admin.ModelAdmin):
             ),
         }),
     )
+
+@admin.register(Esence_Items_Shop)
+class Esence_Items_ShopAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(Esence_Items_Owners)
+class Esence_Items_OwnersAdmin(admin.ModelAdmin):
+    pass
