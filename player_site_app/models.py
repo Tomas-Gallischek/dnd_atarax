@@ -267,6 +267,29 @@ class Achivements_players(models.Model):
         if not self.Achivement:
             return
 
+        # Pokud není hráč přímo nastaven, zkusíme ho převzít z postavy
+        if not self.player and self.char and self.char.player:
+            self.player = self.char.player
+
+        tier_ranks = {
+            'bronze': 1,
+            'silver': 2,
+            'gold': 3,
+            'platinum': 4,
+            'emerald': 5,
+            'diamond': 6,
+        }
+
+        old_status = None
+        if self.pk:
+            try:
+                db_status = Achivements_players.objects.filter(pk=self.pk).values_list('current_status', flat=True).first()
+                if db_status:
+                    old_status = db_status
+            except Exception:
+                old_status = self.current_status
+        old_rank = tier_ranks.get(old_status, 0)
+
         d_val = self.Achivement.diamond_value
         e_val = self.Achivement.emerald_value
         p_val = self.Achivement.platinum_value
@@ -274,44 +297,36 @@ class Achivements_players(models.Model):
         s_val = self.Achivement.silver_value
         b_val = self.Achivement.bronze_value
 
-        if d_val is not None and d_val > 0 and self.current_value >= d_val:
-            if self.current_status != 'diamond':
-                self.current_status = 'diamond'
-                self.player.temna_esence += 1000
-            if not self.diamond_obtained_date:
-                self.diamond_obtained_date = timezone.now()
-        elif e_val is not None and e_val > 0 and self.current_value >= e_val:
-            if self.current_status != 'emerald':
-                self.current_status = 'emerald'
-                self.player.temna_esence += 500
-            if not self.emerald_obtained_date:
-                self.emerald_obtained_date = timezone.now()
-        elif p_val is not None and p_val > 0 and self.current_value >= p_val:
-            if self.current_status != 'platinum':
-                self.current_status = 'platinum'
-                self.player.temna_esence += 250
-            if not self.platinum_obtained_date:
-                self.platinum_obtained_date = timezone.now()
-        elif g_val is not None and g_val > 0 and self.current_value >= g_val:
-            if self.current_status != 'gold':
-                self.current_status = 'gold'
-                self.player.temna_esence += 100
-            if not self.gold_obtained_date:
-                self.gold_obtained_date = timezone.now()
-        elif s_val is not None and s_val > 0 and self.current_value >= s_val:
-            if self.current_status != 'silver':
-                self.current_status = 'silver'
-                self.player.temna_esence += 50
-            if not self.silver_obtained_date:
-                self.silver_obtained_date = timezone.now()
-        elif b_val is not None and self.current_value >= b_val and (b_val > 0 or self.current_value > 0):
-            if self.current_status != 'bronze':
-                self.current_status = 'bronze'
-                self.player.temna_esence += 25
-            if not self.bronze_obtained_date:
-                self.bronze_obtained_date = timezone.now()
-        else:
-            self.current_status = None
+        tiers = [
+            ('bronze', b_val, 25, 'bronze_obtained_date', lambda v, b: b is not None and v >= b and (b > 0 or v > 0)),
+            ('silver', s_val, 50, 'silver_obtained_date', lambda v, s: s is not None and s > 0 and v >= s),
+            ('gold', g_val, 100, 'gold_obtained_date', lambda v, g: g is not None and g > 0 and v >= g),
+            ('platinum', p_val, 250, 'platinum_obtained_date', lambda v, p: p is not None and p > 0 and v >= p),
+            ('emerald', e_val, 500, 'emerald_obtained_date', lambda v, e: e is not None and e > 0 and v >= e),
+            ('diamond', d_val, 1000, 'diamond_obtained_date', lambda v, d: d is not None and d > 0 and v >= d),
+        ]
+
+        highest_tier = None
+        essence_added = 0
+        now = timezone.now()
+
+        for tier_name, threshold, reward, date_attr, cond_fn in tiers:
+            if cond_fn(self.current_value, threshold):
+                highest_tier = tier_name
+                tier_rank = tier_ranks[tier_name]
+                date_val = getattr(self, date_attr)
+                if not date_val:
+                    setattr(self, date_attr, now)
+                    if old_rank < tier_rank:
+                        essence_added += reward
+
+        self.current_status = highest_tier
+
+        if essence_added > 0 and self.player:
+            if self.player.temna_esence is None:
+                self.player.temna_esence = 0
+            self.player.temna_esence += essence_added
+            self.player.save()
 
 
     def save(self, *args, **kwargs):
