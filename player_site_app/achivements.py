@@ -3,7 +3,7 @@ from .models import Achivements_database, Achivements_players, Player, Char_info
 from dnd_atarax.terminal import log_gold
 
 
-def golds_achivement(char_id, amount):
+def zbohatlik_ach(char_id, amount):
     # identifikace
     this_achivement = Achivements_database.objects.get(name="Zbohatlík")
     this_char = Char_info.objects.get(id=char_id)
@@ -31,14 +31,14 @@ def golds_achivement(char_id, amount):
 
     return "OK"
     
-def killer_achivement(char_id, amount):
+def smrtici_stroj_ach(char_id, amount):
     this_achivement = Achivements_database.objects.get(name="Smrtící stroj")
     this_char = Char_info.objects.get(id=char_id)
     current_achivement = Achivements_players.objects.filter(char=this_char, Achivement=this_achivement)
     if current_achivement.exists():
         current_achivement = current_achivement.first()
     else:
-        current_achivement = Achivements_players.objects.create(player=this_char.player, char=this_char, Achivement=this_achivement, current_value=amount)
+        current_achivement = Achivements_players.objects.create(player=this_char.player, char=this_char, Achivement=this_achivement, current_value=0) #Nula, protože to pak přidávám znova
 
 # Zápis a kontrola
     old_value = current_achivement.current_value
@@ -58,6 +58,33 @@ def killer_achivement(char_id, amount):
 
     return "OK"
     
+
+def esencionik_ach(char_id, amount):
+    this_achivement = Achivements_database.objects.get(name="Esencionik")
+    this_char = Char_info.objects.get(id=char_id)
+    current_achivement = Achivements_players.objects.filter(char=this_char, Achivement=this_achivement)
+    if current_achivement.exists():
+        current_achivement = current_achivement.first()
+    else:
+        current_achivement = Achivements_players.objects.create(player=this_char.player, char=this_char, Achivement=this_achivement, current_value=0) #Nula, protože to pak přidávám znova
+
+# Zápis a kontrola
+    old_value = current_achivement.current_value
+    current_achivement.current_value += amount
+    current_achivement.save()  
+
+# Zápis Logu
+    log = Logs(
+        player=this_char.player,
+        character=this_char,
+        message=f"AKTUALIZACE ACHIVEMENTU 'Esencionik'. Postava {this_char.name} sesbírala {amount} Temné esence. Změna z: {old_value} na: {current_achivement.current_value}",
+        value=current_achivement.current_value
+    )
+    log.save()
+
+    log_gold("AKTUALIZACE ACHIVEMENTU 'Esencionik'", f"{this_char.name} sesbíral {amount} Temné esence. Celkem: {current_achivement.current_value} Temné esence")
+
+    return "OK"
     
     
     

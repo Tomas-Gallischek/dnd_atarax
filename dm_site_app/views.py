@@ -7,11 +7,12 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Locations, Npc, Monsters_All_db, Monsters_Active
 from player_site_app.models import Player, Char_info, Logs
-from player_site_app.achivements import golds_achivement, killer_achivement
+from player_site_app.achivements import zbohatlik_ach, smrtici_stroj_ach
 from dnd_atarax.terminal import (
     log_dm, log_arena, log_hp, log_mob, log_player,
     log_gold, log_success, log_warning, log_error, log_info
 )
+from .loot import loot_gold, loot_items, loot_temna_esence
 
 def dm_required(view_func):
     """
@@ -114,7 +115,7 @@ def add_gold(request):
                 char.gold += int(gold or 0)
                 char.silver += int(silver or 0)
                 char.total_golds += plus_total_golds
-                golds_achivement(char_id, plus_total_golds)  # kontrola achievementu
+                zbohatlik_ach(char_id, plus_total_golds)  # kontrola achievementu
                 log_gold(f"+{gold or 0} gp, +{silver or 0} sp", f"Postava: {char.name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
             elif action == 'minus':
                 char.gold -= int(gold or 0)
@@ -350,9 +351,11 @@ def mob_dead(request):
         log_arena("Smrtící úder zaznamenán! 💀", f"Monstrum '{mob_name}' skoleno postavou '{killer_name}'")
 
 # ACHIVEMENT
-        killer_achivement(killer_id, 1)
+        smrtici_stroj_ach(char_id=killer_id, amount=1)
 # LOOT
-
+        #loot_gold(mob_id, killer_id) <--- Vypadá to, že není zájem
+        #loot_items(mob_id, killer_id) <--- Vypadá to, že není zájem
+        loot_temna_esence(mob_id, killer_id)
 # LOG
         log = Logs(
             player=killer.player,
@@ -362,7 +365,7 @@ def mob_dead(request):
         )
         log.save()
 
-# ODEBRÁNÍ MONSTRA
+# ODEBRÁNÍ MONSTRA (MUSÍ BÝT NAKONEC!)
 
         mob.delete()
         log_mob("Monstrum odstraněno ze hry", f"{mob_name} [ID: {mob_id}]")
