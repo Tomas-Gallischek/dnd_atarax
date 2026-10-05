@@ -174,7 +174,8 @@ class AchivementsPlayersAdmin(admin.ModelAdmin):
     def status_badge(self, obj):
         if not obj.current_status:
             return format_html(
-                '<span style="background: #4b5563; color: #f3f4f6; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;">Zatím nezískáno</span>'
+                '<span style="background: #4b5563; color: #f3f4f6; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;">{}</span>',
+                'Zatím nezískáno'
             )
 
         styles = {
@@ -235,7 +236,10 @@ class AchivementsPlayersAdmin(admin.ModelAdmin):
                 next_tier[0], format_num(obj.current_value), format_num(next_tier[1]), pct
             )
         elif obj.current_status == 'diamond':
-            return format_html('<span style="color: #10b981; font-weight: bold; font-size: 11px;">✓ Maximální úroveň</span>')
+            return format_html(
+                '<span style="color: #10b981; font-weight: bold; font-size: 11px;">{}</span>',
+                '✓ Maximální úroveň'
+            )
         return format_html('<span style="color: #9ca3af; font-size: 11px;">{} bodů</span>', format_num(obj.current_value))
 
     @admin.display(description='Poslední milník')
@@ -254,7 +258,7 @@ class AchivementsPlayersAdmin(admin.ModelAdmin):
                     '<span style="font-size: 11px;"><b>{}</b><br><span style="color: #9ca3af;">{}</span></span>',
                     label, dt.strftime("%d.%m.%Y %H:%M")
                 )
-        return format_html('<span style="color: #6b7280; font-size: 11px;">—</span>')
+        return format_html('<span style="color: #6b7280; font-size: 11px;">{}</span>', '—')
 
 
 @admin.register(Logs)
