@@ -456,7 +456,7 @@ def plus_loot_gold(request):
 # PŘIPSÁNÍ POSTAVĚ
     character.gold += plus_gold
     character.silver += plus_silver
-    character.total_gold += plus_total_gold
+    character.total_golds += plus_total_gold
     character.save()
 
 # ACHIVEMENT
