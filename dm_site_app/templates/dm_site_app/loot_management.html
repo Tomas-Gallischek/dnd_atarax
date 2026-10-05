@@ -9,7 +9,7 @@
 <h2>Živá monstra:</h2>
 {% for mob in alive_monsters %}
     
-    <form action="{% url 'dm_site_app:plus_loot' %}">
+    <form action="{% url 'dm_site_app:plus_loot_gold' %}">
         {% csrf_token %}
         {{ mob.name_cz }} - {{ mob.loot_gold }}zl - {{ mob.loot_silver }}sp
         <input type="hidden" name="mob_id" value="{{ mob.id }}">
@@ -25,7 +25,7 @@
 <h2>Mrtvá monstra:</h2>
 {% for mob in dead_monsters %}
     
-    <form action="{% url 'dm_site_app:plus_loot' %}">
+    <form action="{% url 'dm_site_app:plus_loot_gold' %}">
         {% csrf_token %}
         {{ mob.name_cz }} - {{ mob.loot_gold }}zl - {{ mob.loot_silver }}sp
         <input type="hidden" name="mob_id" value="{{ mob.id }}">

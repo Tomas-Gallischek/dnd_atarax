@@ -437,3 +437,41 @@ def loot_management(request):
     }
     
     return render(request, 'dm_site_app/loot_management.html', context)
+
+
+def plus_loot_gold(request):
+    if request.method == 'POST':
+        mob_id = int(request.POST.get('mob_id'))
+        character_id = int(request.POST.get('character_id'))
+    else:
+        return redirect('dm_site_app:loot_management') 
+
+# IDENTIFIKACE A PŘEPOČET
+    mob = Monsters_Active.objects.filter(id=mob_id).first()
+    character = Char_info.objects.filter(id=character_id).first()
+    plus_gold = int(mob.loot_gold)
+    plus_silver = int(mob.loot_silver)
+    plus_total_gold = float(plus_gold + (plus_silver / 10))
+
+# PŘIPSÁNÍ POSTAVĚ
+    character.gold += plus_gold
+    character.silver += plus_silver
+    character.total_gold += plus_total_gold
+    character.save()
+
+# ACHIVEMENT
+    zbohatlik_ach(char_id=character_id, amount=plus_total_gold)
+
+# Log
+    log = Logs(
+        player=character.player,
+        character=character,
+        message=f"Postava {character.name} získala {plus_gold} zlata a {plus_silver} stříbra od monstra {mob.name_cz or mob.name_en}",
+        value=plus_total_gold,
+    )
+    log.save()
+    log_gold(f"{character_id}, {plus_gold}, {plus_silver}")
+
+# Odebrání
+    mob.loot_able = False
+    mob.save()
