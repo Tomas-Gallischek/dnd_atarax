@@ -277,6 +277,7 @@ class Monsters_Active(models.Model):
     # loot
     loot_gold = models.IntegerField(default=0, verbose_name="Zlaté mince (GP)", blank=True, null=True)
     loot_silver = models.IntegerField(default=0, verbose_name="Stříbrné mince (SP)", blank=True, null=True)
+    loot_able = models.BooleanField(default=False, verbose_name="možnost lootit")
     
 
     class Meta:

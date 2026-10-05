@@ -1,8 +1,23 @@
 {% extends "dm_site_app/base_dm.html" %}
 
-{% block title %}DnD Atarax - DM Nástroje{% endblock %}
+{% block title %}Loot manager{% endblock %}
 
 {% block dm_content %}
+<h1>Loot manager</h1>
 
+<h2>Postavy hráčů</h2>
+{% for char in all_chars %}
+    {{ char.name }}
+{% endfor %}
+
+<h2>Živá monstra</h2>
+{% for mob in alive_monsters %}
+    {{ mob.name_cz }}
+{% endfor %}
+
+<h2>Mrtvá monstra</h2>
+{% for mob in dead_monsters %}
+    {{ mob.name_cz }}
+{% endfor %}
 
 {% endblock %}

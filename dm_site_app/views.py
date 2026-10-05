@@ -301,6 +301,7 @@ def active_mob_db_save(mob_id):
         chance = 0
         plus_gold = 0
         plus_silver = 0
+        loot_able_switch = False
 
 # spustí se jen pokud může mít mobka u sebe goldy
     print("--- GENERACE ZLATA U MONSTER --- ")
@@ -318,6 +319,7 @@ def active_mob_db_save(mob_id):
 
         plus_gold = int(round(actual_gold * random_bonus))
         plus_silver = int(round(actual_silver * random_bonus))
+        loot_able_switch = True
 
         while plus_silver >= 10:
             plus_gold += 1
@@ -364,6 +366,7 @@ def active_mob_db_save(mob_id):
         raw_data=mob.raw_data,
         loot_gold=plus_gold,
         loot_silver=plus_silver,
+        loot_able=loot_able_switch, 
     )
     log_success("Monstrum připraveno do hry", f"{new_mob.name_cz or new_mob.name_en} (CR {new_mob.formatted_cr}, {new_mob.hit_points} HP, AC {new_mob.armor_class}) [ID: {new_mob.id}]")
     return new_mob
@@ -420,6 +423,17 @@ def mob_dead(request):
 
 @dm_required
 def loot_management(request):
-    return render(request, 'dm_site_app/loot_management.html', {
+
+    all_chars = Char_info.objects.all()
+    all_lootable_monsters = Monsters_Active.objects.filter(loot_able=True)
+    alive_monsters = all_lootable_monsters.filter(is_dead=False)
+    dead_monsters = all_lootable_monsters.filter(is_dead=True)
+    
+    context = {
+        'all_chars': all_chars,
+        'alive_monsters': alive_monsters,
+        'dead_monsters': dead_monsters,
         'current_page': 'loot_management',
-    })
+    }
+    
+    return render(request, 'dm_site_app/loot_management.html', context)
