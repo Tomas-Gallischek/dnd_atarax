@@ -272,6 +272,7 @@ class Monsters_Active(models.Model):
 
     # pracovní
     in_fight = models.BooleanField(default=False, verbose_name="V boji")
+    is_dead = models.BooleanField(default=False, verbose_name="Je mrtvý")
 
     class Meta:
         verbose_name = "Aktivní nestvůra"

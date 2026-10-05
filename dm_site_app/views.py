@@ -367,8 +367,10 @@ def mob_dead(request):
 
 # ODEBRÁNÍ MONSTRA (MUSÍ BÝT NAKONEC!)
 
-        mob.delete()
-        log_mob("Monstrum odstraněno ze hry", f"{mob_name} [ID: {mob_id}]")
+        mob.is_dead = True
+        mob.in_fight = False
+        mob.save()
+        log_mob("Monstrum zabito", f"{mob_name} [ID: {mob_id}]")
 
         return redirect('dm_site_app:pvp_arena')
     return redirect('dm_site_app:pvp_arena')
