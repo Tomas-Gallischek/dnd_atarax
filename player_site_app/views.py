@@ -332,6 +332,25 @@ def esence_buy(request):
         return redirect('player_site_app:dungeon_shop')
 
     
+def use_treasure(request):
+    if request.method == 'POST':
+        item_id = int(request.POST.get('item_id'))
+        player_id = int(request.POST.get('player_id'))
+
+        player = get_object_or_404(Player, id=player_id)
+        try:
+            treasure = Esence_Items_Owners.objects.get(id = item_id)
+            treasure.objects.delete()
+
+            messages.success(request, f'Předmět byl úspěšně spotřebován!')
+            return redirect('player_site_app:dungeon_shop_inv')
+        except Exception:
+            messages.error(request, 'Neplatný předmět!')
+            return redirect('player_site_app:dungeon_shop_inv')
+         
+
+        
             
-                
-            
+
+
+    
