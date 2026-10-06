@@ -73,6 +73,66 @@ class Player(models.Model):
 
 
 class Char_info(models.Model):
+
+    race_choices = (
+        ("Člověk", "Člověk"),
+        ("Elf", "Elf"),
+        ("Hobit", "Hobit"),
+        ("Trpaslík", "Trpaslík"),
+        ("Drakorozený", "Drakorozený"),
+        ("Gnom", "Gnom"),
+        ("Půlelf", "Půlelf"),
+        ("Půlork", "Půlork"),
+        ("Tiefling", "Tiefling"),
+        ("Ostatní", "Ostatní"),
+    )
+
+    class_choices = (
+        ("Barbar", "Barbar"),
+        ("Bard", "Bard"),
+        ("Bojovník", "Bojovník"),
+        ("Čaroděj", "Čaroděj"),
+        ("Černokněžník", "Černokněžník"),
+        ("Druid", "Druid"),
+        ("Hraničář", "Hraničář"),
+        ("Klerik", "Klerik"),
+        ("Kouzelník", "Kouzelník"),
+        ("Mnich", "Mnich"),
+        ("Paladin", "Paladin"),
+        ("Tulák", "Tulák"),
+        ("Ostatní", "Ostatní")
+    )
+
+    background_choices = (
+        ("Akolyta", "Akolyta"),
+        ("Bavič", "Bavič"),
+        ("Cechovní řemeslník", "Cechovní řemeslník"),
+        ("Hlídkař", "Hlídkař"),
+        ("Lidový hrdina", "Lidový hrdina"),
+        ("Mudrc", "Mudrc"),
+        ("Námořník", "námořník"),
+        ("Poustevník", "poustevník"),
+        ("Šlechtic", "Šlechtic"),
+        ("Šarlatán", "šarlatán"),
+        ("Uličník", "uličník"),
+        ("Voják", "Voják"),
+        ("Zločinec", "Zločinec"),
+        ("Ostatní", "ostatní")
+    )
+
+    alignment_choices = (
+        ("Zákonně dobrý", "Zákonně dobrý"),
+        ("Chaoticky dobrý", "Chaoticky dobrý"),
+        ("Neutrální dobrý", "Neutrální dobrý"),
+        ("Zákonně neutrální", "Zákonně neutrální"),
+        ("Neutrální", "Neutrální"),
+        ("Chaoticky neutrální", "Chaoticky neutrální"),
+        ("Zákonně zlý", "Zákonně zlý"),
+        ("Neutrálně zlý", "Neutrálně zlý"),
+        ("Chaoticky zlý", "Chaoticky zlý"),
+        ("Ostatní", "Ostatní"),
+    )
+
     player = models.ForeignKey(
         Player,
         on_delete=models.CASCADE,
@@ -95,8 +155,8 @@ class Char_info(models.Model):
         null=True,
         verbose_name="Externí URL profilového obrázku"
     )
-    race = models.CharField(max_length=50, blank=True, null=True, verbose_name="Rasa")
-    character_class = models.CharField(max_length=50, blank=True, null=True, verbose_name="Povolání")
+    race = models.CharField(max_length=50, blank=True, null=True, verbose_name="Rasa", default="Ostatní", choices=race_choices)
+    character_class = models.CharField(max_length=50, blank=True, null=True, verbose_name="Povolání", default="Ostatní", choices=class_choices)
     level = models.IntegerField(default=1, verbose_name="Úroveň")
     background = models.CharField(max_length=100, blank=True, null=True, verbose_name="Zázemí")
     alignment = models.CharField(max_length=50, blank=True, null=True, verbose_name="Přesvědčení")

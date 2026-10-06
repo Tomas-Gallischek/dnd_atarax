@@ -340,3 +340,11 @@ class Monsters_Active(models.Model):
         if self.current_hp is not None:
             return self.current_hp
         return self.max_hp
+
+
+class OverAllSettings(models.Model):
+    loging_active = models.BooleanField(default=True, verbose_name="Aktivní")
+    editing_active = models.BooleanField(default=True, verbose_name="Aktivní")
+    
+
+    
