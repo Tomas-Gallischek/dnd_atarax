@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Player, Char_info, Achivements_players, Achivements_database
+from .models import Player, Char_info, Achivements_players, Achivements_database, Esence_Items_Shop
 from .forms import PlayerLoginForm, PlayerRegistrationForm
 from dnd_atarax.terminal import log_player, log_warning, log_info
 from dm_site_app.models import Items_Active
@@ -242,10 +242,12 @@ def stream_view(request):
 def dungeon_shop_view(request):
     """10. Dungeon Shop - obchod oddělený na konci nabídky."""
     player, character = get_player_and_character(request)
+    treasures = Esence_Items_Shop.objects.filter(category='treasures')
 
     return render(request, 'player_site_app/dungeon_shop.html', {
         'player': player,
         'character': character,
         'active_character': character,
         'current_page': 'dungeon_shop',
+        'treasures': treasures,
     })

@@ -33,7 +33,15 @@
         </h2>
     </div>
     <p class="dm-item-desc">
-        Rámečky
+        {% for treasure in treasures %}
+            <form action="{% url 'player_site_app:esence_shop' %}" method="post">
+                {% csrf_token %}
+                <input type="hidden" name="item" value="treasure">
+                <input type="hidden" name="rarity" value="{{ treasure.rarity }}">
+                <input type="hidden" name="player_id" value="{{player.id}}">
+                <button type="submit">{{ treasure.name }}</button>
+            </form>
+        {% endfor %}
     </p>
 </div>
 {% endblock %}

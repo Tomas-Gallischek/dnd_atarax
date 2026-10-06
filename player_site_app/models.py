@@ -411,6 +411,7 @@ class Esence_Items_Shop(models.Model):
     category = models.CharField(max_length=100, verbose_name="Kategorie", choices=EsenceShopChoices)
     image = models.FileField(upload_to='esence_items', verbose_name="Obrázek")
     rarity = models.CharField(max_length=100, verbose_name="Rarita", choices=Rarities, default="basic")
+    cost = models.IntegerField(default=0, verbose_name="Cena", blank=True, null=True) 
 
 
     def __str__(self):
