@@ -1,57 +1,106 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
+from dm_site_app.models import OverAllSettings
 from .models import Player, Char_info
 
 
 class PlayerAuthAndCharacterTests(TestCase):
     def setUp(self):
+        # Nastavení OverAllSettings pro testy
+        self.settings, _ = OverAllSettings.objects.get_or_create(
+            id=1,
+            defaults={'loging_active': True, 'editing_active': True}
+        )
+        self.settings.loging_active = True
+        self.settings.save()
+
         # Vytvoření testovacího uživatele a hráče 1
         self.user1 = User.objects.create_user(username='hrac1', password='tajneheslo123')
-        self.player1 = Player.objects.create(user=self.user1, nickname='Geralt', temna_esence=50)
+        self.player1 = Player.objects.create(user=self.user1, nickname='Geralt', temna_esence=50, pin_code='1234')
 
         # Vytvoření testovacího uživatele a hráče 2
         self.user2 = User.objects.create_user(username='hrac2', password='tajneheslo123')
-        self.player2 = Player.objects.create(user=self.user2, nickname='Dandelion')
+        self.player2 = Player.objects.create(user=self.user2, nickname='Dandelion', pin_code='5678')
 
     def test_login_index_renders(self):
-        """Nepřihlášený uživatel vidí přihlašovací a registrační formulář a nevidí hráčské menu."""
+        """Nepřihlášený uživatel vidí přihlášení s polem pro PIN, nevidí registraci ani hráčské menu."""
         response = self.client.get(reverse('player_site_app:index'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'player_site_app/login_index.html')
-        self.assertContains(response, 'Přihlášení')
-        self.assertContains(response, 'Registrace nového dobrodruha')
+        self.assertContains(response, 'Vstup do hry')
+        self.assertContains(response, 'Zadejte PIN')
+        self.assertNotContains(response, 'Registrace nového dobrodruha')
         # Pro nepřihlášeného se menu nezobrazuje
         self.assertNotContains(response, 'id="playerNavContainer"')
 
-    def test_user_registration(self):
-        """Registrace nového hráče vytvoří User i Player a přesměruje na přehled postav."""
+    def test_registration_not_available(self):
+        """Registrace byla z úvodní stránky odebrána."""
         post_data = {
             'action': 'register',
             'username': 'novy_hrac',
             'nickname': 'Legolas',
-            'password': 'mojebezpecneheslo',
-            'password_confirm': 'mojebezpecneheslo',
         }
         response = self.client.post(reverse('player_site_app:index'), post_data)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('player_site_app:prehled_postav'))
+        self.assertFalse(User.objects.filter(username='novy_hrac').exists())
 
-        # Ověření vytvoření v DB
-        user = User.objects.get(username='novy_hrac')
-        self.assertIsNotNone(user.player)
-        self.assertEqual(user.player.nickname, 'Legolas')
-
-    def test_user_login(self):
-        """Platné přihlášení přesměruje na přehled postav."""
+    def test_user_login_with_pin(self):
+        """Platné přihlášení pomocí PIN kódu přesměruje na přehled postav."""
         post_data = {
-            'action': 'login',
-            'username': 'hrac1',
-            'password': 'tajneheslo123',
+            'pin': '1234',
         }
         response = self.client.post(reverse('player_site_app:index'), post_data)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, reverse('player_site_app:prehled_postav'))
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.user1.id)
+
+    def test_login_when_loging_inactive(self):
+        """Pokud je loging_active=False, zobrazí se pouze nápis 'Vítejte' a formulář je skrytý."""
+        self.settings.loging_active = False
+        self.settings.save()
+
+        response = self.client.get(reverse('player_site_app:index'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Vítejte')
+        self.assertNotContains(response, 'Zadejte PIN')
+
+        # Pokus o POST při vypnutém přihlašování je zablokován
+        post_res = self.client.post(reverse('player_site_app:index'), {'pin': '1234'})
+        self.assertEqual(post_res.status_code, 200)
+        self.assertContains(post_res, 'Přihlašování je v tuto chvíli pozastaveno')
+
+    def test_pin_login_max_attempts_lockout(self):
+        """Po 3 neúspěšných pokusech je přístup zablokován."""
+        # Pokus 1
+        res1 = self.client.post(reverse('player_site_app:index'), {'pin': '9999'})
+        self.assertEqual(res1.status_code, 200)
+        self.assertContains(res1, 'Zbývající pokusy: 2')
+
+        # Pokus 2
+        res2 = self.client.post(reverse('player_site_app:index'), {'pin': '9999'})
+        self.assertEqual(res2.status_code, 200)
+        self.assertContains(res2, 'Zbývající pokusy: 1')
+
+        # Pokus 3
+        res3 = self.client.post(reverse('player_site_app:index'), {'pin': '9999'})
+        self.assertEqual(res3.status_code, 200)
+        self.assertContains(res3, 'Vyčerpali jste všechny 3 pokusy')
+        self.assertContains(res3, 'Přístup zablokován')
+
+        # 4. pokus (i se správným PINem) je zablokován
+        res4 = self.client.post(reverse('player_site_app:index'), {'pin': '1234'})
+        self.assertEqual(res4.status_code, 200)
+        self.assertContains(res4, 'Byl vyčerpán maximální počet pokusů')
+
+    def test_long_pin_up_to_100_digits(self):
+        """PIN může mít až 100 číslic."""
+        long_pin = '9' * 100
+        self.player1.pin_code = long_pin
+        self.player1.save()
+
+        res = self.client.post(reverse('player_site_app:index'), {'pin': long_pin})
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res.url, reverse('player_site_app:prehled_postav'))
 
     def test_unauthenticated_redirect_all_pages(self):
         """Všech 10 stránek hráče vyžaduje přihlášení a přesměruje nepřihlášeného na login."""

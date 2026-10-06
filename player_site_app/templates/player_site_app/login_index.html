@@ -3,13 +3,6 @@
 {% block title %}DnD Atarax - Vstup do hry{% endblock %}
 
 {% block player_content %}
-<div class="atarax-page-header">
-    <div class="atarax-header-title-group">
-        <h1><span>🏰</span> Vítej v království Atarax</h1>
-        <p class="atarax-header-subtitle">Přihlaste se ke svému účtu hráče nebo vytvořte novou postavu do probíhající kampaně.</p>
-    </div>
-</div>
-
 {% if messages %}
 <div class="dm-messages-container">
     {% for message in messages %}
@@ -20,31 +13,135 @@
 </div>
 {% endif %}
 
-<div class="auth-grid">
-    <!-- Formulář pro přihlášení -->
-    <section class="auth-card">
-        <h2><span>🗝️</span> Přihlášení hráče</h2>
-        <form method="post" action="{% url 'player_site_app:index' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" class="auth-form">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="login">
-            {{ login_form.as_p }}
-            <button type="submit" class="btn btn-gold btn-lg">
-                <span>⚔️</span> Vstoupit do hry
-            </button>
-        </form>
-    </section>
+{% if not loging_active %}
+    <!-- ======================================================================
+         STAV: PŘIHLAŠOVÁNÍ JE VYPNUTO (loging_active = False)
+         ====================================================================== -->
+    <div class="login-welcome-wrapper">
+        <div class="login-welcome-card">
+            <div class="login-welcome-emblem">🏰</div>
+            <h1 class="login-welcome-heading">Vítejte</h1>
+            <p class="login-welcome-sub">Vstup do hry a přihlašování postav je v tuto chvíli pozastaveno Pánem jeskyně.</p>
+        </div>
+    </div>
+{% else %}
+    <!-- ======================================================================
+         STAV: PŘIHLAŠOVÁNÍ JE ZAPNUTO (loging_active = True) -> POUZE PIN KÓD
+         ====================================================================== -->
+    <div class="login-pin-wrapper">
+        <div class="login-pin-card">
+            <div class="login-pin-emblem">🗝️</div>
+            <h1 class="login-pin-heading">Vstup do hry</h1>
+            <p class="login-pin-sub">Zadejte svůj herní PIN kód pro přístup k postavě</p>
 
-    <!-- Formulář pro registraci -->
-    <section class="auth-card">
-        <h2><span>📜</span> Registrace nového dobrodruha</h2>
-        <form method="post" action="{% url 'player_site_app:index' %}" class="auth-form">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="register">
-            {{ reg_form.as_p }}
-            <button type="submit" class="btn btn-emerald btn-lg">
-                <span>✓</span> Zaregistrovat účet
-            </button>
-        </form>
-    </section>
-</div>
+            <form
+                method="post"
+                action="{% url 'player_site_app:index' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}"
+                class="pin-form"
+                id="pinForm"
+                data-attempts-left="{{ attempts_left|default:3 }}"
+                data-locked-out="{% if is_locked_out %}true{% else %}false{% endif %}"
+            >
+                {% csrf_token %}
+
+                <div class="pin-input-group">
+                    <input
+                        type="password"
+                        name="pin"
+                        id="pinInput"
+                        class="pin-large-input"
+                        placeholder="Zadejte PIN"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        maxlength="100"
+                        autocomplete="off"
+                        autofocus
+                        required
+                        {% if is_locked_out or attempts_left <= 0 %}disabled{% endif %}
+                    >
+                    <button type="button" class="pin-toggle-btn" id="pinToggleBtn" title="Zobrazit / skrýt PIN" aria-label="Zobrazit PIN">
+                        👁️
+                    </button>
+                </div>
+
+                <div class="pin-attempts-status {% if is_locked_out or attempts_left <= 0 %}status-locked{% elif attempts_left == 1 %}status-danger{% elif attempts_left == 2 %}status-warning{% endif %}" id="pinAttemptsStatus">
+                    <span id="pinAttemptsText">
+                        {% if is_locked_out or attempts_left <= 0 %}
+                            🚫 Přístup zablokován (vyčerpány 3 pokusy)
+                        {% else %}
+                            🛡️ Zbývající pokusy: <strong>{{ attempts_left }}</strong> / 3
+                        {% endif %}
+                    </span>
+                </div>
+
+                <button
+                    type="submit"
+                    class="btn btn-gold btn-lg btn-block btn-pin-submit"
+                    id="pinSubmitBtn"
+                    {% if is_locked_out or attempts_left <= 0 %}disabled{% endif %}
+                >
+                    <span>⚔️</span> Odeslat
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const pinInput = document.getElementById('pinInput');
+        const pinForm = document.getElementById('pinForm');
+        const pinToggleBtn = document.getElementById('pinToggleBtn');
+        const pinSubmitBtn = document.getElementById('pinSubmitBtn');
+        const pinAttemptsStatus = document.getElementById('pinAttemptsStatus');
+        const pinAttemptsText = document.getElementById('pinAttemptsText');
+
+        if (!pinInput || !pinForm) return;
+
+        // 1. Zajištění pouze číselného vstupu do 100 znaků (mobilní i desktop)
+        pinInput.addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '').slice(0, 100);
+        });
+
+        // 2. Přepínač maskování PINu (oko)
+        if (pinToggleBtn) {
+            pinToggleBtn.addEventListener('click', function() {
+                if (pinInput.type === 'password') {
+                    pinInput.type = 'text';
+                    pinToggleBtn.textContent = '🙈';
+                    pinToggleBtn.title = 'Skrýt PIN';
+                } else {
+                    pinInput.type = 'password';
+                    pinToggleBtn.textContent = '👁️';
+                    pinToggleBtn.title = 'Zobrazit PIN';
+                }
+                pinInput.focus();
+            });
+        }
+
+        // 3. Ošetření uzamčení rozhraní při vyčerpání pokusů
+        const serverAttemptsLeft = parseInt(pinForm.getAttribute('data-attempts-left') || '3', 10);
+        const isLockedOut = (pinForm.getAttribute('data-locked-out') === 'true');
+
+        if (isLockedOut || serverAttemptsLeft <= 0) {
+            pinInput.disabled = true;
+            if (pinSubmitBtn) pinSubmitBtn.disabled = true;
+            if (pinAttemptsStatus) {
+                pinAttemptsStatus.className = 'pin-attempts-status status-locked';
+            }
+            if (pinAttemptsText) {
+                pinAttemptsText.innerHTML = '🚫 Přístup zablokován (vyčerpány 3 pokusy). Zkuste to za chvíli.';
+            }
+        }
+
+        pinForm.addEventListener('submit', function(e) {
+            const val = pinInput.value.trim();
+            if (!val || !/^\d+$/.test(val)) {
+                e.preventDefault();
+                alert('PIN musí obsahovat pouze číslice!');
+                pinInput.focus();
+            }
+        });
+    });
+    </script>
+{% endif %}
 {% endblock %}

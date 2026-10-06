@@ -54,8 +54,8 @@ class EsenceItemsOwnersForPlayerInline(admin.TabularInline):
 
 @admin.register(Player)
 class PlayerAdmin(admin.ModelAdmin):
-    list_display = ('user', 'nickname', 'active_frame_preview', 'temna_esence', 'characters_count', 'achievements_count', 'created_at')
-    search_fields = ('user__username', 'user__email', 'nickname')
+    list_display = ('user', 'nickname', 'pin_code', 'active_frame_preview', 'temna_esence', 'characters_count', 'achievements_count', 'created_at')
+    search_fields = ('user__username', 'user__email', 'nickname', 'pin_code')
     fields = ('user', 'nickname', 'bio', 'temna_esence', 'pin_code', 'active_ramecek', 'admin')
     inlines = [CharInfoInline, AchivementsPlayersForPlayerInline, EsenceItemsOwnersForPlayerInline]
 

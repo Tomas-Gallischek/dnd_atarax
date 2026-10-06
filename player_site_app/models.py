@@ -10,7 +10,9 @@ class Player(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='player',
-        verbose_name="Uživatelský účet"
+        verbose_name="Uživatelský účet",
+        blank=True,
+        null=True
     )
     nickname = models.CharField(
         max_length=100,
@@ -29,7 +31,7 @@ class Player(models.Model):
     )
 
     temna_esence = models.IntegerField(default=0, verbose_name="Temná esence", blank=True, null=True)
-    pin_code = models.IntegerField(default=0, verbose_name="Pin kod", blank=True, null=True)
+    pin_code = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name="PIN kód")
 
     active_ramecek = models.ForeignKey(
         "Esence_Items_Owners",
@@ -52,10 +54,19 @@ class Player(models.Model):
             raise ValidationError({'active_ramecek': "Vybraný rámeček nevlastní tento hráč!"})
 
     def save(self, *args, **kwargs):
-        if self.user.is_staff == True:
-            self.admin = True
-        else:
-            self.admin = False
+        if not self.user_id:
+            import re
+            base_name = self.nickname or (f"hrac_{self.pin_code}" if self.pin_code else "hrac")
+            clean_username = re.sub(r'[^\w.@+-]', '_', base_name) or "hrac"
+            candidate = clean_username
+            idx = 1
+            while User.objects.filter(username=candidate).exists():
+                candidate = f"{clean_username}_{idx}"
+                idx += 1
+            self.user = User.objects.create_user(username=candidate)
+
+        if self.user:
+            self.admin = bool(self.user.is_staff)
         super().save(*args, **kwargs)
 
     @property

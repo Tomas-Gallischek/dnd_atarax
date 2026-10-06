@@ -6,8 +6,9 @@ from django.contrib import messages
 from .models import Player, Char_info, Achivements_players, Achivements_database, Esence_Items_Shop, Esence_Items_Owners
 from .forms import PlayerLoginForm, PlayerRegistrationForm
 from dnd_atarax.terminal import log_player, log_warning, log_info
-from dm_site_app.models import Items_Active
+from dm_site_app.models import Items_Active, OverAllSettings
 import random
+import time
 
 
 def get_player_and_character(request, char_id=None):
@@ -39,54 +40,128 @@ def get_player_and_character(request, char_id=None):
 def index(request):
     """
     Úvodní stránka hráčské sekce:
-    Pokud je hráč přihlášen, přesměruje ho na přehled postav.
-    Pokud není přihlášen, nabídne přihlášení a registraci.
+    - Pokud je hráč přihlášen, přesměruje ho na přehled postav (nebo staff na dm:index).
+    - Zjišťuje nastavení OverAllSettings.loging_active.
+    - Pokud je loging_active vypnutý (False), zobrazí uvítací obrazovku 'Vítejte'.
+    - Pokud je loging_active zapnutý (True), zobrazí formulář pro zadání PIN kódu.
+    - Omezuje počet pokusů na max 3.
     """
     if request.user.is_authenticated:
+        if request.user.is_staff:
+            return redirect('dm_site_app:index')
         return redirect('player_site_app:prehled_postav')
 
-    login_form = PlayerLoginForm()
-    reg_form = PlayerRegistrationForm()
+    settings_obj = OverAllSettings.objects.first()
+    loging_active = settings_obj.loging_active if settings_obj else True
+
+    # Sledování pokusů v session (max 3 pokusy)
+    now_ts = int(time.time())
+    lockout_until = request.session.get('pin_lockout_until', 0)
+    is_locked_out = (lockout_until > now_ts)
+
+    # Pokud lockout vypršel, resetujeme pokusy
+    if not is_locked_out and lockout_until > 0:
+        request.session['pin_attempts'] = 0
+        request.session['pin_lockout_until'] = 0
+
+    attempts_used = request.session.get('pin_attempts', 0)
+    attempts_left = max(0, 3 - attempts_used)
 
     if request.method == 'POST':
-        action = request.POST.get('action')
+        if not loging_active:
+            messages.error(request, "Přihlašování je v tuto chvíli pozastaveno Pánem jeskyně.")
+            return render(request, 'player_site_app/login_index.html', {
+                'loging_active': False,
+                'attempts_left': attempts_left,
+                'is_locked_out': False,
+            })
 
-        if action == 'register':
-            reg_form = PlayerRegistrationForm(request.POST)
-            if reg_form.is_valid():
-                user = reg_form.save()
-                login(request, user)
-                log_player("Registrace nového hráče", f"Uživatel '{user.username}' ({user.player.nickname})")
-                messages.success(request, f"Registrace proběhla úspěšně! Vítej, {user.player.nickname or user.username}.")
-                return redirect('player_site_app:prehled_postav')
-            else:
-                log_warning("Chyba při registraci hráče", "Neplatná data ve formuláři")
-                messages.error(request, "Opravte prosím chyby v registračním formuláři.")
+        if is_locked_out:
+            mins_left = max(1, ((lockout_until - now_ts) // 60) + 1)
+            messages.error(request, f"Byl vyčerpán maximální počet pokusů (3/3). Přihlášení je zablokováno, zkuste to znovu za {mins_left} min.")
+            return render(request, 'player_site_app/login_index.html', {
+                'loging_active': True,
+                'attempts_left': 0,
+                'is_locked_out': True,
+                'lockout_remaining_sec': max(0, lockout_until - now_ts),
+            })
 
-        elif action == 'login':
-            login_form = PlayerLoginForm(request, data=request.POST)
-            if login_form.is_valid():
-                user = login_form.get_user()
-                login(request, user)
-                Player.objects.get_or_create(user=user, defaults={'nickname': user.username})
-                role = "DM / Staff 🛡️" if user.is_staff else "Hráč 🧙"
-                log_player("Přihlášení uživatele", f"'{user.username}' [{role}]")
-                messages.success(request, "Přihlášení proběhlo úspěšně. Vítej zpět!")
-                next_url = request.GET.get('next')
-                if next_url:
-                    return redirect(next_url)
-                if request.user.is_staff:
-                    return redirect('dm_site_app:index')
-                else:
-                    return redirect('player_site_app:prehled_postav')
+        pin = request.POST.get('pin', '').strip()
+
+        # Validace formátu: celé číslo do 100 znaků
+        if not pin or not pin.isdigit() or len(pin) > 100:
+            attempts_used += 1
+            request.session['pin_attempts'] = attempts_used
+            attempts_left = max(0, 3 - attempts_used)
+
+            if attempts_used >= 3:
+                request.session['pin_lockout_until'] = now_ts + 300
+                is_locked_out = True
+                log_warning("Vyčerpány pokusy o PIN", "Session překročila 3 pokusy. Lockout na 5 minut.")
+                messages.error(request, "Vyčerpali jste maximální počet 3 pokusů. Přihlášení bylo zablokováno na 5 minut.")
             else:
-                username_attempt = request.POST.get('username', 'neznámý')
-                log_warning("Neúspěšné přihlášení", f"Neplatné jméno nebo heslo pro '{username_attempt}'")
-                messages.error(request, "Neplatné uživatelské jméno nebo heslo.")
+                log_warning("Neplatný formát PINu", f"Zadáno: '{pin[:20]}...'")
+                messages.error(request, f"PIN musí být celé číslo o délce do 100 číslic. Zbývající pokusy: {attempts_left} z 3.")
+
+            return render(request, 'player_site_app/login_index.html', {
+                'loging_active': True,
+                'attempts_left': attempts_left,
+                'is_locked_out': is_locked_out,
+                'lockout_remaining_sec': 300 if is_locked_out else 0,
+            })
+
+        # Vyhledání hráče podle unikátního PINu
+        player = Player.objects.filter(pin_code=pin).first()
+
+        if player:
+            # Úspěšné přihlášení -> reset pokusů
+            request.session['pin_attempts'] = 0
+            request.session['pin_lockout_until'] = 0
+
+            # Zajištění vazby na User
+            if not player.user:
+                player.save()
+            user = player.user
+
+            login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+            role = "DM / Staff 🛡️" if user.is_staff else "Hráč 🧙"
+            log_player("Přihlášení hráče přes PIN", f"'{player.nickname or user.username}' [{role}]")
+            messages.success(request, f"Vítej ve hře, {player.nickname or user.username}!")
+
+            next_url = request.GET.get('next')
+            if next_url:
+                return redirect(next_url)
+            if user.is_staff:
+                return redirect('dm_site_app:index')
+            return redirect('player_site_app:prehled_postav')
+
+        else:
+            # Neplatný PIN
+            attempts_used += 1
+            request.session['pin_attempts'] = attempts_used
+            attempts_left = max(0, 3 - attempts_used)
+
+            if attempts_used >= 3:
+                request.session['pin_lockout_until'] = now_ts + 300
+                is_locked_out = True
+                log_warning("Vyčerpány pokusy o PIN", "Chybný PIN 3x za sebou. Lockout na 5 minut.")
+                messages.error(request, "Nesprávný PIN. Vyčerpali jste všechny 3 pokusy. Přihlášení bylo zablokováno na 5 minut.")
+            else:
+                log_warning("Neúspěšné přihlášení PINem", f"Zbývá pokusů: {attempts_left}")
+                messages.error(request, f"Nesprávný PIN kód! Zbývající pokusy: {attempts_left} z 3.")
+
+            return render(request, 'player_site_app/login_index.html', {
+                'loging_active': True,
+                'attempts_left': attempts_left,
+                'is_locked_out': is_locked_out,
+                'lockout_remaining_sec': 300 if is_locked_out else 0,
+            })
 
     return render(request, 'player_site_app/login_index.html', {
-        'login_form': login_form,
-        'reg_form': reg_form,
+        'loging_active': loging_active,
+        'attempts_left': attempts_left,
+        'is_locked_out': is_locked_out,
+        'lockout_remaining_sec': max(0, lockout_until - now_ts) if is_locked_out else 0,
     })
 
 

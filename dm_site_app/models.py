@@ -343,8 +343,15 @@ class Monsters_Active(models.Model):
 
 
 class OverAllSettings(models.Model):
-    loging_active = models.BooleanField(default=True, verbose_name="Aktivní")
-    editing_active = models.BooleanField(default=True, verbose_name="Aktivní")
+    loging_active = models.BooleanField(default=True, verbose_name="Přihlašování aktivní")
+    editing_active = models.BooleanField(default=True, verbose_name="Editace aktivní")
+
+    class Meta:
+        verbose_name = "Globální nastavení"
+        verbose_name_plural = "Globální nastavení"
+
+    def __str__(self):
+        return f"Globální nastavení (Přihlašování: {'Zapnuto' if self.loging_active else 'Vypnuto'})"
     
 
     

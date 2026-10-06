@@ -1453,4 +1453,197 @@
     box-shadow: 0 8px 28px rgba(16, 185, 129, 0.65);
 }
 
+/* ==========================================================================
+   PIN LOGIN & WELCOME SCREEN
+   ========================================================================== */
+
+.login-welcome-wrapper,
+.login-pin-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 55vh;
+    padding: 2rem 1rem;
+}
+
+.login-welcome-card,
+.login-pin-card {
+    background: linear-gradient(180deg, #1f182c 0%, #120e1a 100%);
+    border: 1px solid var(--border-gold, #d4af37);
+    border-radius: var(--radius-lg, 12px);
+    box-shadow: 0 16px 45px rgba(0, 0, 0, 0.75), 0 0 30px rgba(168, 85, 247, 0.2);
+    width: 100%;
+    max-width: 440px;
+    padding: 2.5rem 2rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-welcome-emblem,
+.login-pin-emblem {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+    animation: floatEmblem 3s ease-in-out infinite;
+}
+
+@keyframes floatEmblem {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+.login-welcome-heading,
+.login-pin-heading {
+    font-family: var(--font-display, 'Cinzel', serif);
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--gold-300, #fef08a);
+    text-shadow: 0 0 15px rgba(245, 158, 11, 0.4), 0 2px 4px rgba(0, 0, 0, 0.8);
+    margin: 0 0 0.5rem 0;
+}
+
+.login-welcome-sub,
+.login-pin-sub {
+    font-size: 0.95rem;
+    color: var(--amethyst-300, #c4b5fd);
+    margin-bottom: 2rem;
+    line-height: 1.5;
+}
+
+.pin-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.pin-input-group {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.pin-large-input {
+    width: 100%;
+    padding: 1rem 3.5rem 1rem 1.25rem;
+    font-size: 1.65rem;
+    font-weight: 800;
+    letter-spacing: 4px;
+    text-align: center;
+    color: #ffffff;
+    background: #0d0a14;
+    border: 2px solid var(--border-gold, #d4af37);
+    border-radius: var(--radius-md, 8px);
+    outline: none;
+    transition: all 0.25s ease;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+
+.pin-large-input:focus {
+    border-color: #fbbf24;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.5), inset 0 2px 8px rgba(0, 0, 0, 0.9);
+    background: #140f20;
+}
+
+.pin-large-input::placeholder {
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.pin-large-input:disabled {
+    opacity: 0.5;
+    background: #1a1a24;
+    border-color: #4b5563;
+    cursor: not-allowed;
+}
+
+.pin-toggle-btn {
+    position: absolute;
+    right: 12px;
+    background: transparent;
+    border: none;
+    font-size: 1.35rem;
+    cursor: pointer;
+    padding: 6px;
+    color: var(--amethyst-300, #c4b5fd);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pin-toggle-btn:hover {
+    transform: scale(1.15);
+    opacity: 1;
+}
+
+.pin-attempts-status {
+    font-size: 0.88rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    background: rgba(30, 24, 44, 0.7);
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    color: var(--amethyst-200, #e9d5ff);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: -0.25rem;
+    transition: all 0.25s ease;
+}
+
+.pin-attempts-status.status-warning {
+    border-color: rgba(245, 158, 11, 0.6);
+    background: rgba(245, 158, 11, 0.15);
+    color: #fef08a;
+}
+
+.pin-attempts-status.status-danger,
+.pin-attempts-status.status-locked {
+    border-color: rgba(239, 68, 68, 0.7);
+    background: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    font-weight: 700;
+}
+
+.btn-pin-submit {
+    width: 100%;
+    padding: 1rem 1.5rem;
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.35);
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.btn-pin-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none !important;
+}
+
+@media (max-width: 480px) {
+    .login-welcome-card,
+    .login-pin-card {
+        padding: 2rem 1.25rem;
+    }
+    .login-welcome-heading,
+    .login-pin-heading {
+        font-size: 1.65rem;
+    }
+    .pin-large-input {
+        font-size: 1.4rem;
+        padding: 0.85rem 3rem 0.85rem 1rem;
+    }
+}
+
 
