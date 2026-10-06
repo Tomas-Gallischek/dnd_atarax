@@ -583,3 +583,448 @@
     display: flex;
     flex-direction: column;
 }
+
+/* ==========================================================================
+   Dungeon Shop & Shop Inventory Styles
+   ========================================================================== */
+
+/* Essence Unit Badge in Headers */
+.essence-currency-unit {
+    font-size: 0.85rem;
+    color: var(--amethyst-300);
+    font-weight: 700;
+    margin-left: 2px;
+}
+
+/* Shop Nav Toolbar (Under Header Divider) */
+.shop-nav-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 1.75rem;
+    padding: 2px 0;
+}
+
+.btn-shop-inv,
+.btn-shop-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(32, 27, 44, 0.92) 0%, rgba(22, 18, 30, 0.98) 100%);
+    border: 1px solid rgba(168, 85, 247, 0.45);
+    color: #f8fafc;
+    padding: 10px 18px;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.93rem;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 12px rgba(168, 85, 247, 0.15);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(8px);
+}
+
+.btn-shop-inv:hover,
+.btn-shop-back:hover {
+    background: linear-gradient(135deg, rgba(46, 36, 66, 0.98) 0%, rgba(30, 24, 44, 1) 100%);
+    border-color: var(--amethyst-400);
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 20px rgba(168, 85, 247, 0.4);
+}
+
+.btn-shop-inv-icon,
+.btn-shop-back-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.btn-shop-inv-badge {
+    background: linear-gradient(135deg, #a855f7, #7c3aed);
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(124, 58, 237, 0.4);
+}
+
+.btn-shop-inv-arrow {
+    font-size: 0.9rem;
+    color: var(--amethyst-400);
+    transition: transform 0.2s ease;
+}
+
+.btn-shop-inv:hover .btn-shop-inv-arrow {
+    transform: translateX(4px);
+    color: #e9d5ff;
+}
+
+.shop-toolbar-meta {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+}
+
+/* Fantasy Shop Grid */
+.fantasy-shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 0.75rem;
+}
+
+/* Fantasy Shop Card */
+.fantasy-shop-card {
+    background: linear-gradient(180deg, #181423 0%, #110e1a 100%);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    overflow: hidden;
+}
+
+.fantasy-shop-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--card-accent, #383046);
+    opacity: 0.85;
+    transition: opacity 0.25s ease;
+}
+
+.fantasy-shop-card:hover {
+    transform: translateY(-4px);
+}
+
+/* Rarity Accents for Cards */
+.fantasy-shop-card.rarity-card-basic {
+    --card-accent: #94a3b8;
+    border-color: rgba(148, 163, 184, 0.3);
+}
+.fantasy-shop-card.rarity-card-basic:hover {
+    border-color: rgba(148, 163, 184, 0.6);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 18px rgba(148, 163, 184, 0.2);
+}
+
+.fantasy-shop-card.rarity-card-rare {
+    --card-accent: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.38);
+}
+.fantasy-shop-card.rarity-card-rare:hover {
+    border-color: rgba(56, 189, 248, 0.75);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 22px rgba(56, 189, 248, 0.35);
+}
+
+.fantasy-shop-card.rarity-card-epic {
+    --card-accent: #c084fc;
+    border-color: rgba(168, 85, 247, 0.45);
+}
+.fantasy-shop-card.rarity-card-epic:hover {
+    border-color: rgba(192, 132, 252, 0.8);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 25px rgba(168, 85, 247, 0.45);
+}
+
+.fantasy-shop-card.rarity-card-legendary {
+    --card-accent: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.5);
+}
+.fantasy-shop-card.rarity-card-legendary:hover {
+    border-color: rgba(251, 191, 36, 0.85);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 30px rgba(245, 158, 11, 0.5);
+}
+
+/* Card Header Badges */
+.shop-card-badge-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 0.85rem;
+}
+
+.shop-rarity-pill {
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+}
+
+.shop-rarity-pill.pill-basic {
+    background: rgba(148, 163, 184, 0.15);
+    color: #e2e8f0;
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+.shop-rarity-pill.pill-rare {
+    background: rgba(56, 189, 248, 0.15);
+    color: #7dd3fc;
+    border-color: rgba(56, 189, 248, 0.45);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.shop-rarity-pill.pill-epic {
+    background: rgba(168, 85, 247, 0.18);
+    color: #e9d5ff;
+    border-color: rgba(168, 85, 247, 0.5);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+}
+
+.shop-rarity-pill.pill-legendary {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35));
+    color: #fef08a;
+    border-color: rgba(245, 158, 11, 0.65);
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+}
+
+.shop-category-tag {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    background: rgba(40, 34, 52, 0.55);
+    padding: 2px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-subtle);
+}
+
+/* Item Image Frame */
+.shop-item-frame {
+    position: relative;
+    width: 100%;
+    height: 190px;
+    background: radial-gradient(circle at center, rgba(38, 30, 54, 0.85) 0%, rgba(13, 11, 18, 0.98) 100%);
+    border-radius: var(--radius-md);
+    border: 2px solid var(--frame-border, #2d263a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.85);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.shop-item-frame.frame-basic {
+    border-color: rgba(148, 163, 184, 0.3);
+}
+.shop-item-frame.frame-rare {
+    border-color: rgba(56, 189, 248, 0.45);
+    box-shadow: inset 0 0 24px rgba(56, 189, 248, 0.15), 0 0 12px rgba(56, 189, 248, 0.15);
+}
+.shop-item-frame.frame-epic {
+    border-color: rgba(168, 85, 247, 0.5);
+    box-shadow: inset 0 0 26px rgba(168, 85, 247, 0.22), 0 0 16px rgba(168, 85, 247, 0.2);
+}
+.shop-item-frame.frame-legendary {
+    border-color: rgba(245, 158, 11, 0.6);
+    box-shadow: inset 0 0 30px rgba(245, 158, 11, 0.25), 0 0 20px rgba(245, 158, 11, 0.25);
+}
+
+.shop-item-img {
+    max-width: 100%;
+    max-height: 165px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.9));
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 1;
+}
+
+.fantasy-shop-card:hover .shop-item-img {
+    transform: scale(1.08) translateY(-2px);
+}
+
+.shop-item-placeholder {
+    font-size: 3.5rem;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Item Title (Glowing by Rarity) */
+.shop-item-info {
+    text-align: center;
+    margin-bottom: 1.15rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.shop-item-name {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0.5px;
+    line-height: 1.3;
+    transition: text-shadow 0.25s ease;
+}
+
+/* Glowing Titles */
+.title-glow-basic {
+    color: #f1f5f9;
+    text-shadow: 0 0 8px rgba(226, 232, 240, 0.6), 0 2px 4px rgba(0, 0, 0, 0.85);
+}
+
+.title-glow-rare {
+    color: #60a5fa;
+    text-shadow: 0 0 10px rgba(56, 189, 248, 0.85), 0 0 20px rgba(14, 165, 233, 0.5), 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+.title-glow-epic {
+    color: #d8b4fe;
+    text-shadow: 0 0 12px rgba(192, 132, 252, 0.9), 0 0 24px rgba(168, 85, 247, 0.6), 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+.title-glow-legendary {
+    color: #fde68a;
+    text-shadow: 0 0 14px rgba(251, 191, 36, 0.95), 0 0 28px rgba(245, 158, 11, 0.7), 0 0 40px rgba(217, 119, 6, 0.4), 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+/* Buy Form & Action Button */
+.shop-buy-form {
+    margin-top: auto;
+    width: 100%;
+}
+
+.fantasy-buy-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.fantasy-buy-btn.btn-can-buy {
+    background: linear-gradient(135deg, rgba(46, 28, 70, 0.9) 0%, rgba(28, 18, 46, 0.95) 100%);
+    border: 1px solid var(--amethyst-500);
+    color: #f8fafc;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45), 0 0 12px rgba(168, 85, 247, 0.25);
+}
+
+.fantasy-buy-btn.btn-can-buy:hover {
+    background: linear-gradient(135deg, rgba(74, 38, 114, 0.95) 0%, rgba(46, 26, 75, 1) 100%);
+    border-color: #d8b4fe;
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.45), 0 0 20px rgba(168, 85, 247, 0.4);
+}
+
+.fantasy-buy-btn.btn-no-essence {
+    background: rgba(25, 22, 32, 0.6);
+    border: 1px solid rgba(60, 52, 75, 0.5);
+    color: #94a3b8;
+    cursor: not-allowed;
+    opacity: 0.72;
+}
+
+.buy-action-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.buy-price-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(15, 12, 22, 0.75);
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    color: #f3e8ff;
+    font-family: var(--font-display);
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.fantasy-buy-btn.btn-no-essence .buy-price-pill {
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    background: rgba(30, 20, 25, 0.7);
+}
+
+/* Inventory Page Elements */
+.inv-count-badge {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    color: #ffffff;
+    font-weight: 800;
+    font-size: 0.78rem;
+    padding: 3px 9px;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.4);
+}
+
+.inv-equipped-badge {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.75rem;
+    padding: 3px 9px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+}
+
+.inv-status-bar {
+    margin-top: auto;
+    text-align: center;
+    padding: 8px 12px;
+    background: rgba(24, 20, 33, 0.75);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    font-size: 0.85rem;
+    color: var(--text-silver);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.empty-shop-state {
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    background: var(--bg-card);
+    border: 1px dashed var(--border-card);
+    border-radius: var(--radius-lg);
+    margin-top: 1.5rem;
+}
+
+.empty-shop-icon {
+    font-size: 3.5rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+}
+
+.empty-shop-title {
+    font-size: 1.35rem;
+    color: #fef08a;
+    margin-bottom: 0.5rem;
+}
+
+.empty-shop-desc {
+    color: var(--text-muted);
+    max-width: 460px;
+    margin: 0 auto 1.5rem auto;
+}
+

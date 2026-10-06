@@ -3,51 +3,127 @@
 {% block title %}DnD Atarax - Dungeon Shop{% endblock %}
 
 {% block player_content %}
+<!-- 1 & 2: Hlavička stránky s ikonkou temné esence a měnou posunutou nahoru -->
 <div class="atarax-page-header">
     <div class="atarax-header-title-group">
-        <h1><span>🛒</span> Dungeon Shop</h1>
+        <h1><span>🔮</span> Dungeon Shop</h1>
         <p class="atarax-header-subtitle">Rozhodně ne P2W.</p>
     </div>
-</div>
 
-<div class="atarax-card">
-    <div class="atarax-card-header">
-        <h2 class="atarax-card-title">
-            <span>🪙</span> Dostupné měny a zdroje
-        </h2>
-    </div>
-
-    <div class="grid-3">
-        <div class="stat-box">
-            <div class="stat-label">Temná esence hráče</div>
-            <div class="stat-value stat-value-essence">{{ player.temna_esence|default:0 }} 🔮</div>
-            <div class="stat-sub">(Platí pro celý účet)</div>
+    <!-- Množství temné esence hráče na úrovni nápisu -->
+    <div class="essence-box">
+        <div>
+            <div class="essence-label">Temná esence hráče</div>
+            <div class="essence-value">{{ player.temna_esence|default:0 }} <span class="essence-currency-unit">TE</span></div>
         </div>
+        <div class="essence-icon">🔮</div>
     </div>
 </div>
 
+<!-- 3: Tlačítko pod dělící čarou odkazující do inventáře z Dungeon Shopu -->
+<div class="shop-nav-toolbar">
+    <a href="{% url 'player_site_app:dungeon_shop_inv' %}" class="btn-shop-inv">
+        <span class="btn-shop-inv-icon">🎒</span>
+        <span>Můj inventář z Dungeon Shopu</span>
+        {% if owned_count %}
+            <span class="btn-shop-inv-badge" title="Počet zakoupených předmětů ze shopu">{{ owned_count }}</span>
+        {% endif %}
+        <span class="btn-shop-inv-arrow">➔</span>
+    </a>
+    <span class="shop-toolbar-meta">Platidlo: Temná esence (TE) &bull; Platí pro celý účet</span>
+</div>
+
+<!-- Zprávy (úspěch / chyba při nákupu) -->
+{% if messages %}
+<div class="dm-messages-container">
+    {% for message in messages %}
+        <div class="dm-message dm-message-{{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- 4: Nabídka Dungeon Shopu v podobě fantasy eshopu -->
 <div class="atarax-card">
     <div class="atarax-card-header">
         <h2 class="atarax-card-title">
             <span>🔮</span> Nabídka Dungeon Shopu
         </h2>
     </div>
-    <p class="dm-item-desc">
-        {% for treasure in treasures %}
-            <form action="{% url 'player_site_app:esence_buy' %}" method="post">
-                {% csrf_token %}
-                <input type="hidden" name="item_id" value="{{ treasure.id }}">
-                <input type="hidden" name="item_category" value="{{treasure.category}}">
-                <input type="hidden" name="item_rarity" value="{{ treasure.rarity }}">
-                <input type="hidden" name="item_cost" value="{{ treasure.cost }}">
-                <input type="hidden" name="player_id" value="{{player.id}}">
-                {% if player.temna_esence >= treasure.cost %}
-                    <button type="submit">{{ treasure.name }} - Cena: {{ treasure.cost }} 🔮</button>
-                {% else %}
-                    <button type="submit" disabled>{{ treasure.name }} - Nedostatečný počet esencí</button>
-                {% endif %}
-            </form>
-        {% endfor %}
-    </p>
+
+    {% if treasures %}
+        <div class="fantasy-shop-grid">
+            {% for treasure in treasures %}
+                <div class="fantasy-shop-card rarity-card-{{ treasure.rarity }}">
+                    <!-- Kategorie a rarita -->
+                    <div class="shop-card-badge-row">
+                        <span class="shop-rarity-pill pill-{{ treasure.rarity }}">
+                            {{ treasure.get_rarity_display }}
+                        </span>
+                        <span class="shop-category-tag">
+                            {{ treasure.get_category_display }}
+                        </span>
+                    </div>
+
+                    <!-- Náhledový obrázek v rámečku -->
+                    <div class="shop-item-frame frame-{{ treasure.rarity }}">
+                        {% if treasure.image %}
+                            <img src="{{ treasure.image.url }}" alt="{{ treasure.name }}" class="shop-item-img" loading="lazy">
+                        {% else %}
+                            <div class="shop-item-placeholder">
+                                <span>📦</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Svítící název podle rarity -->
+                    <div class="shop-item-info">
+                        <h3 class="shop-item-name title-glow-{{ treasure.rarity }}">
+                            {{ treasure.name }}
+                        </h3>
+                    </div>
+
+                    <!-- Tlačítko nákupu s cenou v TE -->
+                    <form action="{% url 'player_site_app:esence_buy' %}" method="post" class="shop-buy-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="item_id" value="{{ treasure.id }}">
+                        <input type="hidden" name="item_category" value="{{ treasure.category }}">
+                        <input type="hidden" name="item_rarity" value="{{ treasure.rarity }}">
+                        <input type="hidden" name="item_cost" value="{{ treasure.cost }}">
+                        <input type="hidden" name="player_id" value="{{ player.id }}">
+                        
+                        {% if player.temna_esence >= treasure.cost %}
+                            <button type="submit" class="fantasy-buy-btn btn-can-buy" title="Koupit za {{ treasure.cost }} TE">
+                                <span class="buy-action-text">
+                                    <span>🛒</span> Koupit
+                                </span>
+                                <span class="buy-price-pill">
+                                    <span>{{ treasure.cost }} TE</span>
+                                    <span class="price-currency-icon">🔮</span>
+                                </span>
+                            </button>
+                        {% else %}
+                            <button type="submit" class="fantasy-buy-btn btn-no-essence" disabled title="Nedostatek temné esence">
+                                <span class="buy-action-text">
+                                    <span>🔒</span> Nedostatek TE
+                                </span>
+                                <span class="buy-price-pill">
+                                    <span>{{ treasure.cost }} TE</span>
+                                    <span class="price-currency-icon">🔮</span>
+                                </span>
+                            </button>
+                        {% endif %}
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-shop-state">
+            <div class="empty-shop-icon">🔮</div>
+            <h3 class="empty-shop-title">Obchodník má momentálně vyprodáno</h3>
+            <p class="empty-shop-desc">V Dungeon Shopu v tuto chvíli nejsou žádné předměty k zakoupení. Vrať se později!</p>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}

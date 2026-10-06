@@ -116,8 +116,8 @@
         <!-- 10. dungeon_shop.html - poslední v nabídce před odhlášením -->
         <ul class="player-nav-list">
             <li class="player-nav-item">
-                <a href="{% url 'player_site_app:dungeon_shop' %}" class="{% if current_page == 'dungeon_shop' %}active{% endif %}">
-                    <span>&#128722;</span> Dungeon Shop
+                <a href="{% url 'player_site_app:dungeon_shop' %}" class="{% if current_page == 'dungeon_shop' or current_page == 'dungeon_shop_inv' %}active{% endif %}">
+                    <span>🔮</span> Dungeon Shop
                 </a>
             </li>
         </ul>

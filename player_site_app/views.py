@@ -243,6 +243,7 @@ def dungeon_shop_view(request):
     """10. Dungeon Shop - obchod oddělený na konci nabídky."""
     player, character = get_player_and_character(request)
     treasures = Esence_Items_Shop.objects.filter(category='treasures')
+    owned_count = Esence_Items_Owners.objects.filter(player=player).count()
 
     return render(request, 'player_site_app/dungeon_shop.html', {
         'player': player,
@@ -250,37 +251,82 @@ def dungeon_shop_view(request):
         'active_character': character,
         'current_page': 'dungeon_shop',
         'treasures': treasures,
+        'shop_items': treasures,
+        'owned_count': owned_count,
     })
 
 
+@login_required(login_url='player_site_app:index')
+def dungeon_shop_inv_view(request):
+    """Inventář zakoupených předmětů a truhel z Dungeon Shopu."""
+    player, character = get_player_and_character(request)
+    owned_records = Esence_Items_Owners.objects.filter(player=player).select_related('item').order_by('-id')
+
+    # Seskupení podle položek pro přehledné zobrazení s počtem kusů
+    grouped = {}
+    for record in owned_records:
+        item = record.item
+        if item.id not in grouped:
+            grouped[item.id] = {
+                'item': item,
+                'count': 1,
+                'first_record': record,
+            }
+        else:
+            grouped[item.id]['count'] += 1
+
+    grouped_items = list(grouped.values())
+
+    return render(request, 'player_site_app/dungeon_shop_inv.html', {
+        'player': player,
+        'character': character,
+        'active_character': character,
+        'current_page': 'dungeon_shop_inv',
+        'owned_items': owned_records,
+        'grouped_items': grouped_items,
+        'total_owned_count': owned_records.count(),
+    })
+
+
+@login_required(login_url='player_site_app:index')
 def esence_buy(request):
     if request.method == 'POST':
-        item_id = int(request.POST.get('item_id'))
-        item_category = str(request.POST.get('item_category'))
-        item_rarity = str(request.POST.get('item_rarity'))
-        item_cost = int(request.POST.get('item_cost'))
-        player_id = int(request.POST.get('player_id'))
+        item_id = request.POST.get('item_id')
+        player_id = request.POST.get('player_id')
 
-        player = Player.objects.get(id=player_id)
+        try:
+            item_id = int(item_id)
+            player_id = int(player_id) if player_id else request.user.player.id
+            player = get_object_or_404(Player, id=player_id)
 
-        if item_category == 'treasures':
-            this_item = Esence_Items_Shop.objects.get(id=item_id)
-            if player.temna_esence >= int(this_item.cost):
-                player.temna_esence -= int(this_item.cost)
+            # Bezpečnostní kontrola vlastníka
+            if hasattr(request.user, 'player') and request.user.player.id != player.id and not request.user.is_staff:
+                messages.error(request, 'Neoprávněná akce!')
+                return redirect('player_site_app:dungeon_shop')
+
+            this_item = get_object_or_404(Esence_Items_Shop, id=item_id)
+            cost = int(this_item.cost or 0)
+
+            # Kosmetické předměty (rámečky, pozadí) stačí vlastnit jednou
+            if this_item.category in ['borders', 'backgrounds'] and Esence_Items_Owners.objects.filter(player=player, item=this_item).exists():
+                messages.warning(request, f'Předmět „{this_item.name}“ už ve své sbírce vlastníš!')
+                return redirect('player_site_app:dungeon_shop')
+
+            if player.temna_esence >= cost:
+                player.temna_esence -= cost
                 player.save()
-                
+
                 Esence_Items_Owners.objects.create(
-                    player_id=player_id,
-                    item_id=this_item.id,
+                    player=player,
+                    item=this_item,
                 )
-                messages.success(request, 'Předmět úspěšně zakoupen!')
-                return redirect('player_site_app:dungeon_shop')
+                messages.success(request, f'Předmět „{this_item.name}“ byl úspěšně zakoupen!')
             else:
-                messages.error(request, 'Nemáš dostatek esencí!')
-                return redirect('player_site_app:dungeon_shop')
-        else:
+                messages.error(request, 'Nemáš dostatek temné esence!')
+        except Exception:
             messages.error(request, 'Chybně zadané hodnoty!')
-            return redirect('player_site_app:dungeon_shop')
+
+        return redirect('player_site_app:dungeon_shop')
     else:
         messages.error(request, 'Chybně zadané hodnoty!')
         return redirect('player_site_app:dungeon_shop')

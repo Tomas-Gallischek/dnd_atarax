@@ -1,0 +1,118 @@
+{% extends "player_site_app/player_base.html" %}
+
+{% block title %}DnD Atarax - Inventář Dungeon Shopu{% endblock %}
+
+{% block player_content %}
+<!-- Hlavička stránky se zobrazením temné esence -->
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>🎒</span> Inventář Dungeon Shopu</h1>
+        <p class="atarax-header-subtitle">Přehled všech tvých zakoupených předmětů a truhel.</p>
+    </div>
+
+    <!-- Množství temné esence hráče -->
+    <div class="essence-box">
+        <div>
+            <div class="essence-label">Temná esence hráče</div>
+            <div class="essence-value">{{ player.temna_esence|default:0 }} <span class="essence-currency-unit">TE</span></div>
+        </div>
+        <div class="essence-icon">🔮</div>
+    </div>
+</div>
+
+<!-- Navigační lišta: Tlačítko zpět do obchodu -->
+<div class="shop-nav-toolbar">
+    <a href="{% url 'player_site_app:dungeon_shop' %}" class="btn-shop-back">
+        <span class="btn-shop-back-icon">⬅️</span>
+        <span>Zpět do Dungeon Shopu</span>
+    </a>
+    <span class="shop-toolbar-meta">
+        Celkem vlastněno: <strong>{{ total_owned_count|default:0 }}</strong> {% if total_owned_count == 1 %}položka{% elif total_owned_count >= 2 and total_owned_count <= 4 %}položky{% else %}položek{% endif %}
+    </span>
+</div>
+
+<!-- Systémové zprávy -->
+{% if messages %}
+<div class="dm-messages-container">
+    {% for message in messages %}
+        <div class="dm-message dm-message-{{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Přehled zakoupených položek -->
+<div class="atarax-card">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title">
+            <span>📦</span> Moje sbírka a inventář
+        </h2>
+    </div>
+
+    {% if grouped_items %}
+        <div class="fantasy-shop-grid">
+            {% for entry in grouped_items %}
+                <div class="fantasy-shop-card rarity-card-{{ entry.item.rarity }}">
+                    <!-- Kategorie, rarita a počet kusů -->
+                    <div class="shop-card-badge-row">
+                        <span class="shop-rarity-pill pill-{{ entry.item.rarity }}">
+                            {{ entry.item.get_rarity_display }}
+                        </span>
+                        
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span class="shop-category-tag">
+                                {{ entry.item.get_category_display }}
+                            </span>
+                            {% if entry.count > 1 %}
+                                <span class="inv-count-badge" title="Počet kusů">{{ entry.count }}×</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Náhledový obrázek v rámečku -->
+                    <div class="shop-item-frame frame-{{ entry.item.rarity }}">
+                        {% if entry.item.image %}
+                            <img src="{{ entry.item.image.url }}" alt="{{ entry.item.name }}" class="shop-item-img" loading="lazy">
+                        {% else %}
+                            <div class="shop-item-placeholder">
+                                <span>📦</span>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Svítící název předmětu podle rarity -->
+                    <div class="shop-item-info">
+                        <h3 class="shop-item-name title-glow-{{ entry.item.rarity }}">
+                            {{ entry.item.name }}
+                        </h3>
+                    </div>
+
+                    <!-- Stavová lišta položky -->
+                    <div class="inv-status-bar">
+                        {% if player.active_ramecek and player.active_ramecek.item_id == entry.item.id %}
+                            <span class="inv-equipped-badge">✨ Aktivní rámeček</span>
+                        {% elif entry.item.category == 'treasures' %}
+                            <span>📦 Vlastněno: <strong>{{ entry.count }} ks</strong></span>
+                        {% else %}
+                            <span>✅ Získáno do sbírky</span>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Prázdný stav, pokud hráč nic nevlastní -->
+        <div class="empty-shop-state">
+            <div class="empty-shop-icon">🎒</div>
+            <h3 class="empty-shop-title">Tvůj inventář ze shopu je zatím prázdný</h3>
+            <p class="empty-shop-desc">Dosud jsi nezakoupil žádné truhly ani kosmetické předměty. Navštiv Dungeon Shop a utrať svou temnou esenci!</p>
+            <a href="{% url 'player_site_app:dungeon_shop' %}" class="btn-shop-inv">
+                <span class="btn-shop-inv-icon">🔮</span>
+                <span>Přejít do Dungeon Shopu</span>
+                <span class="btn-shop-inv-arrow">➔</span>
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
