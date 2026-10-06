@@ -34,12 +34,16 @@
     </div>
     <p class="dm-item-desc">
         {% for treasure in treasures %}
-            <form action="{% url 'player_site_app:esence_shop' %}" method="post">
+            <form action="{% url 'player_site_app:esence_buy' %}" method="post">
                 {% csrf_token %}
                 <input type="hidden" name="item" value="treasure">
                 <input type="hidden" name="rarity" value="{{ treasure.rarity }}">
                 <input type="hidden" name="player_id" value="{{player.id}}">
-                <button type="submit">{{ treasure.name }}</button>
+                {% if player.temna_esence >= treasure.cost %}
+                    <button type="submit">{{ treasure.name }} - Cena: {{ treasure.cost }} 🔮</button>
+                {% else %}
+                    <button type="submit" disabled>{{ treasure.name }} - Nedostatečný počet esencí</button>
+                {% endif %}
             </form>
         {% endfor %}
     </p>

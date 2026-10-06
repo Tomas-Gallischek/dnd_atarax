@@ -44,4 +44,5 @@ urlpatterns = [
 
     # 10. dungeon_shop.html
     path('dungeon-shop/', views.dungeon_shop_view, name='dungeon_shop'),
+    path('esence_buy/', views.esence_buy, name='esence_buy'),
 ]

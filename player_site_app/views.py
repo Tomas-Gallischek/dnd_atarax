@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Player, Char_info, Achivements_players, Achivements_database, Esence_Items_Shop
+from .models import Player, Char_info, Achivements_players, Achivements_database, Esence_Items_Shop, Esence_Items_Owners
 from .forms import PlayerLoginForm, PlayerRegistrationForm
 from dnd_atarax.terminal import log_player, log_warning, log_info
 from dm_site_app.models import Items_Active
@@ -251,3 +251,39 @@ def dungeon_shop_view(request):
         'current_page': 'dungeon_shop',
         'treasures': treasures,
     })
+
+
+def esence_buy(request):
+    if request.method == 'POST':
+        item = request.POST.get('item')
+        rarity = request.POST.get('rarity')
+        player_id = request.POST.get('player_id')
+
+        player = Player.objects.get(id=player_id)
+
+        if item == 'treasure':
+            this_item = Esence_Items_Shop.objects.get(rarity=rarity, category=item)
+            if player.temna_esence >= this_item.cost:
+                player.temna_esence -= this_item.cost
+                player.save()
+                
+                Esence_Items_Owners.objects.create(
+                    player_id=player_id,
+                    item_id=this_item.id,
+                )
+                messages.success(request, 'Předmět úspěšně zakoupen!')
+                return redirect('player_site_app:dungeon_shop')
+            else:
+                messages.error(request, 'Nemáš dostatek esencí!')
+                return redirect('player_site_app:dungeon_shop')
+        else:
+            messages.error(request, 'Chybně zadané hodnoty!')
+            return redirect('player_site_app:dungeon_shop')
+    else:
+        messages.error(request, 'Chybně zadané hodnoty!')
+        return redirect('player_site_app:dungeon_shop')
+
+    
+            
+                
+            
