@@ -1,4 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import JsonResponse
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -333,11 +334,117 @@ def esence_buy(request):
         return redirect('player_site_app:dungeon_shop')
 
     
+# ==============================================================================
+# DROP RATES PRO TRUHLY (Šance v procentech na zisk rarity rámečku)
+# ==============================================================================
+# Každá truhla obsahuje přesně JEDEN rámeček.
+#
+# 1. BĚŽNÁ TRUHLA (basic):
+#    - Běžný rámeček (basic):          80.0 % (800 / 1000)
+#    - Vzácný rámeček (rare):           17.0 % (170 / 1000)
+#    - Epický rámeček (epic):            2.8 % ( 28 / 1000)
+#    - Legendární rámeček (legendary):   0.2 % (  2 / 1000)
+#
+# 2. VZÁCNÁ TRUHLA (rare):
+#    - Běžný rámeček (basic):          50.0 % (500 / 1000)
+#    - Vzácný rámeček (rare):           38.0 % (380 / 1000)
+#    - Epický rámeček (epic):           10.0 % (100 / 1000)
+#    - Legendární rámeček (legendary):   2.0 % ( 20 / 1000)
+#
+# 3. EPICKÁ TRUHLA (epic):
+#    - Běžný rámeček (basic):          25.0 % (250 / 1000)
+#    - Vzácný rámeček (rare):           45.0 % (450 / 1000)
+#    - Epický rámeček (epic):           25.0 % (250 / 1000)
+#    - Legendární rámeček (legendary):   5.0 % ( 50 / 1000)
+#
+# 4. LEGENDÁRNÍ TRUHLA (legendary):
+#    - Běžný rámeček (basic):          10.0 % (100 / 1000)
+#    - Vzácný rámeček (rare):           35.0 % (350 / 1000)
+#    - Epický rámeček (epic):           40.0 % (400 / 1000)
+#    - Legendární rámeček (legendary):  15.0 % (150 / 1000)
+# ==============================================================================
+
+CHEST_DROP_RATES = {
+    'basic': {
+        'basic': 800,       # 80.0 %
+        'rare': 170,        # 17.0 %
+        'epic': 28,         # 2.8 %
+        'legendary': 2,     # 0.2 %
+    },
+    'rare': {
+        'basic': 500,       # 50.0 %
+        'rare': 380,        # 38.0 %
+        'epic': 100,        # 10.0 %
+        'legendary': 20,    # 2.0 %
+    },
+    'epic': {
+        'basic': 250,       # 25.0 %
+        'rare': 450,        # 45.0 %
+        'epic': 250,        # 25.0 %
+        'legendary': 50,    # 5.0 %
+    },
+    'legendary': {
+        'basic': 100,       # 10.0 %
+        'rare': 350,        # 35.0 %
+        'epic': 400,        # 40.0 %
+        'legendary': 150,   # 15.0 %
+    },
+}
+
+
+def get_border_from_treasure(player_id, item_id, rarity, request=None):
+    """
+    Vylosuje právě JEDEN rámeček z truhly na základě její rarity
+    a přidá jej do vlastnictví hráče.
+    """
+    player = get_object_or_404(Player, id=player_id)
+
+    # Získání vah pravděpodobnosti pro danou raritu truhly (výchozí: basic)
+    weights_dict = CHEST_DROP_RATES.get(rarity, CHEST_DROP_RATES['basic'])
+
+    # 1. Losování rarity vyhraného rámečku podle definovaných vah
+    target_rarity = random.choices(
+        population=list(weights_dict.keys()),
+        weights=list(weights_dict.values()),
+        k=1
+    )[0]
+
+    # 2. Výběr rámečků dané vylosované rarity
+    pool = list(Esence_Items_Shop.objects.filter(category="borders", rarity=target_rarity))
+
+    # Záchranný fallback: pokud pro danou raritu není žádný rámeček, vybereme ze všech existujících
+    if not pool:
+        pool = list(Esence_Items_Shop.objects.filter(category="borders"))
+
+    if not pool:
+        return None
+
+    # 3. Každá truhla obsahuje pouze 1 rámeček
+    won_border = random.choice(pool)
+
+    # Uložení do inventáře hráče
+    Esence_Items_Owners.objects.create(
+        player=player,
+        item=won_border,
+    )
+
+    return won_border
+
+
 @login_required(login_url='player_site_app:index')
 def use_treasure(request):
+    """
+    Spotřebuje 1 truhlu z inventáře hráče, vylosuje rámeček
+    a vrátí výsledek (buď jako JSON pro animaci Mimica, nebo přes redirect).
+    """
     if request.method == 'POST':
         item_id = request.POST.get('item_id')
         player_id = request.POST.get('player_id')
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+            'application/json' in request.headers.get('Accept', '') or
+            request.POST.get('ajax') == '1'
+        )
 
         try:
             item_id = int(item_id)
@@ -346,6 +453,8 @@ def use_treasure(request):
 
             # Bezpečnostní kontrola vlastníka
             if hasattr(request.user, 'player') and request.user.player.id != player.id and not request.user.is_staff:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Neoprávněná akce!'}, status=403)
                 messages.error(request, 'Neoprávněná akce!')
                 return redirect('player_site_app:dungeon_shop_inv')
 
@@ -359,60 +468,40 @@ def use_treasure(request):
                 treasure_name = treasure_owner_record.item.name
                 rarity = treasure_owner_record.item.rarity
 
-                won_items = get_border_from_treasure(player.id, item_id, rarity, request=request)
+                won_border = get_border_from_treasure(player.id, item_id, rarity, request=request)
                 treasure_owner_record.delete()
 
-                if won_items:
-                    counts = {}
-                    for item in won_items:
-                        counts[item.name] = counts.get(item.name, 0) + 1
-                    items_str = ", ".join([f"{name} ({count}×)" if count > 1 else name for name, count in counts.items()])
-                    messages.success(request, f'Truhla „{treasure_name}“ byla otevřena! Získal jsi: {items_str}.')
+                if won_border:
+                    if is_ajax:
+                        return JsonResponse({
+                            'success': True,
+                            'chest_name': treasure_name,
+                            'chest_rarity': rarity,
+                            'border': {
+                                'id': won_border.id,
+                                'name': won_border.name,
+                                'rarity': won_border.rarity,
+                                'rarity_display': won_border.get_rarity_display(),
+                                'image_url': won_border.image.url if won_border.image else '',
+                                'category': won_border.category,
+                                'category_display': won_border.get_category_display(),
+                            }
+                        })
+                    messages.success(request, f'Truhla „{treasure_name}“ byla otevřena! Získal jsi rámeček: {won_border.name}.')
                 else:
+                    if is_ajax:
+                        return JsonResponse({'success': False, 'error': 'Z truhly se nepodařilo nic vylosovat.'}, status=400)
                     messages.success(request, f'Předmět „{treasure_name}“ byl úspěšně spotřebován!')
             else:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Předmět nebyl ve tvém inventáři nalezen!'}, status=404)
                 messages.error(request, 'Předmět nebyl ve tvém inventáři nalezen!')
 
         except Exception:
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': 'Chyba při použití předmětu!'}, status=500)
             messages.error(request, 'Chyba při použití předmětu!')
 
         return redirect('player_site_app:dungeon_shop_inv')
 
     return redirect('player_site_app:dungeon_shop_inv')
-
-
-def get_border_from_treasure(player_id, item_id, rarity, request=None):
-    player = get_object_or_404(Player, id=player_id)
-
-    if rarity == "basic":
-        max_rolls = 2
-        rarities = ["basic"]
-    elif rarity == "rare":
-        max_rolls = 3
-        rarities = ["basic", "rare"]
-    elif rarity == "epic":
-        max_rolls = 4
-        rarities = ["basic", "rare", "epic"]
-    elif rarity == "legendary":
-        max_rolls = 5
-        rarities = ["basic", "rare", "epic", "legendary"]
-    else:
-        return []
-
-    pool = list(Esence_Items_Shop.objects.filter(category="borders", rarity__in=rarities))
-    if not pool:
-        return []
-
-    num_rolls = random.randint(1, max_rolls)
-    won_items = []
-
-    for roll in range(num_rolls):
-        print(f"Zahájení losování, roll {roll + 1}/{num_rolls}")
-        border = random.choice(pool)
-        Esence_Items_Owners.objects.create(
-            player=player,
-            item=border,
-        )
-        won_items.append(border)
-
-    return won_items

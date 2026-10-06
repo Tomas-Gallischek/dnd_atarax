@@ -125,4 +125,194 @@
         </div>
     {% endif %}
 </div>
+
+<!-- ==========================================================================
+     EPICKÝ MIMIC MODAL PRO OTEVÍRÁNÍ TRUHEL (ANIMACE)
+     ========================================================================== -->
+<div id="mimicOpeningModal" class="mimic-modal" style="display: none;" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="mimic-modal-dimmer"></div>
+
+    <div class="mimic-stage-wrapper">
+        <!-- Magická portálová aura -->
+        <div class="mimic-portal-glow" id="mimicPortalGlow"></div>
+
+        <!-- 1. FÁZE: MIMIC OTEVÍRÁNÍ A CHVĚNÍ -->
+        <div class="mimic-actor-box" id="mimicActorBox">
+            <div class="mimic-shadow"></div>
+            <img src="/media/esence_items/mimic.webp" alt="Mimic" class="mimic-creature-img" id="mimicCreatureImg">
+            <div class="mimic-shockwave" id="mimicShockwave"></div>
+        </div>
+
+        <!-- Popisky stavu -->
+        <div class="mimic-status-box" id="mimicStatusBox">
+            <div class="mimic-status-title" id="mimicStatusTitle">🗡️ Otevírání truhly...</div>
+            <div class="mimic-status-desc" id="mimicStatusDesc">Něco se uvnitř hýbe...</div>
+        </div>
+
+        <!-- 2. FÁZE: VYLOSOVANÝ POKLAD (KARTA S VÝSLEDKEM) -->
+        <div class="mimic-loot-reveal" id="mimicLootReveal" style="display: none;">
+            <div class="loot-sunburst-rays" id="lootSunburstRays"></div>
+
+            <div class="loot-award-card" id="lootAwardCard">
+                <span class="loot-award-headline">✨ NOVÝ PŘEDMĚT DO SBÍRKY! ✨</span>
+                <span class="loot-award-badge" id="lootAwardBadge">BĚŽNÁ</span>
+
+                <div class="loot-award-frame" id="lootAwardFrame">
+                    <img src="" alt="" class="loot-award-img" id="lootAwardImg">
+                </div>
+
+                <div class="loot-award-info">
+                    <h2 class="loot-award-title" id="lootAwardTitle">Rámeček</h2>
+                    <span class="loot-award-category" id="lootAwardCategory">Rámeček profilu</span>
+                </div>
+
+                <button type="button" class="btn-save-loot" id="btnSaveLoot">
+                    <span>💾</span> Uložit do inventáře
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('mimicOpeningModal');
+    const actorBox = document.getElementById('mimicActorBox');
+    const creatureImg = document.getElementById('mimicCreatureImg');
+    const shockwave = document.getElementById('mimicShockwave');
+    const statusBox = document.getElementById('mimicStatusBox');
+    const statusTitle = document.getElementById('mimicStatusTitle');
+    const statusDesc = document.getElementById('mimicStatusDesc');
+    const lootReveal = document.getElementById('mimicLootReveal');
+    const sunburstRays = document.getElementById('lootSunburstRays');
+    const awardCard = document.getElementById('lootAwardCard');
+    const awardBadge = document.getElementById('lootAwardBadge');
+    const awardFrame = document.getElementById('lootAwardFrame');
+    const awardImg = document.getElementById('lootAwardImg');
+    const awardTitle = document.getElementById('lootAwardTitle');
+    const awardCategory = document.getElementById('lootAwardCategory');
+    const btnSaveLoot = document.getElementById('btnSaveLoot');
+
+    // Interceptování formulářů pro použití truhel
+    const forms = document.querySelectorAll('.inv-treasure-form');
+    forms.forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const submitBtn = form.querySelector('button[type="submit"]');
+            if (submitBtn) submitBtn.disabled = true;
+
+            const formData = new FormData(form);
+            formData.append('ajax', '1');
+
+            // 1. Zobrazení modalu a start napínavé animace
+            modal.style.display = 'flex';
+            modal.classList.remove('closing');
+            actorBox.style.display = 'flex';
+            statusBox.style.display = 'block';
+            lootReveal.style.display = 'none';
+
+            // Reset tříd Mimica
+            creatureImg.className = 'mimic-creature-img rumbling';
+            shockwave.className = 'mimic-shockwave';
+
+            statusTitle.textContent = '🗡️ Otevírání truhly...';
+            statusDesc.textContent = 'Něco se uvnitř hýbe...';
+
+            const animationStartTime = Date.now();
+
+            // Změna textu po 600 ms na odhalení Mimica
+            const t1 = setTimeout(() => {
+                statusTitle.textContent = '⚠️ POZOR! Truhla ožila...';
+                statusDesc.textContent = 'Je to divoký MIMIC!';
+            }, 650);
+
+            // AJAX volání na backend
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.border) {
+                    const elapsed = Date.now() - animationStartTime;
+                    const remainingDelay = Math.max(0, 1600 - elapsed);
+
+                    // Počkej na dokončení chvění (min. 1.6s celkem)
+                    setTimeout(() => {
+                        // 2. FÁZE: Mimic lunguje a exploduje tlaková vlna
+                        statusTitle.textContent = '💥 MIMIC byl poražen!';
+                        statusDesc.textContent = 'Vydal svůj skrytý poklad...';
+
+                        shockwave.classList.add('active');
+                        creatureImg.classList.remove('rumbling');
+                        creatureImg.classList.add('lunging');
+
+                        // 3. FÁZE: Zobrazení karty získaného rámečku
+                        setTimeout(() => {
+                            actorBox.style.display = 'none';
+                            statusBox.style.display = 'none';
+
+                            // Nastavení detailů karty podle rarity
+                            const border = data.border;
+                            const rarity = border.rarity || 'basic';
+
+                            awardCard.className = `loot-award-card rarity-card-${rarity}`;
+                            sunburstRays.className = `loot-sunburst-rays rays-${rarity}`;
+
+                            awardBadge.textContent = border.rarity_display || rarity.toUpperCase();
+                            awardBadge.className = `loot-award-badge shop-rarity-pill pill-${rarity}`;
+
+                            awardTitle.textContent = border.name;
+                            awardTitle.className = `loot-award-title title-glow-${rarity}`;
+
+                            awardCategory.textContent = border.category_display || 'Rámeček profilu';
+
+                            if (border.image_url) {
+                                awardImg.src = border.image_url;
+                                awardImg.alt = border.name;
+                                awardImg.style.display = 'block';
+                            } else {
+                                awardImg.style.display = 'none';
+                            }
+
+                            awardFrame.className = `loot-award-frame frame-${rarity}`;
+
+                            lootReveal.style.display = 'flex';
+                        }, 550);
+
+                    }, remainingDelay);
+                } else {
+                    // Chybová hláška z backendu
+                    statusTitle.textContent = '❌ Chyba při otevírání!';
+                    statusDesc.textContent = data.error || 'Něco se nepovedlo.';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1800);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                // V případě chyby sítě fallback na běžný submit
+                form.submit();
+            });
+        });
+    });
+
+    // Tlačítko ULOŽIT -> plynulé zavření a reload inventáře
+    if (btnSaveLoot) {
+        btnSaveLoot.addEventListener('click', function() {
+            modal.classList.add('closing');
+            setTimeout(() => {
+                // Přechod zpět na přehled inventáře s aktualizovanými položkami
+                window.location.href = "{% url 'player_site_app:dungeon_shop_inv' %}";
+            }, 250);
+        });
+    }
+});
+</script>
 {% endblock %}

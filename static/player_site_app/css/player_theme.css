@@ -1068,3 +1068,382 @@
     margin: 0 auto 1.5rem auto;
 }
 
+/* ==========================================================================
+   Mimic Chest Opening Animation & Loot Reveal Modal
+   ========================================================================== */
+
+.mimic-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: hidden;
+    animation: mimicModalFadeIn 0.3s ease-out forwards;
+}
+
+@keyframes mimicModalFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.mimic-modal.closing {
+    animation: mimicModalFadeOut 0.3s ease-in forwards;
+}
+
+@keyframes mimicModalFadeOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.95); }
+}
+
+.mimic-modal-dimmer {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, rgba(18, 12, 28, 0.95) 0%, rgba(4, 3, 7, 0.98) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+}
+
+.mimic-stage-wrapper {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+/* Magická aura na pozadí */
+.mimic-portal-glow {
+    position: absolute;
+    top: 40%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 380px;
+    height: 380px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.4) 0%, rgba(124, 58, 237, 0.2) 50%, transparent 70%);
+    filter: blur(30px);
+    pointer-events: none;
+    animation: mimicPortalPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes mimicPortalPulse {
+    0% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.55; }
+    100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.95; }
+}
+
+/* 1. FÁZE: MIMIC BOX & SHAKING */
+.mimic-actor-box {
+    position: relative;
+    width: 320px;
+    height: 290px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.mimic-shadow {
+    position: absolute;
+    bottom: 10px;
+    width: 220px;
+    height: 28px;
+    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.85) 0%, transparent 75%);
+    border-radius: 50%;
+}
+
+.mimic-creature-img {
+    max-width: 100%;
+    max-height: 270px;
+    object-fit: contain;
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 25px rgba(168, 85, 247, 0.4));
+    position: relative;
+    z-index: 2;
+    transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+/* Chvění a probuzení Mimica */
+.mimic-creature-img.rumbling {
+    animation: mimicViolentRumble 1.4s infinite cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.9)) drop-shadow(0 0 35px rgba(239, 68, 68, 0.7)) drop-shadow(0 0 50px rgba(168, 85, 247, 0.8));
+}
+
+@keyframes mimicViolentRumble {
+    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+    10% { transform: translate(-6px, -4px) rotate(-4deg) scale(1.03); }
+    20% { transform: translate(6px, 3px) rotate(4deg) scale(1.06); }
+    30% { transform: translate(-7px, 4px) rotate(-5deg) scale(1.09); }
+    40% { transform: translate(8px, -5px) rotate(5deg) scale(1.12); }
+    50% { transform: translate(-9px, 5px) rotate(-6deg) scale(1.15); }
+    60% { transform: translate(9px, -6px) rotate(6deg) scale(1.18); }
+    70% { transform: translate(-10px, 6px) rotate(-7deg) scale(1.22); }
+    80% { transform: translate(11px, -7px) rotate(7deg) scale(1.25); }
+    90% { transform: translate(-8px, 5px) rotate(-5deg) scale(1.28); }
+    100% { transform: translate(0, 0) rotate(0deg) scale(1.3); }
+}
+
+/* Výpad / exploze Mimica */
+.mimic-creature-img.lunging {
+    animation: mimicLungeBurst 0.55s ease-out forwards;
+}
+
+@keyframes mimicLungeBurst {
+    0% { transform: scale(1.3) rotate(0deg); opacity: 1; }
+    50% { transform: scale(1.5) translateY(-25px) rotate(-3deg); opacity: 1; filter: drop-shadow(0 0 60px #ffffff); }
+    100% { transform: scale(0.3) translateY(60px); opacity: 0; filter: blur(12px); }
+}
+
+/* Tlaková vlna při otevření */
+.mimic-shockwave {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid rgba(245, 158, 11, 0.9);
+    box-shadow: 0 0 30px rgba(168, 85, 247, 0.9), inset 0 0 30px rgba(245, 158, 11, 0.8);
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.2);
+}
+
+.mimic-shockwave.active {
+    animation: shockwaveExpand 0.75s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+@keyframes shockwaveExpand {
+    0% { opacity: 1; transform: scale(0.2); }
+    50% { opacity: 0.9; transform: scale(6); border-width: 6px; }
+    100% { opacity: 0; transform: scale(12); border-width: 1px; }
+}
+
+/* Status info text */
+.mimic-status-box {
+    margin-top: 0.5rem;
+    transition: opacity 0.3s ease;
+}
+
+.mimic-status-title {
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #fef08a;
+    text-shadow: 0 0 16px rgba(245, 158, 11, 0.8), 0 2px 6px rgba(0, 0, 0, 0.9);
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+}
+
+.mimic-status-desc {
+    font-size: 1rem;
+    color: var(--amethyst-300);
+    font-weight: 500;
+}
+
+/* 2. FÁZE: LOOT REVEAL CARD */
+.mimic-loot-reveal {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: lootCardEntrance 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes lootCardEntrance {
+    0% { opacity: 0; transform: scale(0.3) translateY(60px); filter: blur(10px); }
+    70% { opacity: 1; transform: scale(1.06) translateY(-8px); filter: blur(0); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Paprsky za kartou (Sunburst) */
+.loot-sunburst-rays {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 480px;
+    height: 480px;
+    border-radius: 50%;
+    opacity: 0.85;
+    pointer-events: none;
+    z-index: 1;
+    animation: sunburstRotate 16s linear infinite;
+}
+
+@keyframes sunburstRotate {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.loot-sunburst-rays.rays-legendary {
+    background: repeating-conic-gradient(
+        from 0deg,
+        rgba(245, 158, 11, 0.25) 0deg 15deg,
+        transparent 15deg 30deg
+    );
+}
+
+.loot-sunburst-rays.rays-epic {
+    background: repeating-conic-gradient(
+        from 0deg,
+        rgba(168, 85, 247, 0.25) 0deg 15deg,
+        transparent 15deg 30deg
+    );
+}
+
+.loot-sunburst-rays.rays-rare {
+    background: repeating-conic-gradient(
+        from 0deg,
+        rgba(56, 189, 248, 0.25) 0deg 15deg,
+        transparent 15deg 30deg
+    );
+}
+
+.loot-sunburst-rays.rays-basic {
+    background: repeating-conic-gradient(
+        from 0deg,
+        rgba(148, 163, 184, 0.2) 0deg 15deg,
+        transparent 15deg 30deg
+    );
+}
+
+/* Samotná karta vyhraného předmětu */
+.loot-award-card {
+    position: relative;
+    z-index: 3;
+    width: 100%;
+    background: linear-gradient(180deg, #1c152a 0%, #100c18 100%);
+    border: 2px solid var(--border-gold);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 35px var(--glow-color, rgba(245, 158, 11, 0.4));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.loot-award-card.rarity-card-basic {
+    border-color: rgba(148, 163, 184, 0.5);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 25px rgba(148, 163, 184, 0.3);
+}
+
+.loot-award-card.rarity-card-rare {
+    border-color: rgba(56, 189, 248, 0.7);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 30px rgba(56, 189, 248, 0.45);
+}
+
+.loot-award-card.rarity-card-epic {
+    border-color: rgba(168, 85, 247, 0.75);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 35px rgba(168, 85, 247, 0.5);
+}
+
+.loot-award-card.rarity-card-legendary {
+    border-color: rgba(245, 158, 11, 0.85);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 45px rgba(245, 158, 11, 0.6);
+}
+
+.loot-award-headline {
+    font-size: 0.76rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--gold-400);
+    margin-bottom: 0.35rem;
+    display: block;
+}
+
+.loot-award-badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 1.15rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+}
+
+.loot-award-frame {
+    width: 100%;
+    height: 180px;
+    background: radial-gradient(circle at center, rgba(38, 30, 54, 0.9) 0%, rgba(13, 11, 18, 0.98) 100%);
+    border-radius: var(--radius-md);
+    border: 2px solid var(--frame-border, #3d3350);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    margin-bottom: 1.15rem;
+    overflow: hidden;
+    box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.9);
+}
+
+.loot-award-img {
+    max-width: 100%;
+    max-height: 155px;
+    object-fit: contain;
+    filter: drop-shadow(0 10px 20px rgba(0, 0, 0, 0.9));
+    animation: lootImgFloat 3s ease-in-out infinite;
+}
+
+@keyframes lootImgFloat {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-5px) scale(1.04); }
+}
+
+.loot-award-title {
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 800;
+    margin: 0 0 4px 0;
+    letter-spacing: 0.5px;
+}
+
+.loot-award-category {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    display: block;
+    margin-bottom: 1.4rem;
+}
+
+/* Tlačítko ULOŽIT */
+.btn-save-loot {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff;
+    font-family: var(--font-sans);
+    font-size: 1.05rem;
+    font-weight: 800;
+    border: 1px solid rgba(16, 185, 129, 0.7);
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4), 0 0 15px rgba(16, 185, 129, 0.3);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: btnSavePulse 2s infinite;
+}
+
+@keyframes btnSavePulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4); }
+    50% { transform: scale(1.02); box-shadow: 0 8px 26px rgba(16, 185, 129, 0.65), 0 0 20px rgba(16, 185, 129, 0.5); }
+}
+
+.btn-save-loot:hover {
+    background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+    border-color: #6ee7b7;
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 8px 28px rgba(16, 185, 129, 0.65);
+}
+
+
