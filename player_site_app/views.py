@@ -6,6 +6,7 @@ from .models import Player, Char_info, Achivements_players, Achivements_database
 from .forms import PlayerLoginForm, PlayerRegistrationForm
 from dnd_atarax.terminal import log_player, log_warning, log_info
 from dm_site_app.models import Items_Active
+import random
 
 
 def get_player_and_character(request, char_id=None):
@@ -355,9 +356,20 @@ def use_treasure(request):
             ).first()
 
             if treasure_owner_record:
-                item_name = treasure_owner_record.item.name
+                treasure_name = treasure_owner_record.item.name
+                rarity = treasure_owner_record.item.rarity
+
+                won_items = get_border_from_treasure(player.id, item_id, rarity, request=request)
                 treasure_owner_record.delete()
-                messages.success(request, f'Předmět „{item_name}“ byl úspěšně spotřebován!')
+
+                if won_items:
+                    counts = {}
+                    for item in won_items:
+                        counts[item.name] = counts.get(item.name, 0) + 1
+                    items_str = ", ".join([f"{name} ({count}×)" if count > 1 else name for name, count in counts.items()])
+                    messages.success(request, f'Truhla „{treasure_name}“ byla otevřena! Získal jsi: {items_str}.')
+                else:
+                    messages.success(request, f'Předmět „{treasure_name}“ byl úspěšně spotřebován!')
             else:
                 messages.error(request, 'Předmět nebyl ve tvém inventáři nalezen!')
 
@@ -367,10 +379,40 @@ def use_treasure(request):
         return redirect('player_site_app:dungeon_shop_inv')
 
     return redirect('player_site_app:dungeon_shop_inv')
-         
-
-        
-            
 
 
-    
+def get_border_from_treasure(player_id, item_id, rarity, request=None):
+    player = get_object_or_404(Player, id=player_id)
+
+    if rarity == "basic":
+        max_rolls = 2
+        rarities = ["basic"]
+    elif rarity == "rare":
+        max_rolls = 3
+        rarities = ["basic", "rare"]
+    elif rarity == "epic":
+        max_rolls = 4
+        rarities = ["basic", "rare", "epic"]
+    elif rarity == "legendary":
+        max_rolls = 5
+        rarities = ["basic", "rare", "epic", "legendary"]
+    else:
+        return []
+
+    pool = list(Esence_Items_Shop.objects.filter(category="borders", rarity__in=rarities))
+    if not pool:
+        return []
+
+    num_rolls = random.randint(1, max_rolls)
+    won_items = []
+
+    for roll in range(num_rolls):
+        print(f"Zahájení losování, roll {roll + 1}/{num_rolls}")
+        border = random.choice(pool)
+        Esence_Items_Owners.objects.create(
+            player=player,
+            item=border,
+        )
+        won_items.append(border)
+
+    return won_items
