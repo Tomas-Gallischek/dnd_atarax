@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Player, Char_info, Achivements_database, Achivements_players, Logs, Esence_Items_Shop, Esence_Items_Owners
+from .models import Player, Char_info, Achivements_database, Achivements_players, Logs, Esence_Items_Shop, Esence_Items_Owners, CharBackstory, CharNotes
 
 
 from dm_site_app.models import Items_Active
@@ -384,3 +384,12 @@ class Esence_Items_OwnersAdmin(admin.ModelAdmin):
                 obj.item.image.url
             )
         return "—"
+
+
+@admin.register(CharBackstory)
+class CharBackstoryAdmin(admin.ModelAdmin):
+    pass
+
+@admin.register(CharNotes)
+class CharNotesAdmin(admin.ModelAdmin):
+    pass
