@@ -39,8 +39,9 @@ urlpatterns = [
     path('statistiky/', views.char_stats_detail_view, name='char_stats_detail'),
     path('statistiky/<int:char_id>/', views.char_stats_detail_view, name='char_stats_detail_detail'),
 
-    # 7. kronika.html
+    # 7. kronika.html & kronika_detail.html
     path('kronika/', views.kronika_view, name='kronika'),
+    path('kronika/<int:entry_id>/', views.kronika_detail_view, name='kronika_detail'),
 
     # 8. prehled_postav.html & všechny postavy družiny (all_chars)
     path('prehled-postav/', views.prehled_postav, name='prehled_postav'),

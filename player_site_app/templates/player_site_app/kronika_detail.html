@@ -1,0 +1,39 @@
+{% extends "player_site_app/player_base.html" %}
+
+{% block title %}DnD Atarax - {{ entry.nazev }}{% endblock %}
+
+{% block player_content %}
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <div class="kronika-detail-top-meta">
+            {% if entry.category == 'info' %}
+                <span class="badge badge-sapphire">ℹ️ Informace</span>
+            {% else %}
+                <span class="badge badge-gold">📜 Příběh / Lore</span>
+            {% endif %}
+            <span class="kronika-detail-date">🗓️ {{ entry.datum_vytvoreni|date:"d. m. Y, H:i" }}</span>
+        </div>
+        <h1 class="kronika-detail-heading">
+            <span>{% if entry.category == 'info' %}ℹ️{% else %}📜{% endif %}</span>
+            {{ entry.nazev }}
+        </h1>
+    </div>
+    <div class="atarax-header-actions">
+        <a href="{% url 'player_site_app:kronika' %}" class="btn btn-outline-sapphire btn-sm">
+            &larr; Zpět na přehled kroniky
+        </a>
+    </div>
+</div>
+
+<article class="atarax-card kronika-detail-card">
+    <div class="kronika-detail-text">
+        {{ entry.popis|linebreaks }}
+    </div>
+
+    <div class="kronika-detail-footer">
+        <a href="{% url 'player_site_app:kronika' %}" class="btn btn-outline-sapphire">
+            &larr; Zpět na přehled všech zápisů
+        </a>
+    </div>
+</article>
+{% endblock %}

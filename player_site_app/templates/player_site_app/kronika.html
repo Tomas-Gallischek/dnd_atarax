@@ -37,16 +37,23 @@
             {% if info_entries %}
                 <div class="kronika-entries-list">
                     {% for item in info_entries %}
-                    <article class="kronika-entry-card entry-type-info">
+                    <article class="kronika-entry-card entry-type-info kronika-card-clickable" data-href="{% url 'player_site_app:kronika_detail' item.id %}">
                         <header class="kronika-entry-header">
                             <span class="badge badge-sapphire">Info</span>
-                            <h3 class="kronika-entry-title">{{ item.nazev }}</h3>
+                            <h3 class="kronika-entry-title">
+                                <a href="{% url 'player_site_app:kronika_detail' item.id %}" class="kronika-title-link">{{ item.nazev }}</a>
+                            </h3>
                             <time class="kronika-entry-date" datetime="{{ item.datum_vytvoreni|date:'c' }}">
                                 🗓️ {{ item.datum_vytvoreni|date:"d. m. Y, H:i" }}
                             </time>
                         </header>
                         <div class="kronika-entry-content">
-                            {{ item.popis|linebreaks }}
+                            <p class="kronika-excerpt-text">{{ item.popis|truncatechars:180 }}</p>
+                        </div>
+                        <div class="kronika-entry-footer">
+                            <a href="{% url 'player_site_app:kronika_detail' item.id %}" class="btn btn-outline-sapphire btn-sm">
+                                <span>Číst celý zápis</span> &rarr;
+                            </a>
                         </div>
                     </article>
                     {% endfor %}
@@ -73,16 +80,23 @@
             {% if lore_entries %}
                 <div class="kronika-entries-list">
                     {% for item in lore_entries %}
-                    <article class="kronika-entry-card entry-type-lore">
+                    <article class="kronika-entry-card entry-type-lore kronika-card-clickable" data-href="{% url 'player_site_app:kronika_detail' item.id %}">
                         <header class="kronika-entry-header">
                             <span class="badge badge-gold">Příběh</span>
-                            <h3 class="kronika-entry-title">{{ item.nazev }}</h3>
+                            <h3 class="kronika-entry-title">
+                                <a href="{% url 'player_site_app:kronika_detail' item.id %}" class="kronika-title-link">{{ item.nazev }}</a>
+                            </h3>
                             <time class="kronika-entry-date" datetime="{{ item.datum_vytvoreni|date:'c' }}">
                                 🗓️ {{ item.datum_vytvoreni|date:"d. m. Y, H:i" }}
                             </time>
                         </header>
                         <div class="kronika-entry-content">
-                            {{ item.popis|linebreaks }}
+                            <p class="kronika-excerpt-text">{{ item.popis|truncatechars:180 }}</p>
+                        </div>
+                        <div class="kronika-entry-footer">
+                            <a href="{% url 'player_site_app:kronika_detail' item.id %}" class="btn btn-outline-gold btn-sm">
+                                <span>Číst celý zápis</span> &rarr;
+                            </a>
                         </div>
                     </article>
                     {% endfor %}
@@ -125,5 +139,19 @@ function switchKronikaTab(tab) {
         btnAll.classList.add('active');
     }
 }
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.kronika-card-clickable').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            if (e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+            var href = this.getAttribute('data-href');
+            if (href) {
+                window.location.href = href;
+            }
+        });
+    });
+});
 </script>
 {% endblock %}

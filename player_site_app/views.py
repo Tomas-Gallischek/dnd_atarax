@@ -461,6 +461,21 @@ def kronika_view(request):
     })
 
 
+@login_required(login_url='player_site_app:index')
+def kronika_detail_view(request, entry_id):
+    """Detail konkrétního zápisu z kroniky kampaně."""
+    player, character = get_player_and_character(request)
+    entry = get_object_or_404(Kronika, id=entry_id, odkryto_hracum=True)
+
+    return render(request, 'player_site_app/kronika_detail.html', {
+        'player': player,
+        'character': character,
+        'active_character': character,
+        'entry': entry,
+        'current_page': 'kronika',
+    })
+
+
 
 @login_required(login_url='player_site_app:index')
 def stream_view(request):

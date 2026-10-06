@@ -416,3 +416,34 @@ class PlayerAuthAndCharacterTests(TestCase):
         self.assertContains(res, 'Bitva o most')
         self.assertNotContains(res, 'Tajné spiknutí')
 
+    def test_kronika_detail_view(self):
+        """Detail zápisu v kronice zobrazí celý text a tlačítko zpět, skryté zápisy vrátí 404."""
+        from dm_site_app.models import Kronika
+
+        entry_revealed = Kronika.objects.create(
+            nazev='Dlouhý zápis z bitvy',
+            category='lore',
+            popis='Zde je velmi dlouhý popis celého sezení, které družina absolvovala.',
+            odkryto_hracum=True
+        )
+        entry_hidden = Kronika.objects.create(
+            nazev='Přísně tajný lore',
+            category='lore',
+            popis='DM příprava pro další sezení.',
+            odkryto_hracum=False
+        )
+
+        self.client.login(username='hrac1', password='tajneheslo123')
+
+        # 1. Odkrytý záznam se zobrazí se všemi detaily a tlačítkem zpět
+        res = self.client.get(reverse('player_site_app:kronika_detail', kwargs={'entry_id': entry_revealed.id}))
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'player_site_app/kronika_detail.html')
+        self.assertContains(res, 'Dlouhý zápis z bitvy')
+        self.assertContains(res, 'Zde je velmi dlouhý popis celého sezení, které družina absolvovala.')
+        self.assertContains(res, reverse('player_site_app:kronika'))
+
+        # 2. Skrytý záznam vrátí 404
+        res_hidden = self.client.get(reverse('player_site_app:kronika_detail', kwargs={'entry_id': entry_hidden.id}))
+        self.assertEqual(res_hidden.status_code, 404)
+
