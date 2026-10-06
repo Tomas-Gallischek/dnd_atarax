@@ -396,7 +396,8 @@ class Logs(models.Model):
 EsenceShopChoices = [
     ('borders', 'Rámečky'),
     ('backgrounds', 'Pozadí'),
-]
+    ('treasures', 'Truhly') # ty pak mohou být taky basic/rare/epic/legendary
+]   
 
 Rarities = [
     ('basic', 'Běžná'),

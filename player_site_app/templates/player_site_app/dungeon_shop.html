@@ -6,7 +6,7 @@
 <div class="atarax-page-header">
     <div class="atarax-header-title-group">
         <h1><span>🛒</span> Dungeon Shop</h1>
-        <p class="atarax-header-subtitle">Obchod s magickými artefakty, výbavou a vylepšeními za zlaťáky i Temnou esenci.</p>
+        <p class="atarax-header-subtitle">Rozhodně ne P2W.</p>
     </div>
 </div>
 
@@ -18,24 +18,10 @@
     </div>
 
     <div class="grid-3">
-        {% if character %}
-        <div class="stat-box">
-            <div class="stat-label">Zlaťáky ({{ character.name }})</div>
-            <div class="stat-value stat-value-gold">{{ character.gold }} zl</div>
-            <div class="stat-sub">Měna postavy</div>
-        </div>
-
-        <div class="stat-box">
-            <div class="stat-label">Stříbrňáky ({{ character.name }})</div>
-            <div class="stat-value stat-value-silver">{{ character.silver }} st</div>
-            <div class="stat-sub">Měna postavy</div>
-        </div>
-        {% endif %}
-
         <div class="stat-box">
             <div class="stat-label">Temná esence hráče</div>
             <div class="stat-value stat-value-essence">{{ player.temna_esence|default:0 }} 🔮</div>
-            <div class="stat-sub">Globální esence účtu</div>
+            <div class="stat-sub">(Platí pro celý účet)</div>
         </div>
     </div>
 </div>
