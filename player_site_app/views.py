@@ -255,16 +255,18 @@ def dungeon_shop_view(request):
 
 def esence_buy(request):
     if request.method == 'POST':
-        item = request.POST.get('item')
-        rarity = request.POST.get('rarity')
-        player_id = request.POST.get('player_id')
+        item_id = int(request.POST.get('item_id'))
+        item_category = str(request.POST.get('item_category'))
+        item_rarity = str(request.POST.get('item_rarity'))
+        item_cost = int(request.POST.get('item_cost'))
+        player_id = int(request.POST.get('player_id'))
 
         player = Player.objects.get(id=player_id)
 
-        if item == 'treasure':
-            this_item = Esence_Items_Shop.objects.get(rarity=rarity, category=item)
-            if player.temna_esence >= this_item.cost:
-                player.temna_esence -= this_item.cost
+        if item_category == 'treasures':
+            this_item = Esence_Items_Shop.objects.get(id=item_id)
+            if player.temna_esence >= int(this_item.cost):
+                player.temna_esence -= int(this_item.cost)
                 player.save()
                 
                 Esence_Items_Owners.objects.create(
