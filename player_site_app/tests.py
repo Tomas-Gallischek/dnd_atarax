@@ -20,7 +20,7 @@ class PlayerAuthAndCharacterTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'player_site_app/login_index.html')
         self.assertContains(response, 'Přihlášení')
-        self.assertContains(response, 'Registrace nového hráče')
+        self.assertContains(response, 'Registrace nového dobrodruha')
         # Pro nepřihlášeného se menu nezobrazuje
         self.assertNotContains(response, 'id="playerNavContainer"')
 
@@ -86,7 +86,7 @@ class PlayerAuthAndCharacterTests(TestCase):
         response = self.client.get(reverse('player_site_app:prehled_postav'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'player_site_app/prehled_postav.html')
-        self.assertContains(response, 'žádná postava')
+        self.assertContains(response, 'žádnou postavu')
 
     def test_prehled_postav_with_characters(self):
         """Vytvořená postava se zobrazí jako klikatelný odkaz vedoucí na char_overview."""
@@ -136,8 +136,6 @@ class PlayerAuthAndCharacterTests(TestCase):
             intelligence=20,
             wisdom=15,
             charisma=16,
-            backstory='Mocná čarodějka z Vengerbergu.',
-            notes='Kouzla: Ohnivá koule, Teleportace.',
             gold=100,
             silver=2,
         )
@@ -149,8 +147,6 @@ class PlayerAuthAndCharacterTests(TestCase):
         self.assertContains(response, 'Kouzelník (Úroveň 10)')
         self.assertContains(response, 'Půlelf')
         self.assertContains(response, '48 / 52')
-        self.assertContains(response, 'Mocná čarodějka z Vengerbergu.')
-        self.assertContains(response, 'Kouzla: Ohnivá koule, Teleportace.')
 
     def test_isolation_between_players(self):
         """Hráč 2 nemůže vidět postavu hráče 1 ani v přehledu, ani v detailu."""
@@ -166,7 +162,7 @@ class PlayerAuthAndCharacterTests(TestCase):
         # V přehledu postav hráče 2 nesmí být postava hráče 1
         response = self.client.get(reverse('player_site_app:prehled_postav'))
         self.assertNotContains(response, 'Ciri z Cintry')
-        self.assertContains(response, 'žádná postava')
+        self.assertContains(response, 'žádnou postavu')
 
         # Pokus o přímé zobrazení detailu postavy cizího hráče vrátí 404
         response_detail = self.client.get(reverse('player_site_app:char_overview', kwargs={'char_id': char1.id}))

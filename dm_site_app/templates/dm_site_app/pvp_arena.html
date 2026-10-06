@@ -566,21 +566,6 @@
                         </div>
                     </div>
 
-                    <!-- Poznámky DM -->
-                    {% if player.notes %}
-                    <div class="modal-block">
-                        <h4 class="modal-block-heading">📝 Poznámky DM k postavě</h4>
-                        <div class="modal-text-content">{{ player.notes|linebreaksbr }}</div>
-                    </div>
-                    {% endif %}
-
-                    <!-- Příběh / Historie postavy -->
-                    {% if player.backstory %}
-                    <div class="modal-block">
-                        <h4 class="modal-block-heading">📜 Historie a příběh postavy</h4>
-                        <div class="modal-text-content">{{ player.backstory|linebreaksbr }}</div>
-                    </div>
-                    {% endif %}
                 </div>
 
             </article>

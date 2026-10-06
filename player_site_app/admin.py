@@ -109,7 +109,7 @@ class CharInfoAdmin(admin.ModelAdmin):
         'armor_class',
     )
     list_filter = ('character_class', 'race', 'level', 'player')
-    search_fields = ('name', 'player__user__username', 'player__nickname', 'backstory')
+    search_fields = ('name', 'player__user__username', 'player__nickname')
     ordering = ('-level', 'name')
     inlines = [ItemsActiveInline]
 
@@ -153,12 +153,6 @@ class CharInfoAdmin(admin.ModelAdmin):
             'fields': (
                 ('strength', 'dexterity', 'constitution'),
                 ('intelligence', 'wisdom', 'charisma'),
-            ),
-        }),
-        ('Příběh a poznámky', {
-            'fields': (
-                'backstory',
-                'notes',
             ),
         }),
     )

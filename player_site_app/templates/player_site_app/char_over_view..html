@@ -138,30 +138,9 @@
     </section>
 </div>
 
-<!-- 4. Příběh a poznámky -->
-<section class="atarax-card">
-    <div class="atarax-card-header">
-        <h2 class="atarax-card-title">
-            <span>📖</span> Příběh a Historie postavy
-        </h2>
-    </div>
-
-    {% if character.backstory %}
-        <div class="dm-item-desc">{{ character.backstory|linebreaks }}</div>
-    {% else %}
-        <p class="no-sources-muted">K této postavě zatím nebyl zaznamenán žádný příběh.</p>
-    {% endif %}
-
-    {% if character.notes %}
-        <hr>
-        <h3 class="atarax-card-title"><span>📝</span> Osobní poznámky</h3>
-        <div class="dm-item-desc">{{ character.notes|linebreaks }}</div>
-    {% endif %}
-
-    <div class="card-meta-footer">
-        Vytvořeno: {{ character.created_at|date:"d.m.Y H:i" }} | Poslední úprava: {{ character.updated_at|date:"d.m.Y H:i" }}
-    </div>
-</section>
+<div class="card-meta-footer mt-3" style="text-align: right; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted, #94a3b8);">
+    Vytvořeno: {{ character.created_at|date:"d.m.Y H:i" }} | Poslední úprava: {{ character.updated_at|date:"d.m.Y H:i" }}
+</div>
 
 {% else %}
 <div class="atarax-empty-state">

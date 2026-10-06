@@ -120,9 +120,7 @@ class Char_info(models.Model):
     wisdom = models.IntegerField(default=10, verbose_name="Moudrost (WIS)")
     charisma = models.IntegerField(default=10, verbose_name="Charisma (CHA)")
 
-    # Příběh, poznámky a časová razítka
-    backstory = models.TextField(blank=True, null=True, verbose_name="Příběh postavy")
-    notes = models.TextField(blank=True, null=True, verbose_name="Poznámky")
+    # Časová razítka
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Poslední úprava")
 
@@ -439,5 +437,65 @@ class Esence_Items_Owners(models.Model):
         return f"{self.item.name} ({self.player})"
         
     
+class CharNotes(models.Model):
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name='notes',
+        verbose_name="Hráč"
+    )
+    character = models.ForeignKey(
+        Char_info,
+        on_delete=models.CASCADE,
+        related_name='char_notes',
+        verbose_name="Postava"
+    )
     
+    note = models.TextField(verbose_name="Poznámka")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Aktualizováno")
+
+    class Meta:
+        verbose_name = "Poznámka hráče"
+        verbose_name_plural = "Poznámky hráčů"
+
+    def __str__(self):
+        return f"{self.player} - {self.note}"
+
+    def save(self, *args, **kwargs):
+        self.updated_at = timezone.now()
+        super().save(*args, **kwargs)
+
+class CharBackstory(models.Model):
+    player = models.ForeignKey(
+        Player,
+        on_delete=models.CASCADE,
+        related_name='backstories',
+        verbose_name="Hráč"
+    )
+    character = models.ForeignKey(
+        Char_info,
+        on_delete=models.CASCADE,
+        related_name='char_backstories',
+        verbose_name="Postava"
+    )
     
+    backstory = models.TextField(verbose_name="Příběh postavy")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Aktualizováno")
+
+    public = models.BooleanField(default=False, verbose_name="Veřejné")
+
+    class Meta:
+        verbose_name = "Příběh postavy"
+        verbose_name_plural = "Příběhy postav"
+
+    def __str__(self):
+        return f"{self.public} - {self.character} - {self.backstory}"
+
+    def save(self, *args, **kwargs):
+        self.updated_at = timezone.now()
+        super().save(*args, **kwargs)
+
+    
+        
