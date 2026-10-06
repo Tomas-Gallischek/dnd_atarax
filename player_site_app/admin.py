@@ -353,8 +353,8 @@ class LogsAdmin(admin.ModelAdmin):
 
 @admin.register(Esence_Items_Shop)
 class Esence_Items_ShopAdmin(admin.ModelAdmin):
-    list_display = ('name', 'category', 'cost', 'image_preview')
-    list_filter = ('category',)
+    list_display = ('name', 'category', 'rarity', 'image_preview')
+    list_filter = ('rarity', 'category')
     search_fields = ('name',)
 
     @admin.display(description='Náhled')

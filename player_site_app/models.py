@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 import random
 
 
-class Player(models.Model):
+class Player(models.Model):     
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -398,14 +398,22 @@ EsenceShopChoices = [
     ('backgrounds', 'Pozadí'),
 ]
 
+Rarities = [
+    ('basic', 'Běžná'),
+    ('rare', 'Vzácná'),
+    ('epic', 'Epická'),
+    ('legendary', 'Legendární'),
+]
+
 class Esence_Items_Shop(models.Model):
     name = models.CharField(max_length=100, verbose_name="Jméno")
     category = models.CharField(max_length=100, verbose_name="Kategorie", choices=EsenceShopChoices)
     image = models.FileField(upload_to='esence_items', verbose_name="Obrázek")
-    cost = models.IntegerField(default=0, verbose_name="Cena")
+    rarity = models.CharField(max_length=100, verbose_name="Rarita", choices=Rarities, default="basic")
+
 
     def __str__(self):
-        return f"{self.name} - {self.category} - {self.cost} Temné Esence"
+        return f"{self.name} - {self.rarity} - {self.category} - {self.cost} Temné Esence"
 
 class Esence_Items_Owners(models.Model):
     player = models.ForeignKey(
