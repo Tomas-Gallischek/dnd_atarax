@@ -20,6 +20,7 @@
     </div>
 
     <div class="atarax-header-actions">
+        <a href="{% url 'player_site_app:all_chars' %}" class="btn btn-outline-sapphire btn-sm"><span>👥</span> Celá družina</a>
         <span class="currency-pill currency-gold">💰 {{ character.gold }} zl</span>
         <span class="currency-pill currency-silver">🪙 {{ character.silver }} st</span>
     </div>
@@ -137,6 +138,127 @@
         </div>
     </section>
 </div>
+
+<!-- 4. Osobní poznámky hráče k postavě -->
+<section class="atarax-card mt-3" id="charNotesSection">
+    <div class="atarax-card-header notes-section-header">
+        <div class="notes-header-left">
+            <h2 class="atarax-card-title">
+                <span>📝</span> Osobní poznámky k postavě
+            </h2>
+            <span class="notes-count-badge">{{ notes|length }} {% if notes|length == 1 %}poznámka{% elif notes|length >= 2 and notes|length <= 4 %}poznámky{% else %}poznámek{% endif %}</span>
+        </div>
+        <button type="button" class="btn btn-gold btn-sm" id="openNoteModalBtn" onclick="toggleNoteEditor()">
+            <span>➕</span> Přidat poznámku
+        </button>
+    </div>
+
+    <!-- Výsuvný editor pro novou poznámku -->
+    <div id="newNoteEditor" class="note-editor-box" style="display: none;">
+        <h3 class="note-editor-title">✨ Nová poznámka</h3>
+        <form method="post" action="{% url 'player_site_app:add_char_note' %}">
+            {% csrf_token %}
+            <input type="hidden" name="char_id" value="{{ character.id }}">
+            <div class="mb-2">
+                <label class="form-label" for="noteTitleInput">Název poznámky</label>
+                <input type="text" id="noteTitleInput" name="title" class="form-control" placeholder="Např. Tajná skrýš v lese, Dluh u hostinského..." maxlength="200" required>
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="noteTextInput">Text poznámky</label>
+                <textarea id="noteTextInput" name="note" class="form-control note-textarea" rows="4" placeholder="Sem napiš podrobnosti, hesla, úkoly nebo informace ze sezení..." required></textarea>
+            </div>
+            <div class="note-editor-actions">
+                <button type="submit" class="btn btn-gold">
+                    <span>💾</span> Uložit poznámku
+                </button>
+                <button type="button" class="btn btn-outline-sapphire" onclick="toggleNoteEditor(false)">
+                    Zrušit
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Seznam poznámek -->
+    {% if notes %}
+        <div class="notes-list-grid">
+            {% for note_item in notes %}
+            <div class="note-card {% if note_item.is_favorite %}is-favorite{% endif %}" id="noteCard{{ note_item.id }}">
+                <div class="note-card-top">
+                    <form method="post" action="{% url 'player_site_app:toggle_favorite_note' note_item.id %}" class="fav-star-form">
+                        {% csrf_token %}
+                        <button type="submit" class="fav-star-btn {% if note_item.is_favorite %}active{% endif %}" title="{% if note_item.is_favorite %}Odebrat z oblíbených{% else %}Přidat do oblíbených{% endif %}">
+                            {% if note_item.is_favorite %}⭐{% else %}☆{% endif %}
+                        </button>
+                    </form>
+                    <h4 class="note-title">{{ note_item.title }}</h4>
+                    <span class="note-date">{{ note_item.updated_at|date:"d.m.Y H:i" }}</span>
+                </div>
+
+                <div class="note-card-body">
+                    <!-- Zkrácený náhled -->
+                    <p class="note-preview-text" id="notePreview{{ note_item.id }}">
+                        {{ note_item.note|truncatechars:120 }}
+                    </p>
+                    <!-- Celý text (skrytý, zobrazí se po rozkliknutí) -->
+                    <div class="note-full-text" id="noteFull{{ note_item.id }}" style="display: none;">
+                        {{ note_item.note|linebreaksbr }}
+                    </div>
+                </div>
+
+                <div class="note-card-bottom">
+                    <button type="button" class="btn-toggle-note" id="noteToggleBtn{{ note_item.id }}" onclick="toggleNoteExpansion('{{ note_item.id }}')">
+                        <span>Číst celé</span> &darr;
+                    </button>
+                    <form method="post" action="{% url 'player_site_app:delete_char_note' note_item.id %}" onsubmit="return confirm('Opravdu chcete smazat poznámku \'{{ note_item.title|escapejs }}\'?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-delete-note" title="Smazat poznámku">
+                            🗑️ Smazat
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-notes-hint">
+            <span class="empty-notes-icon">📝</span>
+            <p>Zatím nemáš k této postavě žádné poznámky. Klikni na <strong>➕ Přidat poznámku</strong> a zapiš si cokoliv důležitého z probíhající hry.</p>
+        </div>
+    {% endif %}
+</section>
+
+<script>
+function toggleNoteEditor(show) {
+    const editor = document.getElementById('newNoteEditor');
+    if (!editor) return;
+    if (show === undefined) {
+        editor.style.display = (editor.style.display === 'none' || editor.style.display === '') ? 'block' : 'none';
+    } else {
+        editor.style.display = show ? 'block' : 'none';
+    }
+    if (editor.style.display === 'block') {
+        const input = document.getElementById('noteTitleInput');
+        if (input) input.focus();
+    }
+}
+
+function toggleNoteExpansion(noteId) {
+    const preview = document.getElementById('notePreview' + noteId);
+    const full = document.getElementById('noteFull' + noteId);
+    const btn = document.getElementById('noteToggleBtn' + noteId);
+    if (!preview || !full || !btn) return;
+
+    if (full.style.display === 'none') {
+        full.style.display = 'block';
+        preview.style.display = 'none';
+        btn.innerHTML = '<span>Zabalit</span> &uarr;';
+    } else {
+        full.style.display = 'none';
+        preview.style.display = 'block';
+        btn.innerHTML = '<span>Číst celé</span> &darr;';
+    }
+}
+</script>
 
 <div class="card-meta-footer mt-3" style="text-align: right; margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted, #94a3b8);">
     Vytvořeno: {{ character.created_at|date:"d.m.Y H:i" }} | Poslední úprava: {{ character.updated_at|date:"d.m.Y H:i" }}

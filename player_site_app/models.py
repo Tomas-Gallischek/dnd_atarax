@@ -521,21 +521,20 @@ class CharNotes(models.Model):
         related_name='char_notes',
         verbose_name="Postava"
     )
-    
-    note = models.TextField(verbose_name="Poznámka")
+    title = models.CharField(max_length=200, default="Nová poznámka", verbose_name="Název poznámky")
+    note = models.TextField(verbose_name="Text poznámky")
+    is_favorite = models.BooleanField(default=False, verbose_name="Oblíbená poznámka")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Aktualizováno")
 
     class Meta:
         verbose_name = "Poznámka hráče"
         verbose_name_plural = "Poznámky hráčů"
+        ordering = ['-is_favorite', '-updated_at']
 
     def __str__(self):
-        return f"{self.player} - {self.note}"
+        return f"{self.character.name} - {self.title} ({self.player})"
 
-    def save(self, *args, **kwargs):
-        self.updated_at = timezone.now()
-        super().save(*args, **kwargs)
 
 class CharBackstory(models.Model):
     player = models.ForeignKey(
@@ -550,23 +549,21 @@ class CharBackstory(models.Model):
         related_name='char_backstories',
         verbose_name="Postava"
     )
-    
+    title = models.CharField(max_length=200, default="Kapitola příběhu", verbose_name="Název zápisu")
     backstory = models.TextField(verbose_name="Příběh postavy")
+    public = models.BooleanField(default=False, verbose_name="Veřejné pro ostatní hráče")
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Aktualizováno")
-
-    public = models.BooleanField(default=False, verbose_name="Veřejné")
 
     class Meta:
         verbose_name = "Příběh postavy"
         verbose_name_plural = "Příběhy postav"
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.public} - {self.character} - {self.backstory}"
+        status = "Veřejné" if self.public else "Soukromé"
+        return f"{self.character.name} - {self.title} [{status}] ({self.player})"
 
-    def save(self, *args, **kwargs):
-        self.updated_at = timezone.now()
-        super().save(*args, **kwargs)
 
     
         

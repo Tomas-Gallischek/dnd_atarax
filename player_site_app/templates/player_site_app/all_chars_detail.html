@@ -1,0 +1,238 @@
+{% extends "player_site_app/player_base.html" %}
+
+{% block title %}DnD Atarax - {{ target_char.name }} (Družina){% endblock %}
+
+{% block player_content %}
+<div class="atarax-page-header char-header-with-avatar">
+    <div class="char-header-avatar-wrap">
+        <img src="{{ target_char.profile_image_url }}" alt="{{ target_char.name }}" class="char-avatar char-avatar-hero">
+        {% if target_char.frame_url %}
+        <img src="{{ target_char.frame_url }}" alt="Rámeček" class="char-avatar-frame" aria-hidden="true">
+        {% endif %}
+    </div>
+
+    <div class="atarax-header-title-group char-header-title-flex">
+        <h1><span>🛡️</span> {{ target_char.name }}</h1>
+        <p class="atarax-header-subtitle">
+            {{ target_char.character_class|default:"Dobrodruh" }} (Úroveň {{ target_char.level }})
+            {% if target_char.race %}&bull; {{ target_char.race }}{% endif %}
+            &bull; Hráč: <strong>{{ target_char.player.nickname|default:target_char.player.user.username }}</strong>
+        </p>
+    </div>
+
+    <div class="atarax-header-actions">
+        <a href="{% url 'player_site_app:all_chars' %}" class="btn btn-outline-sapphire btn-sm">
+            &larr; Zpět na družinu
+        </a>
+    </div>
+</div>
+
+<!-- 1. Bojové statistiky a životy (pouze ke čtení) -->
+<div class="combat-stats-row">
+    <div class="combat-stat-pill stat-ac">
+        <div class="stat-label">Třída zbroje (AC)</div>
+        <div class="stat-value">{{ target_char.armor_class }}</div>
+        <div class="stat-sub">Obranné číslo</div>
+    </div>
+
+    <div class="combat-stat-pill stat-hp">
+        <div class="stat-label">Životy (HP)</div>
+        <div class="stat-value">{{ target_char.hit_points_max }}</div>
+        <div class="stat-sub">Maximální vitalita</div>
+    </div>
+
+    <div class="combat-stat-pill stat-speed">
+        <div class="stat-label">Rychlost pohybu</div>
+        <div class="stat-value">{{ target_char.speed }}</div>
+        <div class="stat-sub">stop / kolo</div>
+    </div>
+</div>
+
+<div class="grid-2 mt-3">
+    <!-- 2. Základní identita (bez financí a esence) -->
+    <section class="atarax-card">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>📜</span> Identita & Zázemí
+            </h2>
+        </div>
+
+        <table class="char-identity-table">
+            <tr>
+                <td class="char-identity-label">Jméno:</td>
+                <td><strong>{{ target_char.name }}</strong></td>
+            </tr>
+            <tr>
+                <td class="char-identity-label">Hráč:</td>
+                <td>{{ target_char.player.nickname|default:target_char.player.user.username }}</td>
+            </tr>
+            <tr>
+                <td class="char-identity-label">Povolání:</td>
+                <td>{{ target_char.character_class|default:"Neuvedeno" }} (Úroveň {{ target_char.level }})</td>
+            </tr>
+            <tr>
+                <td class="char-identity-label">Rasa:</td>
+                <td>{{ target_char.race|default:"Neuvedeno" }}</td>
+            </tr>
+            <tr>
+                <td class="char-identity-label">Zázemí:</td>
+                <td>{{ target_char.background|default:"Neuvedeno" }}</td>
+            </tr>
+            <tr>
+                <td class="char-identity-label">Přesvědčení:</td>
+                <td>{{ target_char.alignment|default:"Neuvedeno" }}</td>
+            </tr>
+            <tr>
+                <td class="char-identity-label">Zkušenosti:</td>
+                <td><span class="badge badge-sapphire">{{ target_char.experience_points }} XP</span></td>
+            </tr>
+        </table>
+    </section>
+
+    <!-- 3. Vlastnosti (Ability Scores) -->
+    <section class="atarax-card">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>⚡</span> Vlastnosti (Ability Scores)
+            </h2>
+        </div>
+
+        <div class="ability-grid">
+            <div class="ability-card">
+                <div class="ability-title">Síla (STR)</div>
+                <div class="ability-score">{{ target_char.strength }}</div>
+                <div class="ability-mod">{{ target_char.str_mod }}</div>
+            </div>
+
+            <div class="ability-card">
+                <div class="ability-title">Obr (DEX)</div>
+                <div class="ability-score">{{ target_char.dexterity }}</div>
+                <div class="ability-mod">{{ target_char.dex_mod }}</div>
+            </div>
+
+            <div class="ability-card">
+                <div class="ability-title">Odl (CON)</div>
+                <div class="ability-score">{{ target_char.constitution }}</div>
+                <div class="ability-mod">{{ target_char.con_mod }}</div>
+            </div>
+
+            <div class="ability-card">
+                <div class="ability-title">Int (INT)</div>
+                <div class="ability-score">{{ target_char.intelligence }}</div>
+                <div class="ability-mod">{{ target_char.int_mod }}</div>
+            </div>
+
+            <div class="ability-card">
+                <div class="ability-title">Mdr (WIS)</div>
+                <div class="ability-score">{{ target_char.wisdom }}</div>
+                <div class="ability-mod">{{ target_char.wis_mod }}</div>
+            </div>
+
+            <div class="ability-card">
+                <div class="ability-title">Cha (CHA)</div>
+                <div class="ability-score">{{ target_char.charisma }}</div>
+                <div class="ability-mod">{{ target_char.cha_mod }}</div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- 4. Úspěchy hrdiny (Achievements) -->
+{% if achievements %}
+<section class="atarax-card mt-3">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title">
+            <span>🏆</span> Získané úspěchy hrdiny
+        </h2>
+        <span class="badge badge-gold">{{ achievements|length }} splněno</span>
+    </div>
+
+    <div class="achievements-mini-grid">
+        {% for ach_player in achievements %}
+        <div class="achievement-mini-badge" title="{{ ach_player.Achivement.description|default:'' }}">
+            <span class="achievement-mini-icon">{{ ach_player.Achivement.icon|default:"🎖️" }}</span>
+            <div class="achievement-mini-info">
+                <strong>{{ ach_player.Achivement.name }}</strong>
+                <small>{{ ach_player.Achivement.category|default:"Úspěch" }}</small>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- 5. VEŘEJNÉ ZÁPISY Z PŘÍBĚHU (BACKSTORY) -->
+<section class="atarax-card mt-3" id="publicBackstorySection">
+    <div class="atarax-card-header">
+        <div class="notes-header-left">
+            <h2 class="atarax-card-title">
+                <span>📖</span> Veřejný příběh a kapitoly postavy
+            </h2>
+            <span class="notes-count-badge">{{ public_backstories|length }} {% if public_backstories|length == 1 %}kapitola{% elif public_backstories|length >= 2 and public_backstories|length <= 4 %}kapitoly{% else %}kapitol{% endif %}</span>
+        </div>
+    </div>
+
+    <p class="atarax-section-subdesc">
+        Záznamy z historie a dobrodružství, které hráč <strong>{{ target_char.player.nickname|default:target_char.player.user.username }}</strong> zpřístupnil celé družině.
+    </p>
+
+    {% if public_backstories %}
+        <div class="notes-list-grid">
+            {% for story in public_backstories %}
+            <div class="note-card is-public-story">
+                <div class="note-card-top">
+                    <span class="badge badge-emerald">🌐 Veřejná kapitola</span>
+                    <h4 class="note-title">{{ story.title }}</h4>
+                    <span class="note-date">{{ story.created_at|date:"d.m.Y H:i" }}</span>
+                </div>
+
+                <div class="note-card-body">
+                    <p class="note-preview-text" id="publicStoryPreview{{ story.id }}">
+                        {{ story.backstory|truncatechars:150 }}
+                    </p>
+                    <div class="note-full-text" id="publicStoryFull{{ story.id }}" style="display: none;">
+                        {{ story.backstory|linebreaksbr }}
+                    </div>
+                </div>
+
+                <div class="note-card-bottom">
+                    <button type="button" class="btn-toggle-note" id="publicStoryBtn{{ story.id }}" onclick="togglePublicStoryExpansion('{{ story.id }}')">
+                        <span>Číst celou kapitolu</span> &darr;
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-notes-hint">
+            <span class="empty-notes-icon">📜</span>
+            <p>Hráč zatím nezveřejnil žádnou kapitolu ze svého příběhu. Jakmile nějaký záznam označí jako veřejný, zobrazí se zde.</p>
+        </div>
+    {% endif %}
+</section>
+
+<script>
+function togglePublicStoryExpansion(storyId) {
+    const preview = document.getElementById('publicStoryPreview' + storyId);
+    const full = document.getElementById('publicStoryFull' + storyId);
+    const btn = document.getElementById('publicStoryBtn' + storyId);
+    if (!preview || !full || !btn) return;
+
+    if (full.style.display === 'none') {
+        full.style.display = 'block';
+        preview.style.display = 'none';
+        btn.innerHTML = '<span>Zabalit</span> &uarr;';
+    } else {
+        full.style.display = 'none';
+        preview.style.display = 'block';
+        btn.innerHTML = '<span>Číst celou kapitolu</span> &darr;';
+    }
+}
+</script>
+
+<div class="mt-4 text-center">
+    <a href="{% url 'player_site_app:all_chars' %}" class="btn btn-outline-sapphire">
+        &larr; Zpět na seznam družiny
+    </a>
+</div>
+{% endblock %}

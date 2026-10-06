@@ -114,3 +114,47 @@ class DMSiteAuthAndNavigationTests(TestCase):
         response = self.client.get(reverse('dm_site_app:index'))
         self.assertNotContains(response, 'id="playerNavContainer"')
         self.assertNotContains(response, 'id="playerNavToggleBtn"')
+
+    def test_kronika_edit_crud(self):
+        """DM může přidat záznam do kroniky, přepnout stav odkrytí a smazat záznam."""
+        from dm_site_app.models import Kronika
+
+        self.client.force_login(self.dm_user)
+
+        # 1. Zobrazení stránky
+        page_res = self.client.get(reverse('dm_site_app:kronika_edit'))
+        self.assertEqual(page_res.status_code, 200)
+        self.assertTemplateUsed(page_res, 'dm_site_app/kronika_edit.html')
+
+        # 2. Přidání záznamu
+        add_res = self.client.post(reverse('dm_site_app:kronika_edit'), {
+            'action': 'add',
+            'nazev': 'Pád hradeb',
+            'category': 'lore',
+            'popis': 'Skřeti prorazili severní bránu.',
+            'odkryto_hracum': 'on',
+        })
+        self.assertEqual(add_res.status_code, 302)
+        entry = Kronika.objects.first()
+        self.assertIsNotNone(entry)
+        self.assertEqual(entry.nazev, 'Pád hradeb')
+        self.assertEqual(entry.category, 'lore')
+        self.assertTrue(entry.odkryto_hracum)
+
+        # 3. Přepnutí odkrytí
+        toggle_res = self.client.post(reverse('dm_site_app:kronika_edit'), {
+            'action': 'toggle_reveal',
+            'entry_id': entry.id,
+        })
+        self.assertEqual(toggle_res.status_code, 302)
+        entry.refresh_from_db()
+        self.assertFalse(entry.odkryto_hracum)
+
+        # 4. Smazání
+        del_res = self.client.post(reverse('dm_site_app:kronika_edit'), {
+            'action': 'delete',
+            'entry_id': entry.id,
+        })
+        self.assertEqual(del_res.status_code, 302)
+        self.assertEqual(Kronika.objects.count(), 0)
+

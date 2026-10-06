@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active, Items_Active, OverAllSettings
+from .models import Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active, Items_Active, OverAllSettings, Kronika
 
 
 @admin.register(Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active)
@@ -20,6 +20,15 @@ class Items_ActiveAdmin(admin.ModelAdmin):
 class OverAllSettingsAdmin(admin.ModelAdmin):
     list_display = ('id', 'loging_active', 'editing_active')
     list_editable = ('loging_active', 'editing_active')
+
+
+@admin.register(Kronika)
+class KronikaAdmin(admin.ModelAdmin):
+    list_display = ('nazev', 'category', 'odkryto_hracum', 'datum_vytvoreni')
+    list_filter = ('category', 'odkryto_hracum')
+    search_fields = ('nazev', 'popis')
+    list_editable = ('odkryto_hracum',)
+
 
     
 

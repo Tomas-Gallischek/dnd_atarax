@@ -1,0 +1,77 @@
+{% extends "player_site_app/player_base.html" %}
+
+{% block title %}DnD Atarax - Hrdinové družiny{% endblock %}
+
+{% block player_content %}
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>👥</span> Hrdinové Ataraxu (Družina)</h1>
+        <p class="atarax-header-subtitle">Přehled dobrodruhů v kampani. Zvol postavu pro nahlédnutí do jejích vlastností a veřejných zápisů z příběhu.</p>
+    </div>
+    <div class="atarax-header-actions">
+        <a href="{% url 'player_site_app:prehled_postav' %}" class="btn btn-outline-sapphire btn-sm">
+            <span>🛡️</span> Moje postavy
+        </a>
+    </div>
+</div>
+
+{% if characters %}
+<div class="char-roster-grid">
+    {% for char in characters %}
+    <div class="char-roster-card">
+        <div class="char-roster-top">
+            <div class="char-roster-avatar-wrap">
+                <img src="{{ char.profile_image_url }}" alt="{{ char.name }}" class="char-avatar char-avatar-lg">
+                {% if char.frame_url %}
+                <img src="{{ char.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                {% endif %}
+            </div>
+
+            <div class="char-roster-info">
+                <h3 class="char-roster-name">{{ char.name }}</h3>
+                <div class="char-roster-badges">
+                    <span class="badge badge-gold">Úroveň {{ char.level }}</span>
+                    {% if char.character_class %}
+                        <span class="badge badge-sapphire">{{ char.character_class }}</span>
+                    {% endif %}
+                    {% if char.race %}
+                        <span class="badge badge-silver">{{ char.race }}</span>
+                    {% endif %}
+                </div>
+                <div class="char-roster-player-tag">
+                    <span>👤 Hráč:</span> <strong>{{ char.player.nickname|default:char.player.user.username }}</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="char-roster-stats">
+            <div class="roster-stat-item">
+                <span class="roster-stat-lbl">AC</span>
+                <span class="roster-stat-val">{{ char.armor_class }}</span>
+            </div>
+            <div class="roster-stat-item">
+                <span class="roster-stat-lbl">Životy</span>
+                <span class="roster-stat-val">{{ char.hit_points_max }} HP</span>
+            </div>
+            <div class="roster-stat-item">
+                <span class="roster-stat-lbl">Rychlost</span>
+                <span class="roster-stat-val">{{ char.speed }} stop</span>
+            </div>
+        </div>
+
+        <div class="char-roster-footer">
+            <a href="{% url 'player_site_app:all_chars_detail' char.id %}" class="btn btn-sapphire btn-block">
+                <span>Nahlédnout do profilu</span> &rarr;
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="atarax-empty-state">
+    <div class="atarax-empty-icon">👥</div>
+    <h3 class="atarax-empty-title">V kampani zatím nejsou žádné postavy</h3>
+    <p class="atarax-empty-desc">Jakmile DM vytvoří hrdiny pro hráče, objeví se zde v seznamu družiny.</p>
+</div>
+{% endif %}
+{% endblock %}

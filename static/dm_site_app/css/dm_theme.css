@@ -306,3 +306,60 @@
     padding: 3px 8px;
     border-radius: 4px;
 }
+
+/* ==========================================================================
+   DM Kronika Management Styles
+   ========================================================================== */
+.dm-kronika-form .form-label {
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    display: block;
+}
+
+.dm-kronika-help-text {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.dm-kronika-help-text ul {
+    margin-top: 10px;
+    padding-left: 20px;
+}
+
+.dm-kronika-help-text li {
+    margin-bottom: 8px;
+}
+
+.dm-kronika-table-wrap {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.dm-table-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.dm-table-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.dm-entry-expanded-box {
+    background: rgba(13, 10, 20, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.dm-entry-full-text {
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    line-height: 1.6;
+}
+

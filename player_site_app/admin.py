@@ -388,8 +388,15 @@ class Esence_Items_OwnersAdmin(admin.ModelAdmin):
 
 @admin.register(CharBackstory)
 class CharBackstoryAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('title', 'character', 'player', 'public', 'created_at')
+    list_filter = ('public', 'character')
+    search_fields = ('title', 'backstory', 'character__name', 'player__nickname')
+    list_editable = ('public',)
+
 
 @admin.register(CharNotes)
 class CharNotesAdmin(admin.ModelAdmin):
-    pass
+    list_display = ('title', 'character', 'player', 'is_favorite', 'updated_at')
+    list_filter = ('is_favorite', 'character')
+    search_fields = ('title', 'note', 'character__name', 'player__nickname')
+    list_editable = ('is_favorite',)

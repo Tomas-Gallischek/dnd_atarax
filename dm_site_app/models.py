@@ -352,6 +352,39 @@ class OverAllSettings(models.Model):
 
     def __str__(self):
         return f"Globální nastavení (Přihlašování: {'Zapnuto' if self.loging_active else 'Vypnuto'})"
-    
 
-    
+
+class Kronika(models.Model):
+    CATEGORY_CHOICES = [
+        ('info', 'Info'),
+        ('lore', 'Příběh'),
+    ]
+
+    nazev = models.CharField(max_length=200, verbose_name="Název")
+    category = models.CharField(
+        max_length=50,
+        choices=CATEGORY_CHOICES,
+        default='info',
+        verbose_name="Kategorie"
+    )
+    popis = models.TextField(verbose_name="Popis")
+    odkryto_hracum = models.BooleanField(
+        default=False,
+        verbose_name="Odkrýt hráčům"
+    )
+    datum_vytvoreni = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Datum vytvoření"
+    )
+    datum_aktualizace = models.DateTimeField(
+        auto_now=True,
+        verbose_name="Datum aktualizace"
+    )
+
+    class Meta:
+        verbose_name = "Kronika"
+        verbose_name_plural = "Kronika"
+        ordering = ['-datum_vytvoreni']
+
+    def __str__(self):
+        return f"[{self.get_category_display()}] {self.nazev} ({'Odkryto' if self.odkryto_hracum else 'Skryto'})"

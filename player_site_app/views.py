@@ -3,10 +3,13 @@ from django.http import JsonResponse
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Player, Char_info, Achivements_players, Achivements_database, Esence_Items_Shop, Esence_Items_Owners
+from .models import (
+    Player, Char_info, Achivements_players, Achivements_database,
+    Esence_Items_Shop, Esence_Items_Owners, CharNotes, CharBackstory
+)
 from .forms import PlayerLoginForm, PlayerRegistrationForm
 from dnd_atarax.terminal import log_player, log_warning, log_info
-from dm_site_app.models import Items_Active, OverAllSettings
+from dm_site_app.models import Items_Active, OverAllSettings, Kronika
 import random
 import time
 
@@ -35,6 +38,7 @@ def get_player_and_character(request, char_id=None):
         return player, first_char
 
     return player, None
+
 
 
 def index(request):
@@ -194,15 +198,70 @@ def prehled_postav(request):
 
 @login_required(login_url='player_site_app:index')
 def char_overview(request, char_id=None):
-    """1. Přehled postavy - detail zvolené nebo aktivní postavy."""
+    """1. Přehled postavy - detail zvolené nebo aktivní postavy a její poznámky."""
     player, character = get_player_and_character(request, char_id)
+    notes = character.char_notes.all() if character else []
 
     return render(request, 'player_site_app/char_over_view..html', {
         'player': player,
         'character': character,
         'active_character': character,
         'current_page': 'char_overview',
+        'notes': notes,
     })
+
+
+@login_required(login_url='player_site_app:index')
+def add_char_note(request):
+    """Vytvoří novou soukromou poznámku k postavě."""
+    if request.method == 'POST':
+        char_id = request.POST.get('char_id')
+        player = get_object_or_404(Player, user=request.user)
+        character = get_object_or_404(Char_info, id=char_id, player=player)
+
+        title = request.POST.get('title', '').strip() or 'Nová poznámka'
+        note_text = request.POST.get('note', '').strip()
+
+        if not note_text:
+            messages.error(request, "Text poznámky nesmí být prázdný.")
+        else:
+            CharNotes.objects.create(
+                player=player,
+                character=character,
+                title=title,
+                note=note_text,
+                is_favorite=False
+            )
+            messages.success(request, f"Poznámka '{title}' byla uložena.")
+
+        return redirect('player_site_app:char_overview', char_id=character.id)
+    return redirect('player_site_app:char_overview_active')
+
+
+@login_required(login_url='player_site_app:index')
+def delete_char_note(request, note_id):
+    """Smaže soukromou poznámku hráče."""
+    player = get_object_or_404(Player, user=request.user)
+    note_obj = get_object_or_404(CharNotes, id=note_id, player=player)
+    char_id = note_obj.character.id
+    title = note_obj.title
+    note_obj.delete()
+    messages.info(request, f"Poznámka '{title}' byla smazána.")
+    return redirect('player_site_app:char_overview', char_id=char_id)
+
+
+@login_required(login_url='player_site_app:index')
+def toggle_favorite_note(request, note_id):
+    """Přepne stav oblíbené poznámky (hvězdička)."""
+    player = get_object_or_404(Player, user=request.user)
+    note_obj = get_object_or_404(CharNotes, id=note_id, player=player)
+    note_obj.is_favorite = not note_obj.is_favorite
+    note_obj.save()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+        return JsonResponse({'status': 'ok', 'is_favorite': note_obj.is_favorite})
+
+    return redirect('player_site_app:char_overview', char_id=note_obj.character.id)
 
 
 @login_required(login_url='player_site_app:index')
@@ -245,15 +304,71 @@ def char_schopnosti_view(request, char_id=None):
 
 @login_required(login_url='player_site_app:index')
 def char_roleplay_view(request, char_id=None):
-    """4. Roleplay informace aktivní postavy."""
+    """4. Roleplay informace a správa backstory aktivní postavy."""
     player, character = get_player_and_character(request, char_id)
+    backstories = character.char_backstories.all() if character else []
 
     return render(request, 'player_site_app/char_roleplay.html', {
         'player': player,
         'character': character,
         'active_character': character,
         'current_page': 'char_roleplay',
+        'backstories': backstories,
     })
+
+
+@login_required(login_url='player_site_app:index')
+def add_char_backstory(request):
+    """Přidá novou kapitolu nebo záznam do backstory postavy."""
+    if request.method == 'POST':
+        char_id = request.POST.get('char_id')
+        player = get_object_or_404(Player, user=request.user)
+        character = get_object_or_404(Char_info, id=char_id, player=player)
+
+        title = request.POST.get('title', '').strip() or 'Kapitola příběhu'
+        backstory_text = request.POST.get('backstory', '').strip()
+        is_public = (request.POST.get('public') == 'on' or request.POST.get('public') == 'true')
+
+        if not backstory_text:
+            messages.error(request, "Text příběhu nesmí být prázdný.")
+        else:
+            CharBackstory.objects.create(
+                player=player,
+                character=character,
+                title=title,
+                backstory=backstory_text,
+                public=is_public
+            )
+            visibility_str = "veřejný pro družinu" if is_public else "soukromý"
+            messages.success(request, f"Zápis '{title}' byl úspěšně uložen jako {visibility_str}.")
+
+        return redirect('player_site_app:char_roleplay_detail', char_id=character.id)
+    return redirect('player_site_app:char_roleplay')
+
+
+@login_required(login_url='player_site_app:index')
+def delete_char_backstory(request, backstory_id):
+    """Smaže záznam backstory postavy."""
+    player = get_object_or_404(Player, user=request.user)
+    backstory_obj = get_object_or_404(CharBackstory, id=backstory_id, player=player)
+    char_id = backstory_obj.character.id
+    title = backstory_obj.title
+    backstory_obj.delete()
+    messages.info(request, f"Zápis '{title}' byl smazán.")
+    return redirect('player_site_app:char_roleplay_detail', char_id=char_id)
+
+
+@login_required(login_url='player_site_app:index')
+def toggle_public_backstory(request, backstory_id):
+    """Přepne viditelnost zápisu backstory (veřejný/soukromý)."""
+    player = get_object_or_404(Player, user=request.user)
+    backstory_obj = get_object_or_404(CharBackstory, id=backstory_id, player=player)
+    backstory_obj.public = not backstory_obj.public
+    backstory_obj.save()
+
+    status_str = "veřejný pro družinu" if backstory_obj.public else "soukromý"
+    messages.info(request, f"Zápis '{backstory_obj.title}' je nyní {status_str}.")
+    return redirect('player_site_app:char_roleplay_detail', char_id=backstory_obj.character.id)
 
 
 @login_required(login_url='player_site_app:index')
@@ -290,16 +405,61 @@ def char_stats_detail_view(request, char_id=None):
 
 
 @login_required(login_url='player_site_app:index')
+def all_chars_view(request):
+    """Zobrazí přehled postav všech hráčů (družiny) s možností přechodu na detail."""
+    player, active_char = get_player_and_character(request)
+    all_characters = Char_info.objects.select_related('player', 'player__user').order_by('name')
+
+    return render(request, 'player_site_app/all_chars.html', {
+        'player': player,
+        'character': active_char,
+        'active_character': active_char,
+        'characters': all_characters,
+        'current_page': 'all_chars',
+    })
+
+
+@login_required(login_url='player_site_app:index')
+def all_chars_detail_view(request, char_id):
+    """
+    Zobrazí detail postavy cizího hráče:
+    - Informace (Jméno, rasa, povolání, atributy, achivementy).
+    - VEŘEJNÉ zápisy z backstory (soukromé poznámky NIKDY).
+    - Žádné finance, temná esence, inventář ani editační tlačítka.
+    """
+    player, active_char = get_player_and_character(request)
+    target_character = get_object_or_404(Char_info.objects.select_related('player'), id=char_id)
+    public_backstories = target_character.char_backstories.filter(public=True).order_by('-created_at')
+    achievements = Achivements_players.objects.filter(char=target_character, current_status=True).select_related('Achivement')
+
+    return render(request, 'player_site_app/all_chars_detail.html', {
+        'player': player,
+        'character': active_char,
+        'active_character': active_char,
+        'target_char': target_character,
+        'public_backstories': public_backstories,
+        'achievements': achievements,
+        'current_page': 'all_chars',
+    })
+
+
+@login_required(login_url='player_site_app:index')
 def kronika_view(request):
-    """7. Kronika kampaně a dobrodružství."""
+    """7. Kronika kampaně a dobrodružství - rozdělená na Info a Příběh."""
     player, character = get_player_and_character(request)
+
+    info_entries = Kronika.objects.filter(odkryto_hracum=True, category='info').order_by('datum_vytvoreni')
+    lore_entries = Kronika.objects.filter(odkryto_hracum=True, category='lore').order_by('datum_vytvoreni')
 
     return render(request, 'player_site_app/kronika.html', {
         'player': player,
         'character': character,
         'active_character': character,
         'current_page': 'kronika',
+        'info_entries': info_entries,
+        'lore_entries': lore_entries,
     })
+
 
 
 @login_required(login_url='player_site_app:index')

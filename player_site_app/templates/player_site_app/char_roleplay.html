@@ -45,16 +45,145 @@
 
 </div>
 
-<div class="atarax-card">
-    <div class="atarax-card-header">
-        <h2 class="atarax-card-title">
-            <span>🔗</span> Sdílení s družinou
-        </h2>
+<div class="atarax-card mt-3" id="charBackstorySection">
+    <div class="atarax-card-header notes-section-header">
+        <div class="notes-header-left">
+            <h2 class="atarax-card-title">
+                <span>📖</span> Příběh a kronika postavy (Backstory)
+            </h2>
+            <span class="notes-count-badge">{{ backstories|length }} {% if backstories|length == 1 %}kapitola{% elif backstories|length >= 2 and backstories|length <= 4 %}kapitoly{% else %}kapitol{% endif %}</span>
+        </div>
+        <button type="button" class="btn btn-gold btn-sm" id="openBackstoryBtn" onclick="toggleBackstoryEditor()">
+            <span>➕</span> Přidat kapitolu
+        </button>
     </div>
-    <p class="dm-item-desc">
-        Možnost nasdílet vybrané části svého příběhu a osobnosti ostatním hráčům v družině i Pánovi jeskyně.
+
+    <p class="atarax-section-subdesc">
+        Zde si můžeš psát původ, kapitoly života a vzpomínky své postavy. Jednotlivé zápisy můžeš označit jako <strong>Veřejné</strong> (uvidí je ostatní hráči v přehledu družiny), nebo <strong>Soukromé</strong> (pouze pro tebe).
     </p>
+
+    <!-- Editor pro novou kapitolu příběhu -->
+    <div id="newBackstoryEditor" class="note-editor-box" style="display: none;">
+        <h3 class="note-editor-title">📜 Nová kapitola příběhu</h3>
+        <form method="post" action="{% url 'player_site_app:add_char_backstory' %}">
+            {% csrf_token %}
+            <input type="hidden" name="char_id" value="{{ character.id }}">
+            <div class="mb-2">
+                <label class="form-label" for="backstoryTitleInput">Název kapitoly / zápisu</label>
+                <input type="text" id="backstoryTitleInput" name="title" class="form-control" placeholder="Např. Dětství v horách, Noční přepadení, Prokletý amulet..." maxlength="200" required>
+            </div>
+            <div class="mb-2 form-check-wrapper">
+                <label class="form-checkbox-label">
+                    <input type="checkbox" name="public" id="backstoryPublicCheck">
+                    <span>🌐 <strong>Veřejný zápis</strong> (bude viditelný pro ostatní hráče v profilu postavy)</span>
+                </label>
+            </div>
+            <div class="mb-2">
+                <label class="form-label" for="backstoryTextInput">Příběh</label>
+                <textarea id="backstoryTextInput" name="backstory" class="form-control note-textarea" rows="6" placeholder="Rozepiš příběh, tajemství nebo zážitky postavy..." required></textarea>
+            </div>
+            <div class="note-editor-actions">
+                <button type="submit" class="btn btn-gold">
+                    <span>💾</span> Uložit kapitolu
+                </button>
+                <button type="button" class="btn btn-outline-sapphire" onclick="toggleBackstoryEditor(false)">
+                    Zrušit
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Seznam kapitol příběhu -->
+    {% if backstories %}
+        <div class="notes-list-grid">
+            {% for item in backstories %}
+            <div class="note-card {% if item.public %}is-public-story{% endif %}" id="backstoryCard{{ item.id }}">
+                <div class="note-card-top">
+                    <div class="story-status-tag">
+                        {% if item.public %}
+                            <span class="badge badge-emerald" title="Tento záznam vidí ostatní hráči v profilu">🌐 Veřejné</span>
+                        {% else %}
+                            <span class="badge badge-silver" title="Tento záznam vidíš pouze ty">🔒 Soukromé</span>
+                        {% endif %}
+                    </div>
+                    <h4 class="note-title">{{ item.title }}</h4>
+                    <span class="note-date">{{ item.created_at|date:"d.m.Y H:i" }}</span>
+                </div>
+
+                <div class="note-card-body">
+                    <!-- Zkrácený náhled -->
+                    <p class="note-preview-text" id="backstoryPreview{{ item.id }}">
+                        {{ item.backstory|truncatechars:140 }}
+                    </p>
+                    <!-- Celý text (skrytý) -->
+                    <div class="note-full-text" id="backstoryFull{{ item.id }}" style="display: none;">
+                        {{ item.backstory|linebreaksbr }}
+                    </div>
+                </div>
+
+                <div class="note-card-bottom">
+                    <div class="backstory-actions-left">
+                        <button type="button" class="btn-toggle-note" id="backstoryToggleBtn{{ item.id }}" onclick="toggleBackstoryExpansion('{{ item.id }}')">
+                            <span>Číst celé</span> &darr;
+                        </button>
+                        <form method="post" action="{% url 'player_site_app:toggle_public_backstory' item.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm {% if item.public %}btn-outline-silver{% else %}btn-outline-emerald{% endif %}" title="Změnit viditelnost pro družinu">
+                                {% if item.public %}🔒 Skrýt{% else %}🌐 Zveřejnit{% endif %}
+                            </button>
+                        </form>
+                    </div>
+
+                    <form method="post" action="{% url 'player_site_app:delete_char_backstory' item.id %}" onsubmit="return confirm('Opravdu chcete smazat zápis \'{{ item.title|escapejs }}\'?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-delete-note" title="Smazat zápis">
+                            🗑️ Smazat
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-notes-hint">
+            <span class="empty-notes-icon">📖</span>
+            <p>Tato postava zatím nemá sepsaný žádný příběh. Klikni na <strong>➕ Přidat kapitolu</strong> a zapiš její původ či klíčové události.</p>
+        </div>
+    {% endif %}
 </div>
+
+<script>
+function toggleBackstoryEditor(show) {
+    const editor = document.getElementById('newBackstoryEditor');
+    if (!editor) return;
+    if (show === undefined) {
+        editor.style.display = (editor.style.display === 'none' || editor.style.display === '') ? 'block' : 'none';
+    } else {
+        editor.style.display = show ? 'block' : 'none';
+    }
+    if (editor.style.display === 'block') {
+        const input = document.getElementById('backstoryTitleInput');
+        if (input) input.focus();
+    }
+}
+
+function toggleBackstoryExpansion(storyId) {
+    const preview = document.getElementById('backstoryPreview' + storyId);
+    const full = document.getElementById('backstoryFull' + storyId);
+    const btn = document.getElementById('backstoryToggleBtn' + storyId);
+    if (!preview || !full || !btn) return;
+
+    if (full.style.display === 'none') {
+        full.style.display = 'block';
+        preview.style.display = 'none';
+        btn.innerHTML = '<span>Zabalit</span> &uarr;';
+    } else {
+        full.style.display = 'none';
+        preview.style.display = 'block';
+        btn.innerHTML = '<span>Číst celé</span> &darr;';
+    }
+}
+</script>
 
 {% else %}
 <div class="atarax-empty-state">

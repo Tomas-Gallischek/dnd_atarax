@@ -8,6 +8,11 @@
         <h1><span>👥</span> Přehled mých postav</h1>
         <p class="atarax-header-subtitle">Vyberte si hrdinu, za kterého chcete hrát a nahlížet do jeho deníku, inventáře a statistik.</p>
     </div>
+    <div class="atarax-header-actions">
+        <a href="{% url 'player_site_app:all_chars' %}" class="btn btn-gold btn-sm">
+            <span>👥</span> Zobrazit celou družinu
+        </a>
+    </div>
 </div>
 
 {% if messages %}

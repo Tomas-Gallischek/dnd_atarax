@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from django.utils import functional
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Locations, Npc, Monsters_All_db, Monsters_Active, Items_All_db, Items_Active
+from .models import Locations, Npc, Monsters_All_db, Monsters_Active, Items_All_db, Items_Active, Kronika
 from player_site_app.models import Player, Char_info, Logs
 from player_site_app.achivements import zbohatlik_ach, smrtici_stroj_ach
 from dnd_atarax.terminal import (
@@ -83,9 +83,59 @@ def notes(request):
 
 @dm_required
 def lore(request):
-    """6. Lore s možností sdílet hráčům"""
+    """6. Lore s možností přechodu do editace kroniky"""
+    entries = Kronika.objects.all().order_by('-datum_vytvoreni')
     return render(request, 'dm_site_app/lore.html', {
         'current_page': 'lore',
+        'entries': entries,
+    })
+
+@dm_required
+def kronika_edit(request):
+    """Správa kroniky pro Pána jeskyně: přidání záznamu, volba kategorie, odkrývání pro hráče."""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'add':
+            nazev = request.POST.get('nazev', '').strip()
+            category = request.POST.get('category', 'info')
+            popis = request.POST.get('popis', '').strip()
+            odkryto_hracum = (request.POST.get('odkryto_hracum') == 'on' or request.POST.get('odkryto_hracum') == 'true')
+
+            if not nazev or not popis:
+                messages.error(request, "Název i obsah záznamu musí být vyplněny.")
+            else:
+                entry = Kronika.objects.create(
+                    nazev=nazev,
+                    category=category,
+                    popis=popis,
+                    odkryto_hracum=odkryto_hracum
+                )
+                stav = "odkrytý hráčům" if odkryto_hracum else "skrytý před hráči"
+                messages.success(request, f"Záznam '{nazev}' byl vytvořen a je {stav}.")
+                log_dm("Vytvořen záznam v kronice", f"'{nazev}' [{category}] (odkryto: {odkryto_hracum})")
+
+        elif action == 'toggle_reveal':
+            entry_id = request.POST.get('entry_id')
+            entry = get_object_or_404(Kronika, id=entry_id)
+            entry.odkryto_hracum = not entry.odkryto_hracum
+            entry.save()
+            stav = "odkryt pro hráče" if entry.odkryto_hracum else "skryt před hráči"
+            messages.info(request, f"Záznam '{entry.nazev}' je nyní {stav}.")
+
+        elif action == 'delete':
+            entry_id = request.POST.get('entry_id')
+            entry = get_object_or_404(Kronika, id=entry_id)
+            nazev = entry.nazev
+            entry.delete()
+            messages.info(request, f"Záznam '{nazev}' byl z kroniky smazán.")
+
+        return redirect('dm_site_app:kronika_edit')
+
+    entries = Kronika.objects.all().order_by('-datum_vytvoreni')
+    return render(request, 'dm_site_app/kronika_edit.html', {
+        'entries': entries,
+        'current_page': 'kronika_edit',
     })
 
 @dm_required

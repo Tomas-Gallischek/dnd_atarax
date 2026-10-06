@@ -275,3 +275,144 @@ class PlayerAuthAndCharacterTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'id="playerNavContainer"')
         self.assertNotContains(response, 'id="playerNavToggleBtn"')
+
+    def test_notes_crud_and_favorite(self):
+        """Hráč může přidat poznámku, označit ji jako oblíbenou a smazat ji."""
+        char = Char_info.objects.create(player=self.player1, name='Geralt z Rivie', level=3)
+        self.client.login(username='hrac1', password='tajneheslo123')
+
+        # 1. Přidání poznámky
+        add_res = self.client.post(reverse('player_site_app:add_char_note'), {
+            'char_id': char.id,
+            'title': 'Tajná mapa',
+            'note': 'Mapa se nachází pod kamenným oltářem.',
+        })
+        self.assertEqual(add_res.status_code, 302)
+        note = char.char_notes.first()
+        self.assertIsNotNone(note)
+        self.assertEqual(note.title, 'Tajná mapa')
+        self.assertFalse(note.is_favorite)
+
+        # 2. Zobrazení v char_overview
+        view_res = self.client.get(reverse('player_site_app:char_overview', kwargs={'char_id': char.id}))
+        self.assertEqual(view_res.status_code, 200)
+        self.assertContains(view_res, 'Tajná mapa')
+        self.assertContains(view_res, 'Mapa se nachází pod kamenným oltářem.')
+
+        # 3. Přepnutí na oblíbené
+        fav_res = self.client.post(reverse('player_site_app:toggle_favorite_note', kwargs={'note_id': note.id}))
+        self.assertEqual(fav_res.status_code, 302)
+        note.refresh_from_db()
+        self.assertTrue(note.is_favorite)
+
+        # 4. Smazání poznámky
+        del_res = self.client.post(reverse('player_site_app:delete_char_note', kwargs={'note_id': note.id}))
+        self.assertEqual(del_res.status_code, 302)
+        self.assertEqual(char.char_notes.count(), 0)
+
+    def test_backstory_crud_and_public_toggle(self):
+        """Hráč může přidat backstory, přepínat veřejné/soukromé a smazat zápis."""
+        char = Char_info.objects.create(player=self.player1, name='Geralt z Rivie', level=3)
+        self.client.login(username='hrac1', password='tajneheslo123')
+
+        # 1. Přidání soukromého zápisu
+        add_res = self.client.post(reverse('player_site_app:add_char_backstory'), {
+            'char_id': char.id,
+            'title': 'Dětství v Kaer Morhen',
+            'backstory': 'Těžký výcvik a mutace zaklínačů.',
+        })
+        self.assertEqual(add_res.status_code, 302)
+        story = char.char_backstories.first()
+        self.assertIsNotNone(story)
+        self.assertFalse(story.public)
+
+        # 2. Zobrazení v char_roleplay
+        rp_res = self.client.get(reverse('player_site_app:char_roleplay_detail', kwargs={'char_id': char.id}))
+        self.assertEqual(rp_res.status_code, 200)
+        self.assertContains(rp_res, 'Dětství v Kaer Morhen')
+
+        # 3. Zveřejnění zápisu
+        pub_res = self.client.post(reverse('player_site_app:toggle_public_backstory', kwargs={'backstory_id': story.id}))
+        self.assertEqual(pub_res.status_code, 302)
+        story.refresh_from_db()
+        self.assertTrue(story.public)
+
+        # 4. Smazání
+        del_res = self.client.post(reverse('player_site_app:delete_char_backstory', kwargs={'backstory_id': story.id}))
+        self.assertEqual(del_res.status_code, 302)
+        self.assertEqual(char.char_backstories.count(), 0)
+
+    def test_all_chars_and_detail_view_isolation(self):
+        """Hráč 2 může nahlížet na postavu hráče 1, vidí pouze VEŘEJNOU backstory, nevidí poznámky ani finance."""
+        from .models import CharNotes, CharBackstory
+
+        char1 = Char_info.objects.create(
+            player=self.player1,
+            name='Geralt z Rivie',
+            character_class='Zaklínač',
+            level=5,
+            race='Člověk',
+            gold=999,
+            silver=50
+        )
+        # Veřejná kapitola
+        CharBackstory.objects.create(
+            player=self.player1,
+            character=char1,
+            title='Veřejná kapitola',
+            backstory='Toto smí vidět celá družina.',
+            public=True
+        )
+        # Soukromá kapitola
+        CharBackstory.objects.create(
+            player=self.player1,
+            character=char1,
+            title='Tajná kapitola',
+            backstory='Toto je přísně tajné.',
+            public=False
+        )
+        # Soukromá poznámka
+        CharNotes.objects.create(
+            player=self.player1,
+            character=char1,
+            title='Moje tajná poznámka',
+            note='Tajné heslo do truhly.'
+        )
+
+        # Přihlášení jako hráč 2
+        self.client.login(username='hrac2', password='tajneheslo123')
+
+        # 1. Seznam all_chars
+        roster_res = self.client.get(reverse('player_site_app:all_chars'))
+        self.assertEqual(roster_res.status_code, 200)
+        self.assertContains(roster_res, 'Geralt z Rivie')
+
+        # 2. Detail postavy cizího hráče
+        detail_res = self.client.get(reverse('player_site_app:all_chars_detail', kwargs={'char_id': char1.id}))
+        self.assertEqual(detail_res.status_code, 200)
+        self.assertContains(detail_res, 'Geralt z Rivie')
+        self.assertContains(detail_res, 'Veřejná kapitola')
+        self.assertContains(detail_res, 'Toto smí vidět celá družina.')
+
+        # Striktní bezpečnost: nesmí obsahovat tajnou kapitolu, poznámky ani peníze
+        self.assertNotContains(detail_res, 'Tajná kapitola')
+        self.assertNotContains(detail_res, 'Toto je přísně tajné.')
+        self.assertNotContains(detail_res, 'Moje tajná poznámka')
+        self.assertNotContains(detail_res, 'Tajné heslo do truhly.')
+        self.assertNotContains(detail_res, '999 zl')
+
+    def test_kronika_view_filter_revealed(self):
+        """Kronika zobrazuje pouze odkryté záznamy rozdělené na info a lore."""
+        from dm_site_app.models import Kronika
+
+        Kronika.objects.create(nazev='Pravidla cechu', category='info', popis='Nová pravidla cechu.', odkryto_hracum=True)
+        Kronika.objects.create(nazev='Bitva o most', category='lore', popis='Epická bitva u řeky.', odkryto_hracum=True)
+        Kronika.objects.create(nazev='Tajné spiknutí', category='lore', popis='Zatím skrytý děj.', odkryto_hracum=False)
+
+        self.client.login(username='hrac1', password='tajneheslo123')
+        res = self.client.get(reverse('player_site_app:kronika'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Pravidla cechu')
+        self.assertContains(res, 'Bitva o most')
+        self.assertNotContains(res, 'Tajné spiknutí')
+

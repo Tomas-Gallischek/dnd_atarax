@@ -12,6 +12,7 @@ urlpatterns = [
     path('locations/', views.locations, name='locations'),
     path('notes/', views.notes, name='notes'),
     path('lore/', views.lore, name='lore'),
+    path('kronika_edit/', views.kronika_edit, name='kronika_edit'),
     path('golds-management/', views.golds_management, name='golds-management'),
     path('add_gold/', views.add_gold, name='add_gold'),
     path('monster_gen_page/', views.monster_gen_page, name='monster_gen_page'),

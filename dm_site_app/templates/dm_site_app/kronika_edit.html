@@ -1,0 +1,202 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}DnD Atarax - Správa Kroniky{% endblock %}
+
+{% block dm_content %}
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>📜</span> Správa Kroniky Kampaně</h1>
+        <p class="atarax-header-subtitle">Vytvářej a spravuj oficiální zápisy ze světa Atarax. Zvol kategorii (Info / Příběh) a rozhodni, které zápisky odkryješ hráčům do jejich kroniky.</p>
+    </div>
+    <div class="atarax-header-actions">
+        <a href="{% url 'player_site_app:kronika' %}" target="_blank" class="btn btn-outline-sapphire btn-sm">
+            <span>👁️</span> Zobrazit hráčskou kroniku &rarr;
+        </a>
+    </div>
+</div>
+
+<div class="grid-2">
+    <!-- FORMULÁŘ: PŘIDAT NOVÝ ZÁZNAM -->
+    <section class="atarax-card">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>➕</span> Přidat nový záznam do kroniky
+            </h2>
+        </div>
+
+        <form method="post" action="{% url 'dm_site_app:kronika_edit' %}" class="dm-kronika-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add">
+
+            <div class="mb-3">
+                <label class="form-label" for="kronikaNazev">Název záznamu</label>
+                <input
+                    type="text"
+                    id="kronikaNazev"
+                    name="nazev"
+                    class="form-control"
+                    placeholder="Např. Pád pevnosti Veren, Zákony města Kaelen, Sezení 12..."
+                    maxlength="200"
+                    required
+                >
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="kronikaCategory">Kategorie</label>
+                <select id="kronikaCategory" name="category" class="form-control" required>
+                    <option value="info">ℹ️ Info (oznámení, mechaniky světa, pravidla, lokální zprávy)</option>
+                    <option value="lore">📜 Příběh / Lore (události sezení, historie družiny, mýty)</option>
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-checkbox-label">
+                    <input type="checkbox" name="odkryto_hracum" id="kronikaOdkryto">
+                    <span>👁️ <strong>Odkrýt hráčům</strong> (záznam se ihned zobrazí v kronice na straně hráčů)</span>
+                </label>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="kronikaPopis">Obsah / Popis záznamu</label>
+                <textarea
+                    id="kronikaPopis"
+                    name="popis"
+                    class="form-control note-textarea"
+                    rows="8"
+                    placeholder="Sem napiš celý text, shrnutí sezení, vyprávění nebo instrukce pro hráče..."
+                    required
+                ></textarea>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-gold btn-lg btn-block">
+                    <span>💾</span> Uložit záznam do kroniky
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- NÁPOVĚDA A STATISTIKA -->
+    <section class="atarax-card">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>🏛️</span> O systému Kroniky
+            </h2>
+        </div>
+        <div class="dm-kronika-help-text">
+            <p><strong>Jak funguje hráčská kronika?</strong></p>
+            <ul>
+                <li>Záznamy označené jako <strong>Odkryté</strong> se okamžitě zobrazují hráčům v záložce <em>Kronika</em>.</li>
+                <li>Záznamy s kategorií <strong>Info</strong> jsou zařazeny do sekce informačních zpráv a pravidel.</li>
+                <li>Záznamy s kategorií <strong>Příběh</strong> tvoří hlavní kronikářskou linii děje a historie družiny.</li>
+                <li>Skryté záznamy můžeš připravit dopředu a odkrýt je hráčům jedním kliknutím v seznamu níže až v ten správný dramatický moment!</li>
+            </ul>
+        </div>
+    </section>
+</div>
+
+<!-- SEZNAM VŠECH ZÁPISŮ V KRONICE -->
+<section class="atarax-card mt-3">
+    <div class="atarax-card-header notes-section-header">
+        <div class="notes-header-left">
+            <h2 class="atarax-card-title">
+                <span>📚</span> Existující zápisy v kronice
+            </h2>
+            <span class="notes-count-badge">{{ entries|length }} {% if entries|length == 1 %}záznam{% elif entries|length >= 2 and entries|length <= 4 %}záznamy{% else %}záznamů{% endif %}</span>
+        </div>
+    </div>
+
+    {% if entries %}
+        <div class="dm-kronika-table-wrap">
+            <table class="table dm-table">
+                <thead>
+                    <tr>
+                        <th style="width: 25%;">Název</th>
+                        <th style="width: 12%;">Kategorie</th>
+                        <th style="width: 18%;">Stav pro hráče</th>
+                        <th style="width: 15%;">Datum</th>
+                        <th style="width: 30%;">Akce</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in entries %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.nazev }}</strong>
+                            <div class="dm-table-sub">
+                                {{ item.popis|truncatechars:70 }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if item.category == 'info' %}
+                                <span class="badge badge-sapphire">ℹ️ Info</span>
+                            {% else %}
+                                <span class="badge badge-gold">📜 Příběh</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.odkryto_hracum %}
+                                <span class="badge badge-emerald">👁️ Odkryto</span>
+                            {% else %}
+                                <span class="badge badge-silver">🔒 Skryto</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small>{{ item.datum_vytvoreni|date:"d.m.Y H:i" }}</small>
+                        </td>
+                        <td>
+                            <div class="dm-table-actions">
+                                <!-- Přepnutí odkrytí -->
+                                <form method="post" action="{% url 'dm_site_app:kronika_edit' %}" style="display: inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="toggle_reveal">
+                                    <input type="hidden" name="entry_id" value="{{ item.id }}">
+                                    <button type="submit" class="btn btn-sm {% if item.odkryto_hracum %}btn-outline-silver{% else %}btn-emerald{% endif %}">
+                                        {% if item.odkryto_hracum %}🔒 Skrýt{% else %}👁️ Odkrýt hráčům{% endif %}
+                                    </button>
+                                </form>
+
+                                <!-- Tlačítko pro zobrazení celého textu -->
+                                <button type="button" class="btn btn-outline-sapphire btn-sm" onclick="toggleDmEntryDetails('{{ item.id }}')">
+                                    Náhled
+                                </button>
+
+                                <!-- Smazání -->
+                                <form method="post" action="{% url 'dm_site_app:kronika_edit' %}" style="display: inline;" onsubmit="return confirm('Opravdu smazat záznam \'{{ item.nazev|escapejs }}\'?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="entry_id" value="{{ item.id }}">
+                                    <button type="submit" class="btn btn-outline-danger btn-sm" title="Smazat">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+
+                            <!-- Rozbalený text -->
+                            <div id="dmEntryDetail{{ item.id }}" class="dm-entry-expanded-box" style="display: none; margin-top: 8px;">
+                                <div class="dm-entry-full-text">
+                                    {{ item.popis|linebreaks }}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="empty-notes-hint">
+            <span class="empty-notes-icon">📜</span>
+            <p>Zatím v kronice nejsou žádné záznamy. Použij formulář nahoře k vytvoření prvního zápisu.</p>
+        </div>
+    {% endif %}
+</section>
+
+<script>
+function toggleDmEntryDetails(id) {
+    const box = document.getElementById('dmEntryDetail' + id);
+    if (!box) return;
+    box.style.display = (box.style.display === 'none' || box.style.display === '') ? 'block' : 'none';
+}
+</script>
+{% endblock %}

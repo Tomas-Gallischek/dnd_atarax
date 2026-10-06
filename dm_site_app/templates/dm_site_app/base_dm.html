@@ -64,6 +64,13 @@
                 </a>
             </li>
 
+            <!-- Kronika DM (kronika_edit.html) -->
+            <li class="dm-nav-item">
+                <a href="{% url 'dm_site_app:kronika_edit' %}" class="{% if current_page == 'kronika_edit' %}active{% endif %}">
+                    <span>📜</span> Kronika DM
+                </a>
+            </li>
+
             <!-- 7. Aréna -->
             <li class="dm-nav-item">
                 <a href="{% url 'dm_site_app:pvp_pre' %}" class="{% if current_page == 'pvp_pre' %}active{% endif %}">
