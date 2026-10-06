@@ -566,7 +566,7 @@ class Command(BaseCommand):
                 continue
 
             # 1. Povolání
-            raw_classes = [c.get('name', '') for c in s_data.get('classes', [])]
+            raw_classes = [c.get('name', '') for c in s_data.get('classes', []) if isinstance(c, dict)]
             cz_classes = [translator.translate_class(c) for c in raw_classes if c]
             classes_str = ", ".join(cz_classes)
 
@@ -574,7 +574,8 @@ class Command(BaseCommand):
             races_str = racial_spell_map.get(index, '')
 
             # 3. Škola magie
-            school_en = s_data.get('school', {}).get('name', '')
+            school_obj = s_data.get('school', {})
+            school_en = school_obj.get('name', '') if isinstance(school_obj, dict) else str(school_obj or '')
             school_cz = translator.translate_school(school_en)
 
             # 4. Sesílání a dosah
@@ -584,7 +585,8 @@ class Command(BaseCommand):
             range_cz = translator.translate_term(range_en)
 
             # 5. Složky
-            components = ", ".join(s_data.get('components', []))
+            comp_raw = s_data.get('components', [])
+            components = ", ".join(comp_raw) if isinstance(comp_raw, list) else str(comp_raw or '')
             material_en = s_data.get('material', '')
             material_cz = translator.translate_with_retry(material_en) if material_en else ""
 
@@ -598,37 +600,69 @@ class Command(BaseCommand):
             attack_type_en = s_data.get('attack_type', '')
             attack_type_cz = translator.translate_term(attack_type_en)
 
-            damage_info = s_data.get('damage', {})
-            damage_type_en = damage_info.get('damage_type', {}).get('name', '')
-            damage_type_cz = translator.translate_damage_type(damage_type_en) if damage_type_en else ""
+            # Poškození (v API může být damage buď list objektů nebo dict)
+            damage_raw = s_data.get('damage', [])
+            if isinstance(damage_raw, dict):
+                damage_list = [damage_raw]
+            elif isinstance(damage_raw, list):
+                damage_list = damage_raw
+            else:
+                damage_list = []
 
-            # Kostky poškození
-            damage_dice = ""
-            if damage_info.get('damage_at_slot_level'):
-                slot_map = damage_info['damage_at_slot_level']
-                damage_dice = slot_map.get(str(level)) or slot_map.get(str(min(map(int, slot_map.keys()))), "")
-            elif damage_info.get('damage_at_character_level'):
-                char_map = damage_info['damage_at_character_level']
-                damage_dice = char_map.get('1') or char_map.get(str(min(map(int, char_map.keys()))), "")
+            damage_types_cz = []
+            damage_dices = []
+            for d_item in damage_list:
+                if not isinstance(d_item, dict):
+                    continue
+                dmg_type_obj = d_item.get('damage_type')
+                dtype_name = ""
+                if isinstance(dmg_type_obj, dict):
+                    dtype_name = dmg_type_obj.get('name', '')
+                elif isinstance(dmg_type_obj, str):
+                    dtype_name = dmg_type_obj
 
-            # Záchranný hod
-            dc_info = s_data.get('dc', {})
+                if dtype_name:
+                    cz_dtype = translator.translate_damage_type(dtype_name)
+                    if cz_dtype and cz_dtype not in damage_types_cz:
+                        damage_types_cz.append(cz_dtype)
+
+                dice = ""
+                slot_map = d_item.get('damage_at_slot_level')
+                if isinstance(slot_map, dict) and slot_map:
+                    dice = slot_map.get(str(level)) or slot_map.get(str(min(map(int, slot_map.keys()))), "")
+                else:
+                    char_map = d_item.get('damage_at_character_level')
+                    if isinstance(char_map, dict) and char_map:
+                        dice = char_map.get('1') or char_map.get(str(min(map(int, char_map.keys()))), "")
+
+                if dice and dice not in damage_dices:
+                    damage_dices.append(dice)
+
+            damage_type_cz = ", ".join(damage_types_cz)
+            damage_dice = " + ".join(damage_dices)
+
+            # Záchranný hod (dc)
+            dc_raw = s_data.get('dc', {})
+            dc_info = dc_raw[0] if isinstance(dc_raw, list) and dc_raw else (dc_raw if isinstance(dc_raw, dict) else {})
             saving_throw = ""
-            if dc_info and dc_info.get('dc_type'):
-                saving_throw = translator.translate_term(dc_info['dc_type'].get('name', ''))
+            if isinstance(dc_info, dict) and dc_info.get('dc_type'):
+                dc_type_val = dc_info['dc_type']
+                dc_name = dc_type_val.get('name', '') if isinstance(dc_type_val, dict) else str(dc_type_val)
+                saving_throw = translator.translate_term(dc_name)
 
-            # Léčení
+            # Léčení (heal_at_slot_level)
             heal_dice = ""
-            heal_info = s_data.get('heal_at_slot_level', {})
-            if heal_info:
+            heal_raw = s_data.get('heal_at_slot_level', {})
+            heal_info = heal_raw[0] if isinstance(heal_raw, list) and heal_raw else (heal_raw if isinstance(heal_raw, dict) else {})
+            if isinstance(heal_info, dict) and heal_info:
                 heal_dice = heal_info.get(str(level)) or heal_info.get(str(min(map(int, heal_info.keys()))), "")
 
             # 8. Popis a vyšší úrovně
             desc_en_list = s_data.get('desc', [])
-            desc_en = "\n\n".join(desc_en_list) if desc_en_list else ""
+            desc_en = "\n\n".join(desc_en_list) if isinstance(desc_en_list, list) else str(desc_en_list or '')
 
             higher_en_list = s_data.get('higher_level', [])
-            higher_en = "\n\n".join(higher_en_list) if higher_en_list else ""
+            higher_en = "\n\n".join(higher_en_list) if isinstance(higher_en_list, list) else str(higher_en_list or '')
 
             # Překlad názvu a popisů
             name_cz = translator.translate_spell_name(name_en)
