@@ -388,3 +388,179 @@ class Kronika(models.Model):
 
     def __str__(self):
         return f"[{self.get_category_display()}] {self.nazev} ({'Odkryto' if self.odkryto_hracum else 'Skryto'})"
+
+
+class Spells_All_db(models.Model):
+    # Identifikace
+    api_index = models.CharField(max_length=100, unique=True, verbose_name="API Index")
+    name_cz = models.CharField(max_length=150, verbose_name="Český název")
+    name_en = models.CharField(max_length=150, verbose_name="Anglický název")
+
+    # Magické zařazení
+    level = models.IntegerField(default=0, verbose_name="Úroveň kouzla")  # 0 = Trik, 1-9 = Level 1-9
+    is_cantrip = models.BooleanField(default=False, verbose_name="Je trik")
+    school = models.CharField(max_length=100, blank=True, null=True, verbose_name="Magická škola (CZ)")
+    school_en = models.CharField(max_length=100, blank=True, null=True, verbose_name="Magická škola (EN)")
+
+    # Sesílání a parametry
+    casting_time = models.CharField(max_length=100, blank=True, null=True, verbose_name="Doba vyvolání")
+    range = models.CharField(max_length=100, blank=True, null=True, verbose_name="Dosah")
+    components = models.CharField(max_length=100, blank=True, null=True, verbose_name="Složky (V, S, M)")
+    material = models.TextField(blank=True, null=True, verbose_name="Materiální složka")
+    duration = models.CharField(max_length=150, blank=True, null=True, verbose_name="Trvání")
+    concentration = models.BooleanField(default=False, verbose_name="Soustředění")
+    ritual = models.BooleanField(default=False, verbose_name="Rituál")
+
+    # Bojové a mechanické parametry
+    attack_type = models.CharField(max_length=100, blank=True, null=True, verbose_name="Typ útoku")
+    damage_type = models.CharField(max_length=100, blank=True, null=True, verbose_name="Typ zranění")
+    damage_dice = models.CharField(max_length=150, blank=True, null=True, verbose_name="Kostky poškození")
+    saving_throw = models.CharField(max_length=100, blank=True, null=True, verbose_name="Záchranný hod")
+    heal_dice = models.CharField(max_length=150, blank=True, null=True, verbose_name="Léčení")
+
+    # Popis
+    description = models.TextField(blank=True, null=True, verbose_name="Popis")
+    higher_levels = models.TextField(blank=True, null=True, verbose_name="Na vyšších úrovních")
+
+    # Filtrování pro postavy (povolání, rasy, zázemí)
+    classes = models.CharField(max_length=255, blank=True, null=True, verbose_name="Povolání (CZ)")
+    races = models.CharField(max_length=255, blank=True, null=True, verbose_name="Rasy (CZ)")
+    backgrounds = models.CharField(max_length=255, blank=True, null=True, verbose_name="Zázemí (CZ)")
+
+    # Ikonka a vizuál
+    icon = models.FileField(
+        upload_to='spells/icons/',
+        blank=True,
+        null=True,
+        default='spells/default_spell.jpg',
+        verbose_name="Ikonka soubor"
+    )
+    icon_url = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        default='/static/img/spells/default_spell.jpg',
+        verbose_name="URL ikonky"
+    )
+    raw_data = models.JSONField(blank=True, null=True, verbose_name="Původní JSON data")
+
+    class Meta:
+        verbose_name = "Kouzlo z Kompendia"
+        verbose_name_plural = "Kouzla z Kompendia"
+        ordering = ['level', 'name_cz']
+
+    def __str__(self):
+        typ = "Trik" if self.is_cantrip or self.level == 0 else f"Level {self.level}"
+        return f"{self.name_cz} ({typ})"
+
+    @property
+    def display_icon_url(self):
+        if self.icon:
+            try:
+                return self.icon.url
+            except Exception:
+                pass
+        return self.icon_url or '/static/img/spells/default_spell.jpg'
+
+    @property
+    def is_trick(self):
+        return self.level == 0 or self.is_cantrip
+
+
+class Spells_Active(models.Model):
+    char_own = models.ForeignKey(
+        'player_site_app.Char_info',
+        on_delete=models.CASCADE,
+        related_name='spells_active',
+        verbose_name="Vlastník (Postava)",
+        null=True,
+        blank=True
+    )
+    template_spell = models.ForeignKey(
+        Spells_All_db,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='active_instances',
+        verbose_name="Šablona kouzla"
+    )
+
+    # Identifikace
+    api_index = models.CharField(max_length=100, blank=True, null=True, verbose_name="API Index")
+    name_cz = models.CharField(max_length=150, verbose_name="Český název")
+    name_en = models.CharField(max_length=150, verbose_name="Anglický název")
+
+    # Magické zařazení
+    level = models.IntegerField(default=0, verbose_name="Úroveň kouzla")
+    is_cantrip = models.BooleanField(default=False, verbose_name="Je trik")
+    school = models.CharField(max_length=100, blank=True, null=True, verbose_name="Magická škola (CZ)")
+    school_en = models.CharField(max_length=100, blank=True, null=True, verbose_name="Magická škola (EN)")
+
+    # Sesílání a parametry
+    casting_time = models.CharField(max_length=100, blank=True, null=True, verbose_name="Doba vyvolání")
+    range = models.CharField(max_length=100, blank=True, null=True, verbose_name="Dosah")
+    components = models.CharField(max_length=100, blank=True, null=True, verbose_name="Složky (V, S, M)")
+    material = models.TextField(blank=True, null=True, verbose_name="Materiální složka")
+    duration = models.CharField(max_length=150, blank=True, null=True, verbose_name="Trvání")
+    concentration = models.BooleanField(default=False, verbose_name="Soustředění")
+    ritual = models.BooleanField(default=False, verbose_name="Rituál")
+
+    # Bojové a mechanické parametry
+    attack_type = models.CharField(max_length=100, blank=True, null=True, verbose_name="Typ útoku")
+    damage_type = models.CharField(max_length=100, blank=True, null=True, verbose_name="Typ zranění")
+    damage_dice = models.CharField(max_length=150, blank=True, null=True, verbose_name="Kostky poškození")
+    saving_throw = models.CharField(max_length=100, blank=True, null=True, verbose_name="Záchranný hod")
+    heal_dice = models.CharField(max_length=150, blank=True, null=True, verbose_name="Léčení")
+
+    # Popis
+    description = models.TextField(blank=True, null=True, verbose_name="Popis")
+    higher_levels = models.TextField(blank=True, null=True, verbose_name="Na vyšších úrovních")
+
+    # Filtrování pro postavy (povolání, rasy, zázemí)
+    classes = models.CharField(max_length=255, blank=True, null=True, verbose_name="Povolání (CZ)")
+    races = models.CharField(max_length=255, blank=True, null=True, verbose_name="Rasy (CZ)")
+    backgrounds = models.CharField(max_length=255, blank=True, null=True, verbose_name="Zázemí (CZ)")
+
+    # Ikonka a vizuál
+    icon = models.FileField(
+        upload_to='spells/icons/',
+        blank=True,
+        null=True,
+        default='spells/default_spell.jpg',
+        verbose_name="Ikonka soubor"
+    )
+    icon_url = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        default='/static/img/spells/default_spell.jpg',
+        verbose_name="URL ikonky"
+    )
+    raw_data = models.JSONField(blank=True, null=True, verbose_name="Původní JSON data")
+
+    # Stav u postavy
+    nauceno = models.BooleanField(default=False, verbose_name="Naučeno")
+    vybaveno = models.BooleanField(default=False, verbose_name="Vybaveno")
+
+    class Meta:
+        verbose_name = "Aktivní kouzlo postavy"
+        verbose_name_plural = "Aktivní kouzla postav"
+        ordering = ['level', 'name_cz']
+
+    def __str__(self):
+        char_name = self.char_own.name if self.char_own else "Bez postavy"
+        stav = "Vybaveno" if self.vybaveno else ("Naučeno" if self.nauceno else "Nenaučeno")
+        return f"{self.name_cz} [{char_name}] ({stav})"
+
+    @property
+    def display_icon_url(self):
+        if self.icon:
+            try:
+                return self.icon.url
+            except Exception:
+                pass
+        return self.icon_url or '/static/img/spells/default_spell.jpg'
+
+    @property
+    def is_trick(self):
+        return self.level == 0 or self.is_cantrip

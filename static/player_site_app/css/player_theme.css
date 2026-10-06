@@ -2192,3 +2192,862 @@
     display: flex;
     justify-content: flex-start;
 }
+
+/* ==========================================================================
+   RPG Kniha Kouzel & Schopnosti (char_schopnosti.html)
+   ========================================================================== */
+
+/* Horní sumární lišta */
+.rpg-spellbook-summary-bar {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+    padding: 14px 18px;
+    background: rgba(22, 18, 31, 0.75);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+}
+
+.rpg-summary-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6px 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(13, 10, 20, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.rpg-summary-stat.highlight-equipped {
+    border-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.rpg-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+}
+
+.rpg-stat-val {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    font-family: var(--font-heading);
+}
+
+/* Ovládací prvky a filtry */
+.rpg-spellbook-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 1.25rem;
+}
+
+.rpg-spell-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.rpg-tab-btn {
+    background: rgba(26, 21, 38, 0.7);
+    border: 1px solid var(--border-card);
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.rpg-tab-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--sapphire-400);
+}
+
+.rpg-tab-btn.active {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: var(--sapphire-400);
+    color: var(--sapphire-200);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.25);
+}
+
+.rpg-spell-search-wrap {
+    position: relative;
+    min-width: 260px;
+    flex: 1;
+    max-width: 380px;
+}
+
+.rpg-search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    font-size: 0.95rem;
+}
+
+.rpg-spell-search-input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    background: rgba(13, 10, 20, 0.6);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.rpg-spell-search-input:focus {
+    border-color: var(--sapphire-400);
+    box-shadow: 0 0 12px rgba(59, 130, 246, 0.2);
+    background: rgba(13, 10, 20, 0.85);
+}
+
+/* Legenda stavů */
+.rpg-states-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 8px 14px;
+    background: rgba(13, 10, 20, 0.4);
+    border-radius: var(--radius-sm);
+    margin-bottom: 1.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.dot-equipped { background: #10b981; box-shadow: 0 0 6px #10b981; }
+.dot-learned { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
+.dot-available { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.dot-locked { background: #64748b; }
+
+/* Hlavní rozvržení: Levá stupnice (Ladder) + Pravý strom (Tiers) */
+.rpg-spellbook-layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    gap: 24px;
+    align-items: flex-start;
+}
+
+@media (max-width: 900px) {
+    .rpg-spellbook-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Levá stupnice levelů (Level Ladder) */
+.rpg-level-ladder {
+    position: sticky;
+    top: 90px;
+    background: rgba(22, 18, 31, 0.85);
+    border: 1px solid var(--border-gold, #d4af37);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.ladder-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ladder-title-text {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--gold-300);
+}
+
+.ladder-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ladder-node {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    color: var(--text-primary);
+    background: rgba(13, 10, 20, 0.5);
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.ladder-node:hover {
+    background: rgba(35, 27, 44, 0.85);
+    border-color: var(--gold-500);
+    transform: translateX(3px);
+}
+
+.ladder-node-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid var(--gold-400);
+    color: var(--gold-300);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.ladder-node.node-locked .ladder-node-badge {
+    background: rgba(100, 116, 139, 0.2);
+    border-color: #64748b;
+    color: #94a3b8;
+}
+
+.ladder-node-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.ladder-node-title {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+
+.ladder-node-sub {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+.ladder-unlocked-tag { color: #10b981; }
+.ladder-locked-tag { color: #94a3b8; }
+.ladder-counter { color: var(--gold-400); margin-left: 2px; }
+
+/* Pravá část: Sekce úrovní kouzel */
+.rpg-spell-tiers-container {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.rpg-spell-tier-section {
+    background: rgba(22, 18, 31, 0.65);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    transition: border-color 0.25s ease;
+}
+
+.rpg-spell-tier-section:hover {
+    border-color: rgba(255, 255, 255, 0.18);
+}
+
+.rpg-spell-tier-section.tier-locked {
+    background: rgba(17, 14, 25, 0.45);
+    border-style: dashed;
+}
+
+.tier-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tier-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.tier-level-badge {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid var(--gold-500);
+    color: var(--gold-300);
+}
+
+.tier-level-badge.badge-cantrip {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: var(--sapphire-400);
+    color: var(--sapphire-200);
+}
+
+.tier-section-title {
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.tier-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tier-status-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 4px;
+}
+
+.tier-status-pill.pill-unlocked {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+}
+
+.tier-status-pill.pill-locked {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+}
+
+/* Mřížka karet kouzel */
+.rpg-spells-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 16px;
+}
+
+/* Karta schopnosti / kouzla (rpg-spell-card) */
+.rpg-spell-card {
+    position: relative;
+    background: rgba(16, 13, 23, 0.85);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    cursor: pointer;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.25s ease;
+}
+
+.rpg-spell-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+/* VIZUÁLNÍ STAVY KOUZLA */
+
+/* 1. Zamčené / Nedostupné (Zašedlé) */
+.rpg-spell-card.state-locked {
+    opacity: 0.45;
+    filter: grayscale(85%);
+    border-color: rgba(100, 116, 139, 0.3);
+}
+
+.rpg-spell-card.state-locked:hover {
+    opacity: 0.7;
+    filter: grayscale(50%);
+}
+
+/* 2. Dostupné k naučení (Zašedlé, ale lehce září!) */
+@keyframes pulseAvailableGlow {
+    0% {
+        box-shadow: 0 0 6px rgba(245, 158, 11, 0.25), inset 0 0 6px rgba(245, 158, 11, 0.05);
+        border-color: rgba(245, 158, 11, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 16px rgba(245, 158, 11, 0.55), inset 0 0 10px rgba(245, 158, 11, 0.15);
+        border-color: rgba(245, 158, 11, 0.8);
+    }
+    100% {
+        box-shadow: 0 0 6px rgba(245, 158, 11, 0.25), inset 0 0 6px rgba(245, 158, 11, 0.05);
+        border-color: rgba(245, 158, 11, 0.4);
+    }
+}
+
+.rpg-spell-card.state-available {
+    filter: grayscale(40%);
+    animation: pulseAvailableGlow 2.8s infinite ease-in-out;
+    background: rgba(24, 18, 30, 0.9);
+}
+
+.rpg-spell-card.state-available:hover {
+    filter: grayscale(0%);
+    transform: translateY(-3px) scale(1.01);
+}
+
+/* 3. Naučené v knize (Normálně barevné) */
+.rpg-spell-card.state-learned {
+    filter: none;
+    border-color: var(--sapphire-400);
+    background: rgba(20, 24, 38, 0.85);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
+.rpg-spell-card.state-learned:hover {
+    box-shadow: 0 0 18px rgba(59, 130, 246, 0.45);
+    border-color: var(--sapphire-300);
+}
+
+/* 4. Vybavené (Výrazně vizuálně odlišené s aurou a stuhou) */
+@keyframes pulseEquippedAura {
+    0% {
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.35), inset 0 0 8px rgba(16, 185, 129, 0.15);
+        border-color: #10b981;
+    }
+    50% {
+        box-shadow: 0 0 24px rgba(16, 185, 129, 0.65), inset 0 0 14px rgba(16, 185, 129, 0.25);
+        border-color: #34d399;
+    }
+    100% {
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.35), inset 0 0 8px rgba(16, 185, 129, 0.15);
+        border-color: #10b981;
+    }
+}
+
+.rpg-spell-card.state-equipped {
+    filter: none;
+    animation: pulseEquippedAura 3s infinite ease-in-out;
+    background: rgba(14, 28, 22, 0.9);
+    border: 2px solid #10b981;
+}
+
+.spell-equipped-ribbon {
+    position: absolute;
+    top: 0;
+    right: 0;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    padding: 3px 12px;
+    border-bottom-left-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    z-index: 2;
+}
+
+/* Vnitřní rozvržení karty */
+.spell-card-inner {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.spell-icon-wrap {
+    position: relative;
+    width: 54px;
+    height: 54px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border-gold, #d4af37);
+    background: #0d0a14;
+}
+
+.spell-icon-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.spell-icon-lock-overlay,
+.spell-icon-sparkle-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.spell-info-wrap {
+    flex: 1;
+    min-width: 0;
+}
+
+.spell-school-tag {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--gold-400);
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.spell-title-cz {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spell-title-en {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spell-chips-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+}
+
+.spell-chip {
+    font-size: 0.68rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.spell-chip.chip-concentration {
+    background: rgba(168, 85, 247, 0.15);
+    color: #d8b4fe;
+    border-color: rgba(168, 85, 247, 0.3);
+}
+
+.spell-chip.chip-ritual {
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.spell-chip.chip-damage {
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.spell-chip.chip-heal {
+    background: rgba(16, 185, 129, 0.15);
+    color: #6ee7b7;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.spell-card-bottom-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    margin-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.75rem;
+}
+
+.spell-status-label.status-equipped { color: #34d399; font-weight: 700; }
+.spell-status-label.status-learned { color: var(--sapphire-300); font-weight: 700; }
+.spell-status-label.status-available { color: var(--gold-300); font-weight: 700; }
+.spell-status-label.status-locked { color: var(--text-muted); }
+
+.spell-view-btn {
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+}
+
+.rpg-spell-card:hover .spell-view-btn {
+    color: var(--gold-300);
+}
+
+/* ==========================================================================
+   MODÁLNÍ OKNO S RPG KARTOU DETAILU (Zatmavení & Ornátní karta)
+   ========================================================================== */
+.atarax-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 3, 10, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.atarax-modal-backdrop.active {
+    display: flex;
+    opacity: 1;
+}
+
+.rpg-spell-modal-dialog {
+    position: relative;
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #151020;
+    border: 2px solid var(--border-gold, #d4af37);
+    border-radius: var(--radius-md);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 30px rgba(212, 175, 55, 0.2);
+    padding: 26px;
+    animation: modalPopIn 0.3s ease;
+}
+
+@keyframes modalPopIn {
+    0% { transform: scale(0.92); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: transparent;
+    border: none;
+    font-size: 1.8rem;
+    line-height: 1;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.modal-close-btn:hover {
+    color: #ef4444;
+    transform: scale(1.15);
+}
+
+/* Hlavička modálu */
+.modal-spell-header {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-spell-icon-wrap {
+    width: 72px;
+    height: 72px;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    border: 2px solid var(--border-gold, #d4af37);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.3);
+    flex-shrink: 0;
+    background: #0d0a14;
+}
+
+.modal-spell-icon {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.modal-spell-title-group {
+    flex: 1;
+    min-width: 0;
+}
+
+.modal-top-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.modal-status-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.modal-status-pill.pill-equipped { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+.modal-status-pill.pill-learned { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid #3b82f6; }
+.modal-status-pill.pill-available { background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid #f59e0b; }
+.modal-status-pill.pill-locked { background: rgba(100, 116, 139, 0.2); color: #cbd5e1; border: 1px solid #64748b; }
+
+.modal-spell-title {
+    font-family: var(--font-heading);
+    font-size: 1.6rem;
+    color: var(--gold-300);
+    margin: 0;
+    line-height: 1.2;
+}
+
+.modal-spell-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+/* Mřížka parametrů v modálu */
+.modal-spell-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.modal-stat-box {
+    background: rgba(13, 10, 20, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-box-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 2px;
+}
+
+.stat-box-val {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.modal-material-note {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    background: rgba(22, 18, 31, 0.5);
+    border-left: 3px solid var(--gold-500);
+    padding: 6px 10px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    margin-bottom: 14px;
+}
+
+.modal-spell-content-body {
+    margin-top: 14px;
+}
+
+.modal-section-title {
+    font-family: var(--font-heading);
+    font-size: 1.05rem;
+    color: var(--gold-400);
+    margin: 0 0 8px 0;
+}
+
+.modal-spell-description {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #e2e8f0;
+    max-height: 240px;
+    overflow-y: auto;
+    padding-right: 6px;
+    margin-bottom: 14px;
+}
+
+.modal-higher-levels-box {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #bfdbfe;
+}
+
+.modal-higher-levels-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--sapphire-200);
+    margin: 0 0 4px 0;
+}
+
+.modal-classes-note {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin-top: 10px;
+}
+
+/* Spodní akční lišta modálu */
+.modal-spell-actions-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-top: 16px;
+    margin-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-actions-left {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-emerald {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border: 1px solid #34d399;
+    font-weight: 700;
+}
+
+.btn-emerald:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+}
+
+.text-emerald { color: #34d399 !important; }
+.text-amber { color: #fbbf24 !important; }

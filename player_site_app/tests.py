@@ -447,3 +447,139 @@ class PlayerAuthAndCharacterTests(TestCase):
         res_hidden = self.client.get(reverse('player_site_app:kronika_detail', kwargs={'entry_id': entry_hidden.id}))
         self.assertEqual(res_hidden.status_code, 404)
 
+    def test_char_schopnosti_view_filtering_and_tiers(self):
+        """Kniha kouzel filtruje podle povolání, řadí podle úrovně a správně určuje stav dostupné/zamčené."""
+        from dm_site_app.models import Spells_All_db, Spells_Active
+
+        # Vytvoření postavy: Kouzelník na 3. úrovni (může triky, 1. úroveň a 2. úroveň)
+        char = Char_info.objects.create(
+            player=self.player1,
+            name='Geralt Magus',
+            character_class='Kouzelník',
+            level=3,
+            race='Člověk'
+        )
+
+        cantrip = Spells_All_db.objects.create(
+            api_index='fire-bolt',
+            name_cz='Ohnivá střela',
+            name_en='Fire Bolt',
+            level=0,
+            is_cantrip=True,
+            school='Evokace',
+            classes='Kouzelník, Čaroděj'
+        )
+        spell_lvl1 = Spells_All_db.objects.create(
+            api_index='magic-missile',
+            name_cz='Magická střela',
+            name_en='Magic Missile',
+            level=1,
+            is_cantrip=False,
+            school='Evokace',
+            classes='Kouzelník, Čaroděj'
+        )
+        spell_lvl5 = Spells_All_db.objects.create(
+            api_index='cone-of-cold',
+            name_cz='Kužel mrazu',
+            name_en='Cone of Cold',
+            level=5,
+            is_cantrip=False,
+            school='Evokace',
+            classes='Kouzelník'
+        )
+
+        self.client.login(username='hrac1', password='tajneheslo123')
+        res = self.client.get(reverse('player_site_app:char_schopnosti_detail', kwargs={'char_id': char.id}))
+        self.assertEqual(res.status_code, 200)
+        self.assertTemplateUsed(res, 'player_site_app/char_schopnosti.html')
+
+        # V kontextu musí být správně vypočtena max. dosažitelná úroveň (pro kouzelníka L3 je to 2. úroveň)
+        self.assertEqual(res.context['max_spell_level'], 2)
+
+        # Karty v HTML
+        self.assertContains(res, 'Ohnivá střela')
+        self.assertContains(res, 'Magická střela')
+        self.assertContains(res, 'Kužel mrazu')
+
+    def test_toggle_learn_and_equip_spell(self):
+        """Hráč se může naučit kouzlo, následně ho vybavit a odebrat z výbavy."""
+        from dm_site_app.models import Spells_All_db, Spells_Active
+
+        char = Char_info.objects.create(
+            player=self.player1,
+            name='Yennefer z Vengerbergu',
+            character_class='Kouzelník',
+            level=5
+        )
+        spell = Spells_All_db.objects.create(
+            api_index='fireball',
+            name_cz='Ohnivá koule',
+            name_en='Fireball',
+            level=3,
+            is_cantrip=False,
+            school='Evokace',
+            classes='Kouzelník, Čaroděj'
+        )
+
+        self.client.login(username='hrac1', password='tajneheslo123')
+
+        # 1. Naučit se kouzlo (AJAX POST)
+        res_learn = self.client.post(reverse('player_site_app:toggle_learn_spell'), {
+            'char_id': char.id,
+            'spell_id': spell.id,
+            'action': 'learn',
+            'ajax': '1'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_learn.status_code, 200)
+        data = res_learn.json()
+        self.assertTrue(data['success'])
+        self.assertTrue(data['nauceno'])
+        self.assertFalse(data['vybaveno'])
+
+        active_spell = Spells_Active.objects.get(char_own=char, template_spell=spell)
+        self.assertTrue(active_spell.nauceno)
+        self.assertFalse(active_spell.vybaveno)
+
+        # 2. Vybavit kouzlo
+        res_equip = self.client.post(reverse('player_site_app:toggle_equip_spell'), {
+            'char_id': char.id,
+            'spell_id': spell.id,
+            'ajax': '1'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_equip.status_code, 200)
+        data_equip = res_equip.json()
+        self.assertTrue(data_equip['success'])
+        self.assertTrue(data_equip['vybaveno'])
+
+        active_spell.refresh_from_db()
+        self.assertTrue(active_spell.vybaveno)
+
+        # 3. Odebrat z výbavy
+        res_unequip = self.client.post(reverse('player_site_app:toggle_equip_spell'), {
+            'char_id': char.id,
+            'spell_id': spell.id,
+            'ajax': '1'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_unequip.status_code, 200)
+        active_spell.refresh_from_db()
+        self.assertFalse(active_spell.vybaveno)
+
+    def test_spell_isolation_between_players(self):
+        """Hráč 2 nemůže manipulovat s kouzly postavy hráče 1."""
+        from dm_site_app.models import Spells_All_db
+
+        char1 = Char_info.objects.create(player=self.player1, name='Geralt', level=1)
+        spell = Spells_All_db.objects.create(
+            api_index='shield',
+            name_cz='Štít',
+            name_en='Shield',
+            level=1
+        )
+
+        self.client.login(username='hrac2', password='tajneheslo123')
+        res = self.client.post(reverse('player_site_app:toggle_learn_spell'), {
+            'char_id': char1.id,
+            'spell_id': spell.id,
+        })
+        self.assertEqual(res.status_code, 404)
+

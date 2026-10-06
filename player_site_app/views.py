@@ -3,13 +3,16 @@ from django.http import JsonResponse
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.db.models import Q
 from .models import (
     Player, Char_info, Achivements_players, Achivements_database,
     Esence_Items_Shop, Esence_Items_Owners, CharNotes, CharBackstory
 )
 from .forms import PlayerLoginForm, PlayerRegistrationForm
 from dnd_atarax.terminal import log_player, log_warning, log_info
-from dm_site_app.models import Items_Active, OverAllSettings, Kronika
+from dm_site_app.models import (
+    Items_Active, OverAllSettings, Kronika, Spells_All_db, Spells_Active
+)
 import random
 import time
 
@@ -289,17 +292,316 @@ def inv_view(request, char_id=None):
     })
 
 
+def get_max_spell_level_for_character(character):
+    """Vypočítá nejvyšší úroveň kouzel (1-9), kterou postava může sesílat podle úrovně a povolání."""
+    if not character:
+        return 0
+    lvl = max(1, character.level)
+    char_class = (character.character_class or "").lower().strip()
+
+    full_casters = [
+        "kouzelník", "čaroděj", "klerik", "druid", "bard", "černokněžník",
+        "wizard", "sorcerer", "cleric", "druid", "bard", "warlock"
+    ]
+    half_casters = ["paladin", "hraničář", "ranger"]
+    third_casters = ["bojovník", "tulák", "fighter", "rogue"]
+
+    if any(fc in char_class for fc in full_casters):
+        return min(9, (lvl + 1) // 2)
+    elif any(hc in char_class for hc in half_casters):
+        if lvl < 2:
+            return 0
+        return min(5, (lvl - 1) // 4 + 1)
+    elif any(tc in char_class for tc in third_casters):
+        if lvl < 3:
+            return 0
+        elif lvl < 7:
+            return 1
+        elif lvl < 13:
+            return 2
+        elif lvl < 19:
+            return 3
+        return 4
+    else:
+        return min(9, max(1, (lvl + 1) // 2))
+
+
 @login_required(login_url='player_site_app:index')
 def char_schopnosti_view(request, char_id=None):
-    """3. Schopnosti a kouzla aktivní postavy."""
+    """3. Schopnosti, triky a kouzla aktivní postavy (RPG strom/stupnice)."""
     player, character = get_player_and_character(request, char_id)
+
+    if not character:
+        return render(request, 'player_site_app/char_schopnosti.html', {
+            'player': player,
+            'character': None,
+            'active_character': None,
+            'current_page': 'char_schopnosti',
+            'level_tiers': [],
+            'spell_items': [],
+        })
+
+    max_spell_level = get_max_spell_level_for_character(character)
+
+    class_name = (character.character_class or "").strip()
+    race_name = (character.race or "").strip()
+    bg_name = (character.background or "").strip()
+
+    # 1. Filtrování relevantních kouzel pro postavu
+    q = Q()
+    if class_name and class_name != "Ostatní":
+        q |= Q(classes__icontains=class_name)
+    if race_name and race_name != "Ostatní":
+        q |= Q(races__icontains=race_name)
+    if bg_name and bg_name != "Ostatní":
+        q |= Q(backgrounds__icontains=bg_name)
+
+    active_spells_qs = Spells_Active.objects.filter(char_own=character)
+    active_map = {sa.template_spell_id: sa for sa in active_spells_qs if sa.template_spell_id}
+    active_by_index = {sa.api_index: sa for sa in active_spells_qs if sa.api_index}
+
+    # Zahrnout kouzla, která již postava v DB vlastní
+    active_template_ids = [sa.template_spell_id for sa in active_spells_qs if sa.template_spell_id]
+    if active_template_ids:
+        q |= Q(id__in=active_template_ids)
+
+    relevant_spells = Spells_All_db.objects.filter(q).distinct().order_by('level', 'name_cz')
+    # Pokud pro zadané povolání/rasu v DB zatím nejsou žádná specifická kouzla, zobrazit všechna dostupná
+    if not relevant_spells.exists():
+        relevant_spells = Spells_All_db.objects.all().order_by('level', 'name_cz')
+
+    # 2. Sestavení položek kouzel se stavem
+    spell_items = []
+    for sp in relevant_spells:
+        active_inst = active_map.get(sp.id) or active_by_index.get(sp.api_index)
+        is_learned = bool(active_inst and active_inst.nauceno)
+        is_equipped = bool(active_inst and active_inst.vybaveno)
+        can_learn = (sp.level == 0) or (sp.level <= max_spell_level)
+
+        if is_equipped:
+            state = 'equipped'
+        elif is_learned:
+            state = 'learned'
+        elif can_learn:
+            state = 'available'
+        else:
+            state = 'locked'
+
+        spell_items.append({
+            'id': sp.id,
+            'api_index': sp.api_index,
+            'name_cz': sp.name_cz,
+            'name_en': sp.name_en,
+            'level': sp.level,
+            'is_cantrip': sp.is_trick,
+            'school': sp.school or "Univerzální",
+            'school_en': sp.school_en,
+            'casting_time': sp.casting_time or "1 akce",
+            'range': sp.range or "Dotyk",
+            'components': sp.components or "V, S",
+            'material': sp.material or "",
+            'duration': sp.duration or "Ihned",
+            'concentration': sp.concentration,
+            'ritual': sp.ritual,
+            'attack_type': sp.attack_type or "",
+            'damage_type': sp.damage_type or "",
+            'damage_dice': sp.damage_dice or "",
+            'saving_throw': sp.saving_throw or "",
+            'heal_dice': sp.heal_dice or "",
+            'description': sp.description or "",
+            'higher_levels': sp.higher_levels or "",
+            'classes': sp.classes or "",
+            'races': sp.races or "",
+            'icon_url': sp.display_icon_url,
+            'is_learned': is_learned,
+            'is_equipped': is_equipped,
+            'can_learn': can_learn,
+            'state': state,
+            'active_id': active_inst.id if active_inst else None,
+        })
+
+    # 3. Skupiny podle úrovní (0 až 9) pro levou stupnici levelů a pravý strom
+    level_tiers = []
+    for lvl in range(10):
+        tier_spells = [s for s in spell_items if s['level'] == lvl]
+        tier_unlocked = (lvl == 0) or (lvl <= max_spell_level)
+        level_tiers.append({
+            'level': lvl,
+            'name': "Magické triky (Cantrips)" if lvl == 0 else f"{lvl}. Úroveň kouzel",
+            'short_title': "Triky" if lvl == 0 else f"Úroveň {lvl}",
+            'is_cantrip': (lvl == 0),
+            'is_unlocked': tier_unlocked,
+            'spells': tier_spells,
+            'total_count': len(tier_spells),
+            'learned_count': sum(1 for s in tier_spells if s['is_learned']),
+            'equipped_count': sum(1 for s in tier_spells if s['is_equipped']),
+        })
+
+    total_learned = sum(1 for s in spell_items if s['is_learned'])
+    total_equipped = sum(1 for s in spell_items if s['is_equipped'])
+    total_cantrips_learned = sum(1 for s in spell_items if s['level'] == 0 and s['is_learned'])
+    total_spells_learned = sum(1 for s in spell_items if s['level'] > 0 and s['is_learned'])
 
     return render(request, 'player_site_app/char_schopnosti.html', {
         'player': player,
         'character': character,
         'active_character': character,
         'current_page': 'char_schopnosti',
+        'level_tiers': level_tiers,
+        'spell_items': spell_items,
+        'max_spell_level': max_spell_level,
+        'total_learned': total_learned,
+        'total_equipped': total_equipped,
+        'total_cantrips_learned': total_cantrips_learned,
+        'total_spells_learned': total_spells_learned,
     })
+
+
+@login_required(login_url='player_site_app:index')
+def toggle_learn_spell(request):
+    """Přepne stav 'naučeno' pro kouzlo postavy."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Pouze POST metoda'}, status=405)
+
+    char_id = request.POST.get('char_id')
+    spell_id = request.POST.get('spell_id')
+    action = request.POST.get('action', 'toggle')
+
+    player = get_object_or_404(Player, user=request.user)
+    character = get_object_or_404(Char_info, id=char_id, player=player)
+    spell_template = get_object_or_404(Spells_All_db, id=spell_id)
+
+    active_spell, created = Spells_Active.objects.get_or_create(
+        char_own=character,
+        template_spell=spell_template,
+        defaults={
+            'api_index': spell_template.api_index,
+            'name_cz': spell_template.name_cz,
+            'name_en': spell_template.name_en,
+            'level': spell_template.level,
+            'is_cantrip': spell_template.is_cantrip,
+            'school': spell_template.school,
+            'school_en': spell_template.school_en,
+            'casting_time': spell_template.casting_time,
+            'range': spell_template.range,
+            'components': spell_template.components,
+            'material': spell_template.material,
+            'duration': spell_template.duration,
+            'concentration': spell_template.concentration,
+            'ritual': spell_template.ritual,
+            'attack_type': spell_template.attack_type,
+            'damage_type': spell_template.damage_type,
+            'damage_dice': spell_template.damage_dice,
+            'saving_throw': spell_template.saving_throw,
+            'heal_dice': spell_template.heal_dice,
+            'description': spell_template.description,
+            'higher_levels': spell_template.higher_levels,
+            'classes': spell_template.classes,
+            'races': spell_template.races,
+            'backgrounds': spell_template.backgrounds,
+            'icon': spell_template.icon,
+            'icon_url': spell_template.icon_url,
+            'raw_data': spell_template.raw_data,
+            'nauceno': True,
+            'vybaveno': False,
+        }
+    )
+
+    if not created:
+        if action == 'learn':
+            active_spell.nauceno = True
+        elif action == 'unlearn':
+            active_spell.nauceno = False
+            active_spell.vybaveno = False
+        else:
+            active_spell.nauceno = not active_spell.nauceno
+            if not active_spell.nauceno:
+                active_spell.vybaveno = False
+        active_spell.save()
+
+    action_str = "Naučeno" if active_spell.nauceno else "Zapomenuto"
+    log_info(f"Kouzlo '{spell_template.name_cz}' u postavy '{character.name}': {action_str}")
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+        return JsonResponse({
+            'success': True,
+            'spell_id': spell_template.id,
+            'nauceno': active_spell.nauceno,
+            'vybaveno': active_spell.vybaveno,
+        })
+
+    messages.success(request, f"Kouzlo {spell_template.name_cz} bylo aktualizováno.")
+    return redirect('player_site_app:char_schopnosti_detail', char_id=character.id)
+
+
+@login_required(login_url='player_site_app:index')
+def toggle_equip_spell(request):
+    """Přepne stav 'vybaveno' pro naučené kouzlo postavy."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Pouze POST metoda'}, status=405)
+
+    char_id = request.POST.get('char_id')
+    spell_id = request.POST.get('spell_id')
+
+    player = get_object_or_404(Player, user=request.user)
+    character = get_object_or_404(Char_info, id=char_id, player=player)
+    spell_template = get_object_or_404(Spells_All_db, id=spell_id)
+
+    active_spell, created = Spells_Active.objects.get_or_create(
+        char_own=character,
+        template_spell=spell_template,
+        defaults={
+            'api_index': spell_template.api_index,
+            'name_cz': spell_template.name_cz,
+            'name_en': spell_template.name_en,
+            'level': spell_template.level,
+            'is_cantrip': spell_template.is_cantrip,
+            'school': spell_template.school,
+            'school_en': spell_template.school_en,
+            'casting_time': spell_template.casting_time,
+            'range': spell_template.range,
+            'components': spell_template.components,
+            'material': spell_template.material,
+            'duration': spell_template.duration,
+            'concentration': spell_template.concentration,
+            'ritual': spell_template.ritual,
+            'attack_type': spell_template.attack_type,
+            'damage_type': spell_template.damage_type,
+            'damage_dice': spell_template.damage_dice,
+            'saving_throw': spell_template.saving_throw,
+            'heal_dice': spell_template.heal_dice,
+            'description': spell_template.description,
+            'higher_levels': spell_template.higher_levels,
+            'classes': spell_template.classes,
+            'races': spell_template.races,
+            'backgrounds': spell_template.backgrounds,
+            'icon': spell_template.icon,
+            'icon_url': spell_template.icon_url,
+            'raw_data': spell_template.raw_data,
+            'nauceno': True,
+            'vybaveno': True,
+        }
+    )
+
+    if not created:
+        active_spell.vybaveno = not active_spell.vybaveno
+        if active_spell.vybaveno:
+            active_spell.nauceno = True
+        active_spell.save()
+
+    status_str = "Vybaveno" if active_spell.vybaveno else "Uloženo do knihy"
+    log_info(f"Kouzlo '{spell_template.name_cz}' u postavy '{character.name}': {status_str}")
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+        return JsonResponse({
+            'success': True,
+            'spell_id': spell_template.id,
+            'nauceno': active_spell.nauceno,
+            'vybaveno': active_spell.vybaveno,
+        })
+
+    messages.success(request, f"Kouzlo {spell_template.name_cz} bylo aktualizováno ({status_str}).")
+    return redirect('player_site_app:char_schopnosti_detail', char_id=character.id)
 
 
 @login_required(login_url='player_site_app:index')

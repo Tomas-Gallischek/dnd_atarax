@@ -23,6 +23,8 @@ urlpatterns = [
     # 3. char_schopnosti.html
     path('schopnosti/', views.char_schopnosti_view, name='char_schopnosti'),
     path('schopnosti/<int:char_id>/', views.char_schopnosti_view, name='char_schopnosti_detail'),
+    path('schopnosti/naucit/', views.toggle_learn_spell, name='toggle_learn_spell'),
+    path('schopnosti/vybavit/', views.toggle_equip_spell, name='toggle_equip_spell'),
 
     # 4. char_roleplay.html a backstory
     path('roleplay/', views.char_roleplay_view, name='char_roleplay'),

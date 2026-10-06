@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active, Items_Active, OverAllSettings, Kronika
+from .models import (
+    Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active,
+    Items_Active, OverAllSettings, Kronika, Spells_All_db, Spells_Active
+)
 
 
 @admin.register(Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active)
@@ -30,5 +33,16 @@ class KronikaAdmin(admin.ModelAdmin):
     list_editable = ('odkryto_hracum',)
 
 
-    
+@admin.register(Spells_All_db)
+class Spells_All_dbAdmin(admin.ModelAdmin):
+    list_display = ('name_cz', 'name_en', 'level', 'is_cantrip', 'school', 'classes', 'casting_time')
+    list_filter = ('level', 'is_cantrip', 'school')
+    search_fields = ('name_cz', 'name_en', 'classes', 'description')
 
+
+@admin.register(Spells_Active)
+class Spells_ActiveAdmin(admin.ModelAdmin):
+    list_display = ('name_cz', 'char_own', 'level', 'is_cantrip', 'nauceno', 'vybaveno')
+    list_filter = ('nauceno', 'vybaveno', 'level', 'char_own')
+    search_fields = ('name_cz', 'name_en', 'char_own__name')
+    list_editable = ('nauceno', 'vybaveno')

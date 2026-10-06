@@ -1,52 +1,699 @@
 {% extends "player_site_app/player_base.html" %}
 
-{% block title %}DnD Atarax - Schopnosti a kouzla{% endblock %}
+{% block title %}DnD Atarax - Kniha kouzel & Schopnosti ({{ character.name|default:"Postava" }}){% endblock %}
 
 {% block player_content %}
+{% if character %}
 <div class="atarax-page-header char-header-with-avatar">
-    {% if character %}
     <div class="char-header-avatar-wrap">
         <img src="{{ character.profile_image_url }}" alt="{{ character.name }}" class="char-avatar char-avatar-lg">
         {% if character.frame_url %}
         <img src="{{ character.frame_url }}" alt="Rámeček" class="char-avatar-frame" aria-hidden="true">
         {% endif %}
     </div>
-    {% endif %}
     <div class="atarax-header-title-group char-header-title-flex">
-        <h1><span>⚡</span> Schopnosti, Triky a Kouzla</h1>
+        <h1><span>⚡</span> Kniha Kouzel & Magické Schopnosti</h1>
         <p class="atarax-header-subtitle">
-            {% if character %}
-                Přehled magie a dovedností postavy <strong>{{ character.name }}</strong>
-            {% else %}
-                Přehled magických triků, rasových rysů a schopností
-            {% endif %}
+            Magický repertoár postavy <strong>{{ character.name }}</strong> &bull;
+            {{ character.character_class|default:"Bez povolání" }} &bull;
+            {{ character.race|default:"Neznámá rasa" }}
         </p>
     </div>
 </div>
 
-{% if character %}
-<div class="atarax-card">
-    <div class="atarax-card-header">
-        <h2 class="atarax-card-title">
-            <span>✨</span> Rysy povolání a rasy ({{ character.name }})
-        </h2>
-        <div>
-            <span class="badge badge-gold">Úroveň {{ character.level }}</span>
-            {% if character.character_class %}<span class="badge badge-silver">{{ character.character_class }}</span>{% endif %}
-            {% if character.race %}<span class="badge badge-sapphire">{{ character.race }}</span>{% endif %}
-        </div>
+<!-- Horní RPG přehledový panel & statistiky -->
+<div class="rpg-spellbook-summary-bar">
+    <div class="rpg-summary-stat">
+        <span class="rpg-stat-label">Úroveň postavy</span>
+        <span class="rpg-stat-val text-gold">{{ character.level }}</span>
+    </div>
+    <div class="rpg-summary-stat">
+        <span class="rpg-stat-label">Max. úroveň kouzel</span>
+        <span class="rpg-stat-val text-sapphire">
+            {% if max_spell_level == 0 %}Pouze triky{% else %}Level {{ max_spell_level }}{% endif %}
+        </span>
+    </div>
+    <div class="rpg-summary-stat">
+        <span class="rpg-stat-label">Naučené triky</span>
+        <span class="rpg-stat-val" id="statCantripsCount">{{ total_cantrips_learned }}</span>
+    </div>
+    <div class="rpg-summary-stat">
+        <span class="rpg-stat-label">Naučená kouzla</span>
+        <span class="rpg-stat-val" id="statSpellsCount">{{ total_spells_learned }}</span>
+    </div>
+    <div class="rpg-summary-stat highlight-equipped">
+        <span class="rpg-stat-label">⚔️ Vybaveno do hry</span>
+        <span class="rpg-stat-val text-emerald" id="statEquippedCount">{{ total_equipped }}</span>
+    </div>
+</div>
+
+<!-- Filtrovací lišta & Záložky (Vše / Triky / Kouzla / Vybaveno) -->
+<div class="rpg-spellbook-controls">
+    <div class="rpg-spell-tabs">
+        <button type="button" class="rpg-tab-btn active" data-filter="all" onclick="filterSpellbook('all')">
+            <span>🌟</span> Všechny schopnosti (<span id="countTabAll">{{ spell_items|length }}</span>)
+        </button>
+        <button type="button" class="rpg-tab-btn" data-filter="cantrips" onclick="filterSpellbook('cantrips')">
+            <span>🪄</span> Magické triky (<span id="countTabCantrips">{{ total_cantrips_learned }} naučeno</span>)
+        </button>
+        <button type="button" class="rpg-tab-btn" data-filter="spells" onclick="filterSpellbook('spells')">
+            <span>✨</span> Kouzla L1–L9 (<span id="countTabSpells">{{ total_spells_learned }} naučeno</span>)
+        </button>
+        <button type="button" class="rpg-tab-btn" data-filter="equipped" onclick="filterSpellbook('equipped')">
+            <span>⚔️</span> Pouze vybavené (<span id="countTabEquipped">{{ total_equipped }}</span>)
+        </button>
     </div>
 
-    <p class="dm-item-desc">
-        Zde se zobrazují naučená kouzla, sloty pro sesílání, pasivní a aktivní bojové dovednosti.
-    </p>
+    <div class="rpg-spell-search-wrap">
+        <span class="rpg-search-icon">🔍</span>
+        <input type="text" id="spellSearchInput" class="rpg-spell-search-input" placeholder="Hledat kouzlo, školu nebo účinek..." oninput="searchSpellbook(this.value)">
+    </div>
 </div>
+
+<!-- Legenda stavů -->
+<div class="rpg-states-legend">
+    <div class="legend-item"><span class="legend-dot dot-equipped"></span> <strong>Vybaveno</strong> (připraveno k seslání)</div>
+    <div class="legend-item"><span class="legend-dot dot-learned"></span> <strong>Naučeno</strong> (zapsáno v knize)</div>
+    <div class="legend-item"><span class="legend-dot dot-available"></span> <strong>Dostupné k naučení</strong> (splňuješ úroveň)</div>
+    <div class="legend-item"><span class="legend-dot dot-locked"></span> <strong>Zatím nedostupné</strong> (vyžaduje vyšší úroveň)</div>
+</div>
+
+<!-- HLAVNÍ RPG ROZVRŽENÍ: Levá stupnice levelů + Pravý strom kouzel -->
+<div class="rpg-spellbook-layout">
+    <!-- Levá stupnice levelů (Level Ladder) -->
+    <aside class="rpg-level-ladder" aria-label="Stupnice úrovní magie">
+        <div class="ladder-header">
+            <span class="ladder-title-icon">📜</span>
+            <span class="ladder-title-text">Stupnice Úrovní</span>
+        </div>
+        <nav class="ladder-nav">
+            {% for tier in level_tiers %}
+            <a href="#tier-{{ tier.level }}" class="ladder-node {% if not tier.is_unlocked %}node-locked{% endif %}" id="ladderNode-{{ tier.level }}">
+                <div class="ladder-node-badge">
+                    {% if tier.is_cantrip %}0{% else %}{{ tier.level }}{% endif %}
+                </div>
+                <div class="ladder-node-info">
+                    <span class="ladder-node-title">{{ tier.short_title }}</span>
+                    <span class="ladder-node-sub">
+                        {% if tier.is_unlocked %}
+                            <span class="ladder-unlocked-tag">🔓 Odemčeno</span>
+                        {% else %}
+                            <span class="ladder-locked-tag">🔒 Zamčeno</span>
+                        {% endif %}
+                        <small class="ladder-counter">({{ tier.learned_count }}/{{ tier.total_count }})</small>
+                    </span>
+                </div>
+            </a>
+            {% endfor %}
+        </nav>
+    </aside>
+
+    <!-- Pravá část: Seznam kouzel rozdělený podle jednotlivých úrovní -->
+    <main class="rpg-spell-tiers-container">
+        {% for tier in level_tiers %}
+        <section class="rpg-spell-tier-section {% if not tier.is_unlocked %}tier-locked{% endif %}" id="tier-{{ tier.level }}" data-tier-level="{{ tier.level }}" data-is-cantrip="{{ tier.is_cantrip|yesno:'1,0' }}">
+            <div class="tier-section-header">
+                <div class="tier-header-left">
+                    <span class="tier-level-badge {% if tier.is_cantrip %}badge-cantrip{% else %}badge-level-{{ tier.level }}{% endif %}">
+                        {% if tier.is_cantrip %}Trik{% else %}Lvl {{ tier.level }}{% endif %}
+                    </span>
+                    <h2 class="tier-section-title">{{ tier.name }}</h2>
+                </div>
+                <div class="tier-header-right">
+                    {% if tier.is_unlocked %}
+                        <span class="tier-status-pill pill-unlocked">✨ Odemčeno pro postavu</span>
+                    {% else %}
+                        <span class="tier-status-pill pill-locked">🔒 Vyžaduje vyšší úroveň</span>
+                    {% endif %}
+                    <span class="badge badge-sapphire tier-spells-count">{{ tier.total_count }} kouzel</span>
+                </div>
+            </div>
+
+            {% if tier.spells %}
+                <div class="rpg-spells-grid">
+                    {% for s in tier.spells %}
+                    <div class="rpg-spell-card state-{{ s.state }}"
+                         id="spellCard-{{ s.id }}"
+                         data-spell-id="{{ s.id }}"
+                         data-name-cz="{{ s.name_cz|lower }}"
+                         data-name-en="{{ s.name_en|lower }}"
+                         data-school="{{ s.school|lower }}"
+                         data-level="{{ s.level }}"
+                         data-is-cantrip="{{ s.is_cantrip|yesno:'1,0' }}"
+                         data-is-learned="{{ s.is_learned|yesno:'1,0' }}"
+                         data-is-equipped="{{ s.is_equipped|yesno:'1,0' }}"
+                         data-can-learn="{{ s.can_learn|yesno:'1,0' }}">
+
+                        <!-- Odznak vybaveno v rohu -->
+                        {% if s.is_equipped %}
+                        <div class="spell-equipped-ribbon" title="Kouzlo je vybaveno k sesílání">
+                            <span>⚔️ VYBAVENO</span>
+                        </div>
+                        {% endif %}
+
+                        <div class="spell-card-inner">
+                            <div class="spell-icon-wrap">
+                                <img src="{{ s.icon_url }}" alt="{{ s.name_cz }}" class="spell-icon-img" loading="lazy">
+                                {% if s.state == 'locked' %}
+                                    <div class="spell-icon-lock-overlay">🔒</div>
+                                {% elif s.state == 'available' %}
+                                    <div class="spell-icon-sparkle-overlay">✨</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="spell-info-wrap">
+                                <div class="spell-school-tag">{{ s.school }}</div>
+                                <h3 class="spell-title-cz">{{ s.name_cz }}</h3>
+                                <span class="spell-title-en">{{ s.name_en }}</span>
+
+                                <div class="spell-chips-list">
+                                    <span class="spell-chip">⏱️ {{ s.casting_time }}</span>
+                                    <span class="spell-chip">🎯 {{ s.range }}</span>
+                                    {% if s.concentration %}<span class="spell-chip chip-concentration">🧠 Soustředění</span>{% endif %}
+                                    {% if s.ritual %}<span class="spell-chip chip-ritual">📜 Rituál</span>{% endif %}
+                                    {% if s.damage_dice %}<span class="spell-chip chip-damage">💥 {{ s.damage_dice }} {{ s.damage_type }}</span>{% endif %}
+                                    {% if s.heal_dice %}<span class="spell-chip chip-heal">💚 {{ s.heal_dice }}</span>{% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="spell-card-bottom-bar">
+                            {% if s.is_equipped %}
+                                <span class="spell-status-label status-equipped">⚔️ Vybaveno</span>
+                            {% elif s.is_learned %}
+                                <span class="spell-status-label status-learned">🎓 V knize kouzel</span>
+                            {% elif s.can_learn %}
+                                <span class="spell-status-label status-available">✨ Lze se naučit!</span>
+                            {% else %}
+                                <span class="spell-status-label status-locked">🔒 Nedostupné</span>
+                            {% endif %}
+                            <span class="spell-view-btn">Detail &rarr;</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-tier-box">
+                    <p>Pro tuto úroveň nejsou v kompendiu evidována žádná relevantní kouzla.</p>
+                </div>
+            {% endif %}
+        </section>
+        {% endfor %}
+    </main>
+</div>
+
+<!-- =========================================================================
+     MODÁLNÍ OKNO S RPG KARTOU DETAILU KOUZLA (Zatmavené pozadí)
+     ========================================================================= -->
+<div class="atarax-modal-backdrop" id="spellDetailModalBackdrop" onclick="closeSpellModal(event)">
+    <div class="rpg-spell-modal-dialog" id="spellDetailModalDialog" role="dialog" aria-modal="true" aria-labelledby="modalSpellTitleCz">
+        <button type="button" class="modal-close-btn" onclick="forceCloseSpellModal()">&times;</button>
+
+        <header class="modal-spell-header">
+            <div class="modal-spell-icon-wrap">
+                <img id="modalSpellIcon" src="/static/img/spells/default_spell.jpg" alt="Ikonka kouzla" class="modal-spell-icon">
+                <div id="modalSpellBadgeWrap" class="modal-badge-container"></div>
+            </div>
+            <div class="modal-spell-title-group">
+                <div class="modal-top-meta">
+                    <span id="modalSpellTierBadge" class="badge badge-gold">Trik</span>
+                    <span id="modalSpellSchoolBadge" class="badge badge-sapphire">Evokace</span>
+                    <span id="modalSpellStatusPill" class="modal-status-pill"></span>
+                </div>
+                <h2 id="modalSpellTitleCz" class="modal-spell-title">Ohnivá koule</h2>
+                <div id="modalSpellTitleEn" class="modal-spell-subtitle">Fireball</div>
+            </div>
+        </header>
+
+        <!-- Mřížka parametrů sesílání (RPG Stats) -->
+        <div class="modal-spell-stats-grid">
+            <div class="modal-stat-box">
+                <span class="stat-box-label">Doba vyvolání</span>
+                <span class="stat-box-val" id="modalCastingTime">1 akce</span>
+            </div>
+            <div class="modal-stat-box">
+                <span class="stat-box-label">Dosah</span>
+                <span class="stat-box-val" id="modalRange">150 stop</span>
+            </div>
+            <div class="modal-stat-box">
+                <span class="stat-box-label">Složky</span>
+                <span class="stat-box-val" id="modalComponents">V, S, M</span>
+            </div>
+            <div class="modal-stat-box">
+                <span class="stat-box-label">Trvání</span>
+                <span class="stat-box-val" id="modalDuration">Ihned</span>
+            </div>
+            <div class="modal-stat-box" id="modalBoxDamage">
+                <span class="stat-box-label">Zranění / Typ</span>
+                <span class="stat-box-val text-amber" id="modalDamage">-</span>
+            </div>
+            <div class="modal-stat-box" id="modalBoxSave">
+                <span class="stat-box-label">Záchranný hod</span>
+                <span class="stat-box-val text-sapphire" id="modalSavingThrow">-</span>
+            </div>
+        </div>
+
+        <!-- Materiální složka (pokud je) -->
+        <div class="modal-material-note" id="modalMaterialWrap">
+            <strong>Materiální složky:</strong> <span id="modalMaterialText"></span>
+        </div>
+
+        <!-- Popis kouzla -->
+        <div class="modal-spell-content-body">
+            <h4 class="modal-section-title">Účinek a popis kouzla:</h4>
+            <div class="modal-spell-description" id="modalDescription"></div>
+
+            <div class="modal-higher-levels-box" id="modalHigherLevelsWrap">
+                <h5 class="modal-higher-levels-title">Na vyšších úrovních:</h5>
+                <div id="modalHigherLevelsText"></div>
+            </div>
+
+            <!-- Povolání a rasy -->
+            <div class="modal-classes-note">
+                <strong>Vhodné pro:</strong> <span id="modalClassesText"></span>
+            </div>
+        </div>
+
+        <!-- Spodní akční lišta s tlačítky Naučit / Vybavit -->
+        <footer class="modal-spell-actions-footer">
+            <div class="modal-actions-left" id="modalActionButtons">
+                <!-- Dynamicky plněno v JS -->
+            </div>
+            <button type="button" class="btn btn-outline-secondary" onclick="forceCloseSpellModal()">
+                Zavřít
+            </button>
+        </footer>
+    </div>
+</div>
+
+<!-- Data všech kouzel ve formátu JSON pro bleskurychlou interakci modálu -->
+{{ spell_items|json_script:"spellItemsData" }}
+
+<script>
+// Načtení dat kouzel z Django template
+const SPELL_ITEMS_DATA = JSON.parse(document.getElementById('spellItemsData').textContent);
+const SPELLS_MAP = {};
+SPELL_ITEMS_DATA.forEach(s => { SPELLS_MAP[s.id] = s; });
+
+const CURRENT_CHAR_ID = parseInt('{{ character.id }}', 10);
+const CSRF_TOKEN = '{{ csrf_token }}';
+
+// Obsluha kliknutí na karty kouzel bez inline onclick
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.rpg-spell-card').forEach(function(card) {
+        card.addEventListener('click', function(e) {
+            const spellId = this.getAttribute('data-spell-id');
+            if (spellId) {
+                openSpellModal(parseInt(spellId, 10));
+            }
+        });
+    });
+});
+
+// 1. Zobrazení detailu kouzla v modálním okně
+function openSpellModal(spellId) {
+    const s = SPELLS_MAP[spellId];
+    if (!s) return;
+
+    // Nastavení hlavičky
+    document.getElementById('modalSpellIcon').src = s.icon_url || '/static/img/spells/default_spell.jpg';
+    document.getElementById('modalSpellTitleCz').textContent = s.name_cz;
+    document.getElementById('modalSpellTitleEn').textContent = s.name_en;
+    document.getElementById('modalSpellSchoolBadge').textContent = s.school || 'Kouzlo';
+
+    const tierBadge = document.getElementById('modalSpellTierBadge');
+    if (s.is_cantrip || s.level === 0) {
+        tierBadge.textContent = '🪄 Trik';
+        tierBadge.className = 'badge badge-sapphire';
+    } else {
+        tierBadge.textContent = `✨ Level ${s.level}`;
+        tierBadge.className = 'badge badge-gold';
+    }
+
+    // Status pill
+    const statusPill = document.getElementById('modalSpellStatusPill');
+    if (s.is_equipped) {
+        statusPill.textContent = '⚔️ Vybaveno k seslání';
+        statusPill.className = 'modal-status-pill pill-equipped';
+    } else if (s.is_learned) {
+        statusPill.textContent = '🎓 Naučeno v knize';
+        statusPill.className = 'modal-status-pill pill-learned';
+    } else if (s.can_learn) {
+        statusPill.textContent = '🌟 Dostupné k naučení';
+        statusPill.className = 'modal-status-pill pill-available';
+    } else {
+        statusPill.textContent = '🔒 Vyžaduje vyšší úroveň';
+        statusPill.className = 'modal-status-pill pill-locked';
+    }
+
+    // Parametry sesílání
+    document.getElementById('modalCastingTime').textContent = s.casting_time || '1 akce';
+    document.getElementById('modalRange').textContent = s.range || 'Dotyk';
+    document.getElementById('modalComponents').textContent = s.components || '-';
+    document.getElementById('modalDuration').textContent = s.duration || 'Ihned';
+
+    // Materiál
+    const matWrap = document.getElementById('modalMaterialWrap');
+    if (s.material && s.material.trim().length > 0) {
+        matWrap.style.display = 'block';
+        document.getElementById('modalMaterialText').textContent = s.material;
+    } else {
+        matWrap.style.display = 'none';
+    }
+
+    // Zranění / záchranný hod
+    const boxDmg = document.getElementById('modalBoxDamage');
+    if (s.damage_dice || s.damage_type || s.heal_dice) {
+        boxDmg.style.display = 'flex';
+        let dmgTxt = '';
+        if (s.damage_dice) dmgTxt += s.damage_dice + ' ';
+        if (s.damage_type) dmgTxt += '(' + s.damage_type + ')';
+        if (s.heal_dice) dmgTxt += 'Léčení: ' + s.heal_dice;
+        document.getElementById('modalDamage').textContent = dmgTxt;
+    } else {
+        boxDmg.style.display = 'none';
+    }
+
+    const boxSave = document.getElementById('modalBoxSave');
+    if (s.saving_throw) {
+        boxSave.style.display = 'flex';
+        document.getElementById('modalSavingThrow').textContent = s.saving_throw;
+    } else {
+        boxSave.style.display = 'none';
+    }
+
+    // Popis a vyšší úrovně
+    const descEl = document.getElementById('modalDescription');
+    descEl.innerHTML = s.description.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+
+    const highWrap = document.getElementById('modalHigherLevelsWrap');
+    if (s.higher_levels && s.higher_levels.trim().length > 0) {
+        highWrap.style.display = 'block';
+        document.getElementById('modalHigherLevelsText').innerHTML = s.higher_levels.replace(/\n/g, '<br>');
+    } else {
+        highWrap.style.display = 'none';
+    }
+
+    // Povolání
+    document.getElementById('modalClassesText').textContent = s.classes || 'Všechna povolání';
+
+    // Vykreslení tlačítek akcí (Naučit / Vybavit)
+    renderModalActionButtons(s);
+
+    // Otevření modálu se zatmavením
+    const backdrop = document.getElementById('spellDetailModalBackdrop');
+    backdrop.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function renderModalActionButtons(s) {
+    const actionsWrap = document.getElementById('modalActionButtons');
+    actionsWrap.innerHTML = '';
+
+    if (s.is_learned) {
+        // Již naučené kouzlo: možnost Vybavit / Odebrat z výbavy
+        if (s.is_equipped) {
+            const btnUnequip = document.createElement('button');
+            btnUnequip.type = 'button';
+            btnUnequip.className = 'btn btn-outline-gold';
+            btnUnequip.innerHTML = '<span>↩️</span> Odebrat z výbavy';
+            btnUnequip.onclick = () => handleEquipSpell(s.id);
+            actionsWrap.appendChild(btnUnequip);
+        } else {
+            const btnEquip = document.createElement('button');
+            btnEquip.type = 'button';
+            btnEquip.className = 'btn btn-gold';
+            btnEquip.innerHTML = '<span>⚔️</span> Vybavit kouzlo do hry';
+            btnEquip.onclick = () => handleEquipSpell(s.id);
+            actionsWrap.appendChild(btnEquip);
+        }
+
+        // Tlačítko pro odnaučení / zapomenutí (pro flexibilitu DM i hráče)
+        const btnUnlearn = document.createElement('button');
+        btnUnlearn.type = 'button';
+        btnUnlearn.className = 'btn btn-outline-danger btn-sm';
+        btnUnlearn.innerHTML = '<span>🗑️</span> Zapomenout';
+        btnUnlearn.title = 'Odebrat kouzlo ze své knihy';
+        btnUnlearn.onclick = () => handleLearnSpell(s.id, 'unlearn');
+        actionsWrap.appendChild(btnUnlearn);
+
+    } else if (s.can_learn) {
+        // Nenaučené kouzlo, na které postava dosahuje levelem
+        const btnLearn = document.createElement('button');
+        btnLearn.type = 'button';
+        btnLearn.className = 'btn btn-sapphire';
+        btnLearn.innerHTML = '<span>✨</span> Naučit se kouzlo';
+        btnLearn.onclick = () => handleLearnSpell(s.id, 'learn');
+        actionsWrap.appendChild(btnLearn);
+    } else {
+        // Nedostupné kouzlo (příliš vysoký level)
+        const lockNote = document.createElement('span');
+        lockNote.className = 'text-muted small';
+        lockNote.textContent = '🔒 Postava zatím nemá dostatečnou úroveň pro toto kouzlo.';
+        actionsWrap.appendChild(lockNote);
+    }
+}
+
+// 2. Obsluha naučení kouzla (AJAX)
+function handleLearnSpell(spellId, action) {
+    const s = SPELLS_MAP[spellId];
+    if (!s) return;
+
+    const formData = new FormData();
+    formData.append('char_id', CURRENT_CHAR_ID);
+    formData.append('spell_id', spellId);
+    formData.append('action', action);
+    formData.append('ajax', '1');
+
+    fetch("{% url 'player_site_app:toggle_learn_spell' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            s.is_learned = data.nauceno;
+            s.is_equipped = data.vybaveno;
+            updateSpellCardDOM(s);
+            renderModalActionButtons(s);
+            updateCounters();
+        }
+    })
+    .catch(err => {
+        console.error("Chyba při naučení kouzla:", err);
+    });
+}
+
+// 3. Obsluha vybavení kouzla (AJAX)
+function handleEquipSpell(spellId) {
+    const s = SPELLS_MAP[spellId];
+    if (!s) return;
+
+    const formData = new FormData();
+    formData.append('char_id', CURRENT_CHAR_ID);
+    formData.append('spell_id', spellId);
+    formData.append('ajax', '1');
+
+    fetch("{% url 'player_site_app:toggle_equip_spell' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': CSRF_TOKEN,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            s.is_learned = data.nauceno;
+            s.is_equipped = data.vybaveno;
+            updateSpellCardDOM(s);
+            renderModalActionButtons(s);
+            updateCounters();
+        }
+    })
+    .catch(err => {
+        console.error("Chyba při vybavení kouzla:", err);
+    });
+}
+
+// Aktualizace karty kouzla v DOM bez nutnosti refreshovat stránku
+function updateSpellCardDOM(s) {
+    const card = document.getElementById(`spellCard-${s.id}`);
+    if (!card) return;
+
+    let newState = 'locked';
+    if (s.is_equipped) {
+        newState = 'equipped';
+    } else if (s.is_learned) {
+        newState = 'learned';
+    } else if (s.can_learn) {
+        newState = 'available';
+    }
+
+    s.state = newState;
+    card.className = `rpg-spell-card state-${newState}`;
+    card.setAttribute('data-is-learned', s.is_learned ? '1' : '0');
+    card.setAttribute('data-is-equipped', s.is_equipped ? '1' : '0');
+
+    // Ribbon pro vybaveno
+    let ribbon = card.querySelector('.spell-equipped-ribbon');
+    if (s.is_equipped) {
+        if (!ribbon) {
+            ribbon = document.createElement('div');
+            ribbon.className = 'spell-equipped-ribbon';
+            ribbon.title = 'Kouzlo je vybaveno k sesílání';
+            ribbon.innerHTML = '<span>⚔️ VYBAVENO</span>';
+            card.prepend(ribbon);
+        }
+    } else if (ribbon) {
+        ribbon.remove();
+    }
+
+    // Status label
+    const statusLabel = card.querySelector('.spell-status-label');
+    if (statusLabel) {
+        if (s.is_equipped) {
+            statusLabel.className = 'spell-status-label status-equipped';
+            statusLabel.textContent = '⚔️ Vybaveno';
+        } else if (s.is_learned) {
+            statusLabel.className = 'spell-status-label status-learned';
+            statusLabel.textContent = '🎓 V knize kouzel';
+        } else if (s.can_learn) {
+            statusLabel.className = 'spell-status-label status-available';
+            statusLabel.textContent = '✨ Lze se naučit!';
+        } else {
+            statusLabel.className = 'spell-status-label status-locked';
+            statusLabel.textContent = '🔒 Nedostupné';
+        }
+    }
+}
+
+// Aktualizace součtů v horní liště
+function updateCounters() {
+    let cantripsCount = 0;
+    let spellsCount = 0;
+    let equippedCount = 0;
+
+    Object.values(SPELLS_MAP).forEach(s => {
+        if (s.is_learned) {
+            if (s.is_cantrip || s.level === 0) cantripsCount++;
+            else spellsCount++;
+        }
+        if (s.is_equipped) equippedCount++;
+    });
+
+    const statCantrips = document.getElementById('statCantripsCount');
+    if (statCantrips) statCantrips.textContent = cantripsCount;
+
+    const statSpells = document.getElementById('statSpellsCount');
+    if (statSpells) statSpells.textContent = spellsCount;
+
+    const statEquipped = document.getElementById('statEquippedCount');
+    if (statEquipped) statEquipped.textContent = equippedCount;
+
+    const countTabCantrips = document.getElementById('countTabCantrips');
+    if (countTabCantrips) countTabCantrips.textContent = `${cantripsCount} naučeno`;
+
+    const countTabSpells = document.getElementById('countTabSpells');
+    if (countTabSpells) countTabSpells.textContent = `${spellsCount} naučeno`;
+
+    const countTabEquipped = document.getElementById('countTabEquipped');
+    if (countTabEquipped) countTabEquipped.textContent = equippedCount;
+}
+
+// Zavření modálu
+function closeSpellModal(e) {
+    if (e.target.id === 'spellDetailModalBackdrop') {
+        forceCloseSpellModal();
+    }
+}
+
+function forceCloseSpellModal() {
+    const backdrop = document.getElementById('spellDetailModalBackdrop');
+    backdrop.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        forceCloseSpellModal();
+    }
+});
+
+// 4. Přepínání filtrů (Vše / Triky / Kouzla / Vybaveno)
+let currentFilter = 'all';
+
+function filterSpellbook(filterType) {
+    currentFilter = filterType;
+
+    document.querySelectorAll('.rpg-tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-filter') === filterType);
+    });
+
+    applyFilters();
+}
+
+function searchSpellbook(query) {
+    applyFilters();
+}
+
+function applyFilters() {
+    const query = (document.getElementById('spellSearchInput').value || '').trim().toLowerCase();
+
+    document.querySelectorAll('.rpg-spell-tier-section').forEach(section => {
+        const isCantripTier = section.getAttribute('data-is-cantrip') === '1';
+        let sectionHasVisibleSpells = false;
+
+        const cards = section.querySelectorAll('.rpg-spell-card');
+        cards.forEach(card => {
+            const isCantrip = card.getAttribute('data-is-cantrip') === '1';
+            const isEquipped = card.getAttribute('data-is-equipped') === '1';
+            const nameCz = card.getAttribute('data-name-cz') || '';
+            const nameEn = card.getAttribute('data-name-en') || '';
+            const school = card.getAttribute('data-school') || '';
+
+            let tabMatch = true;
+            if (currentFilter === 'cantrips') {
+                tabMatch = isCantrip;
+            } else if (currentFilter === 'spells') {
+                tabMatch = !isCantrip;
+            } else if (currentFilter === 'equipped') {
+                tabMatch = isEquipped;
+            }
+
+            let searchMatch = true;
+            if (query) {
+                searchMatch = nameCz.includes(query) || nameEn.includes(query) || school.includes(query);
+            }
+
+            if (tabMatch && searchMatch) {
+                card.style.display = '';
+                sectionHasVisibleSpells = true;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        // Skrýt celou sekci úrovně, pokud v ní není žádné vyhovující kouzlo
+        if (sectionHasVisibleSpells) {
+            section.style.display = '';
+        } else {
+            section.style.display = 'none';
+        }
+    });
+}
+</script>
 
 {% else %}
 <div class="atarax-empty-state">
     <div class="atarax-empty-icon">⚡</div>
     <h3 class="atarax-empty-title">Nemáš vybranou žádnou postavu pro zobrazení schopností</h3>
-    <p class="atarax-empty-desc">Vyberte si svou postavu v přehledu, abyste viděli její kouzla a dovednosti.</p>
+    <p class="atarax-empty-desc">Vyberte si svou postavu v přehledu, abyste viděli její kouzla a schopnosti.</p>
     <a href="{% url 'player_site_app:prehled_postav' %}" class="btn btn-sapphire btn-lg mt-2">
         Přejít na Přehled postav &rarr;
     </a>
