@@ -60,13 +60,21 @@ if DB_ENGINE == 'sqlite':
         }
     }
 else:
+    db_host = os.getenv('DB_HOST', 'localhost')
+    if db_host == 'db':
+        import socket
+        try:
+            socket.gethostbyname('db')
+        except (socket.gaierror, OSError):
+            db_host = '192.168.0.95'
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.getenv('DB_NAME', 'dnd_atarax_db'),
             'USER': os.getenv('DB_USER', 'postgres'),
             'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
-            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'HOST': db_host,
             'PORT': os.getenv('DB_PORT', '5432'),
         }
     }
