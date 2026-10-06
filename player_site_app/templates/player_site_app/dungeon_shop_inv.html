@@ -93,7 +93,10 @@
                         {% if player.active_ramecek and player.active_ramecek.item_id == entry.item.id %}
                             <span class="inv-equipped-badge">✨ Aktivní rámeček</span>
                         {% elif entry.item.category == 'treasures' %}
-                            <form action="{% url 'player_site_app:use_treasure' %}" method="post" class="inv-treasure-form">
+                            <form action="{% url 'player_site_app:use_treasure' %}" method="post" class="inv-treasure-form"
+                                  data-chest-img="{% if entry.item.image %}{{ entry.item.image.url }}{% endif %}"
+                                  data-chest-name="{{ entry.item.name }}"
+                                  data-chest-rarity="{{ entry.item.rarity }}">
                                 {% csrf_token %}
                                 <input type="hidden" name="item_id" value="{{ entry.item.id }}">
                                 <input type="hidden" name="player_id" value="{{ player.id }}">
@@ -139,7 +142,7 @@
         <!-- 1. FÁZE: MIMIC OTEVÍRÁNÍ A CHVĚNÍ -->
         <div class="mimic-actor-box" id="mimicActorBox">
             <div class="mimic-shadow"></div>
-            <img src="/media/esence_items/mimic.webp" alt="Mimic" class="mimic-creature-img" id="mimicCreatureImg">
+            <img src="" alt="Truhla" class="mimic-creature-img" id="mimicCreatureImg">
             <div class="mimic-shockwave" id="mimicShockwave"></div>
         </div>
 
@@ -205,7 +208,27 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(form);
             formData.append('ajax', '1');
 
-            // 1. Zobrazení modalu a start napínavé animace
+            // 1. Dynamické nastavení PNG obrázku otevírané truhly (bez bílého pozadí)
+            const chestImgSrc = form.dataset.chestImg;
+            const chestName = form.dataset.chestName || 'Truhla';
+            const chestRarity = form.dataset.chestRarity || 'basic';
+
+            if (chestImgSrc) {
+                creatureImg.src = chestImgSrc;
+            } else {
+                creatureImg.src = `/media/esence_items/truhla_${chestRarity === 'legendary' ? 'legendary' : chestRarity === 'epic' ? 'epic' : chestRarity === 'rare' ? 'rare' : 'base'}.png`;
+            }
+            creatureImg.alt = chestName;
+
+            creatureImg.onerror = function() {
+                if (this.src.indexOf('/media/esence_items/truhla_') !== -1) {
+                    this.src = this.src.replace('/media/esence_items/truhla_', '/media/truhly/truhla_');
+                } else if (this.src.indexOf('mimic.webp') === -1) {
+                    this.src = '/media/esence_items/mimic.webp';
+                }
+            };
+
+            // Zobrazení modalu a start napínavé animace
             modal.style.display = 'flex';
             modal.classList.remove('closing');
             actorBox.style.display = 'flex';
@@ -216,14 +239,14 @@ document.addEventListener('DOMContentLoaded', function() {
             creatureImg.className = 'mimic-creature-img rumbling';
             shockwave.className = 'mimic-shockwave';
 
-            statusTitle.textContent = '🗡️ Otevírání truhly...';
+            statusTitle.textContent = `🗡️ Otevírání: ${chestName}...`;
             statusDesc.textContent = 'Něco se uvnitř hýbe...';
 
             const animationStartTime = Date.now();
 
-            // Změna textu po 600 ms na odhalení Mimica
+            // Změna textu po 650 ms na odhalení Mimica
             const t1 = setTimeout(() => {
-                statusTitle.textContent = '⚠️ POZOR! Truhla ožila...';
+                statusTitle.textContent = `⚠️ POZOR! ${chestName} ožila...`;
                 statusDesc.textContent = 'Je to divoký MIMIC!';
             }, 650);
 

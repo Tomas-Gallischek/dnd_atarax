@@ -468,6 +468,7 @@ def use_treasure(request):
             if treasure_owner_record:
                 treasure_name = treasure_owner_record.item.name
                 rarity = treasure_owner_record.item.rarity
+                chest_image_url = treasure_owner_record.item.image.url if treasure_owner_record.item.image else ''
 
                 won_border = get_border_from_treasure(player.id, item_id, rarity, request=request)
                 treasure_owner_record.delete()
@@ -478,6 +479,7 @@ def use_treasure(request):
                             'success': True,
                             'chest_name': treasure_name,
                             'chest_rarity': rarity,
+                            'chest_image_url': chest_image_url,
                             'border': {
                                 'id': won_border.id,
                                 'name': won_border.name,
