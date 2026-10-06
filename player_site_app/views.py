@@ -247,9 +247,6 @@ def dungeon_shop_view(request):
     treasures = Esence_Items_Shop.objects.filter(category='treasures')
     owned_count = Esence_Items_Owners.objects.filter(player=player).count()
     all_owned = Esence_Items_Owners.objects.all()
-    for i in all_owned:
-        print(i.item)
-        i.delete()
 
     return render(request, 'player_site_app/dungeon_shop.html', {
         'player': player,
