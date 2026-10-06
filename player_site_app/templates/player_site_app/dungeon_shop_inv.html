@@ -93,13 +93,17 @@
                         {% if player.active_ramecek and player.active_ramecek.item_id == entry.item.id %}
                             <span class="inv-equipped-badge">✨ Aktivní rámeček</span>
                         {% elif entry.item.category == 'treasures' %}
-                            <span>
-                                <form action="{% url 'player_site_app:use_treasure' %}">
-                                    <input type="hidden" name="item_id" value="{{ entry.item.id }}">
-                                    <input type="hidden" name="player_id" value="{{ player.id }}">
-                                    <button type="submit" class="btn-shop-inv-frame">Použít</button>
-                                </form>
-                            </span>
+                            <form action="{% url 'player_site_app:use_treasure' %}" method="post" class="inv-treasure-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="item_id" value="{{ entry.item.id }}">
+                                <input type="hidden" name="player_id" value="{{ player.id }}">
+                                <span class="inv-treasure-count">
+                                    📦 <strong>{{ entry.count }} ks</strong>
+                                </span>
+                                <button type="submit" class="btn-use-treasure btn-shop-inv-frame" title="Spotřebovat / Otevřít 1 ks">
+                                    <span>✨</span> Použít
+                                </button>
+                            </form>
                         {% else %}
                             <span>✅ Získáno do sbírky</span>
                         {% endif %}

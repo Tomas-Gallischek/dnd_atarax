@@ -1001,6 +1001,46 @@
     gap: 6px;
 }
 
+.inv-treasure-form {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 10px;
+    margin: 0;
+}
+
+.inv-treasure-count {
+    font-size: 0.85rem;
+    color: var(--text-silver);
+}
+
+.btn-use-treasure,
+.btn-shop-inv-frame {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.38) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.6);
+    color: #fef08a;
+    padding: 5px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 10px rgba(245, 158, 11, 0.18);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-use-treasure:hover,
+.btn-shop-inv-frame:hover {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.45) 0%, rgba(217, 119, 6, 0.65) 100%);
+    border-color: #fbbf24;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 16px rgba(245, 158, 11, 0.4);
+}
+
 .empty-shop-state {
     text-align: center;
     padding: 3.5rem 1.5rem;

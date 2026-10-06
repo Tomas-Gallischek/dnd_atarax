@@ -332,21 +332,41 @@ def esence_buy(request):
         return redirect('player_site_app:dungeon_shop')
 
     
+@login_required(login_url='player_site_app:index')
 def use_treasure(request):
     if request.method == 'POST':
-        item_id = int(request.POST.get('item_id'))
-        player_id = int(request.POST.get('player_id'))
+        item_id = request.POST.get('item_id')
+        player_id = request.POST.get('player_id')
 
-        player = get_object_or_404(Player, id=player_id)
         try:
-            treasure = Esence_Items_Owners.objects.get(id = item_id)
-            treasure.objects.delete()
+            item_id = int(item_id)
+            player_id = int(player_id) if player_id else request.user.player.id
+            player = get_object_or_404(Player, id=player_id)
 
-            messages.success(request, f'Předmět byl úspěšně spotřebován!')
-            return redirect('player_site_app:dungeon_shop_inv')
+            # Bezpečnostní kontrola vlastníka
+            if hasattr(request.user, 'player') and request.user.player.id != player.id and not request.user.is_staff:
+                messages.error(request, 'Neoprávněná akce!')
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            # Hledáme jeden kus tohoto předmětu pro daného hráče
+            treasure_owner_record = Esence_Items_Owners.objects.filter(
+                player=player,
+                item_id=item_id
+            ).first()
+
+            if treasure_owner_record:
+                item_name = treasure_owner_record.item.name
+                treasure_owner_record.delete()
+                messages.success(request, f'Předmět „{item_name}“ byl úspěšně spotřebován!')
+            else:
+                messages.error(request, 'Předmět nebyl ve tvém inventáři nalezen!')
+
         except Exception:
-            messages.error(request, 'Neplatný předmět!')
-            return redirect('player_site_app:dungeon_shop_inv')
+            messages.error(request, 'Chyba při použití předmětu!')
+
+        return redirect('player_site_app:dungeon_shop_inv')
+
+    return redirect('player_site_app:dungeon_shop_inv')
          
 
         
