@@ -413,7 +413,7 @@ class Esence_Items_Shop(models.Model):
 
 
     def __str__(self):
-        return f"{self.name} - {self.rarity} - {self.category} - {self.cost} Temné Esence"
+        return f"{self.name} - {self.rarity} - {self.category}"
 
 class Esence_Items_Owners(models.Model):
     player = models.ForeignKey(
