@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- Background Gradients -->
+    <radialGradient id="bgGlowSpell" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2a1b0a" />
+      <stop offset="70%" stop-color="#18120b" />
+      <stop offset="100%" stop-color="#0a0704" />
+    </radialGradient>
+    <radialGradient id="auraGold" cx="50%" cy="45%" r="55%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.4" />
+      <stop offset="55%" stop-color="#d97706" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#18120b" stop-opacity="0" />
+    </radialGradient>
+    <!-- Book Gradients -->
+    <linearGradient id="bookCover" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#451a03" />
+      <stop offset="60%" stop-color="#271003" />
+      <stop offset="100%" stop-color="#180b02" />
+    </linearGradient>
+    <linearGradient id="bookPage" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <linearGradient id="goldFiligree" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#f59e0b" />
+      <stop offset="100%" stop-color="#b45309" />
+    </linearGradient>
+    <linearGradient id="runeGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="50%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+    <linearGradient id="spellBorderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b" />
+      <stop offset="50%" stop-color="#78350f" />
+      <stop offset="100%" stop-color="#d97706" />
+    </linearGradient>
+    <filter id="spellGlow">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Base Circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#bgGlowSpell)" stroke="url(#spellBorderGrad)" stroke-width="3" />
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 3" opacity="0.4" />
+  <circle cx="64" cy="64" r="48" fill="url(#auraGold)" />
+
+  <!-- Magic Sparkles & Runes -->
+  <g filter="url(#spellGlow)">
+    <path d="M 64,12 Q 64,19 71,19 Q 64,19 64,26 Q 64,19 57,19 Q 64,19 64,12 Z" fill="#fef08a" />
+    <circle cx="28" cy="34" r="2" fill="#fde047" opacity="0.8" />
+    <circle cx="100" cy="34" r="2" fill="#fde047" opacity="0.8" />
+    <circle cx="20" cy="64" r="1.5" fill="#f59e0b" opacity="0.6" />
+    <circle cx="108" cy="64" r="1.5" fill="#f59e0b" opacity="0.6" />
+  </g>
+
+  <!-- Open Grimoire / Tome -->
+  <!-- Backing Pages thickness -->
+  <path d="M 28,34 Q 64,42 64,44 Q 64,42 100,34 L 102,84 Q 64,92 64,90 Q 64,92 26,84 Z" fill="#78350f" opacity="0.7" />
+  <!-- Pages Block -->
+  <path d="M 29,35 Q 64,43 64,45 Q 64,43 99,35 L 99,82 Q 64,90 64,88 Q 64,90 29,82 Z" fill="url(#bookPage)" />
+  
+  <!-- Book Cover Left & Right Wings -->
+  <!-- Left Page -->
+  <path d="M 32,37 Q 63,44 63,46 L 63,85 Q 63,83 32,77 Z" fill="#fffbeb" stroke="#d97706" stroke-width="0.8" />
+  <!-- Right Page -->
+  <path d="M 65,46 Q 65,44 96,37 L 96,77 Q 65,83 65,85 Z" fill="#fef3c7" stroke="#d97706" stroke-width="0.8" />
+
+  <!-- Page Lines (Inscriptions) -->
+  <!-- Left Page Lines -->
+  <line x1="38" y1="46" x2="57" y2="50" stroke="#b45309" stroke-width="1.2" opacity="0.6" stroke-linecap="round" />
+  <line x1="38" y1="53" x2="55" y2="57" stroke="#b45309" stroke-width="1.2" opacity="0.6" stroke-linecap="round" />
+  <line x1="38" y1="60" x2="58" y2="64" stroke="#b45309" stroke-width="1.2" opacity="0.6" stroke-linecap="round" />
+  <line x1="38" y1="67" x2="52" y2="70" stroke="#b45309" stroke-width="1.2" opacity="0.6" stroke-linecap="round" />
+
+  <!-- Right Page Lines -->
+  <line x1="71" y1="50" x2="90" y2="46" stroke="#b45309" stroke-width="1.2" opacity="0.6" stroke-linecap="round" />
+  <line x1="73" y1="57" x2="90" y2="53" stroke="#b45309" stroke-width="1.2" opacity="0.6" stroke-linecap="round" />
+  <line x1="70" y1="64" x2="90" y2="60" stroke="#b45309" stroke-width="1.2" opacity="0.6" stroke-linecap="round" />
+  <line x1="76" y1="70" x2="90" y2="67" stroke="#b45309" stroke-width="1.2" opacity="0.6" stroke-linecap="round" />
+
+  <!-- Book Spine Center Fold -->
+  <line x1="64" y1="44" x2="64" y2="87" stroke="#92400e" stroke-width="2.5" stroke-linecap="round" />
+
+  <!-- Floating Glowing Arcane Rune / Seal Above Spine -->
+  <g filter="url(#spellGlow)">
+    <!-- Arcane Eye / Diamond Seal -->
+    <polygon points="64,30 72,40 64,50 56,40" fill="url(#runeGlow)" stroke="#fef08a" stroke-width="1.5" />
+    <circle cx="64" cy="40" r="3" fill="#ea580c" />
+    <circle cx="64" cy="40" r="1.2" fill="#ffffff" />
+  </g>
+
+  <!-- Golden Page Corner Brackets -->
+  <path d="M 33,43 L 33,37 L 39,38" fill="none" stroke="url(#goldFiligree)" stroke-width="1.5" stroke-linecap="round" />
+  <path d="M 95,43 L 95,37 L 89,38" fill="none" stroke="url(#goldFiligree)" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- Bottom Label Pill: KOUZLO -->
+  <rect x="33" y="104" width="62" height="15" rx="7.5" fill="#1c1208" stroke="#d97706" stroke-width="1.5" />
+  <text x="64" y="115" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="800" fill="#fbbf24" text-anchor="middle" letter-spacing="1.5">KOUZLO</text>
+</svg>

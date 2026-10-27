@@ -739,4 +739,139 @@ class PlayerReforgeAndEquipTests(TestCase):
         }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
         self.assertEqual(res.status_code, 400)
 
+    def test_dnd5e_spellcasting_rules_helpers(self):
+        """Ověření výpočtu úrovní kouzel a přístupu k trikům podle D&D 5e pravidel."""
+        from player_site_app.views import get_max_spell_level_for_character, can_character_cast_cantrips
+
+        # Čaroděj (Plnohodnotný sesilatel)
+        sorcerer_lvl1 = Char_info(character_class='Čaroděj', level=1)
+        self.assertTrue(can_character_cast_cantrips(sorcerer_lvl1))
+        self.assertEqual(get_max_spell_level_for_character(sorcerer_lvl1), 1)
+
+        # Paladin (Polo-sesilatel: na 1. úrovni nemá kouzla ani triky)
+        paladin_lvl1 = Char_info(character_class='Paladin', level=1)
+        self.assertFalse(can_character_cast_cantrips(paladin_lvl1))
+        self.assertEqual(get_max_spell_level_for_character(paladin_lvl1), 0)
+
+        # Paladin na 2. úrovni získává 1. úroveň kouzel, ale triky v 5e nemá
+        paladin_lvl2 = Char_info(character_class='Paladin', level=2)
+        self.assertFalse(can_character_cast_cantrips(paladin_lvl2))
+        self.assertEqual(get_max_spell_level_for_character(paladin_lvl2), 1)
+
+        # Barbar (Nemagická třída)
+        barbarian = Char_info(character_class='Barbar', level=5)
+        self.assertFalse(can_character_cast_cantrips(barbarian))
+        self.assertEqual(get_max_spell_level_for_character(barbarian), 0)
+
+        # Bojovník (Třetinový sesilatel: do 2. úrovně 0, od 3. úrovně má triky a 1. level)
+        fighter_lvl1 = Char_info(character_class='Bojovník', level=1)
+        self.assertFalse(can_character_cast_cantrips(fighter_lvl1))
+        self.assertEqual(get_max_spell_level_for_character(fighter_lvl1), 0)
+
+        fighter_lvl3 = Char_info(character_class='Bojovník', level=3)
+        self.assertTrue(can_character_cast_cantrips(fighter_lvl3))
+        self.assertEqual(get_max_spell_level_for_character(fighter_lvl3), 1)
+
+    def test_two_unified_spell_icons(self):
+        """Triky a kouzla mají přesně 2 sjednocené RPG ikonky (cantrip_icon.svg a spell_icon.svg)."""
+        from dm_site_app.models import Spells_All_db
+
+        cantrip = Spells_All_db.objects.create(
+            api_index='poison-spray-test',
+            name_cz='Oblak jedu test',
+            name_en='Poison Spray',
+            level=0,
+            is_cantrip=True
+        )
+        spell = Spells_All_db.objects.create(
+            api_index='cloudkill-test',
+            name_cz='Mrak smrti test',
+            name_en='Cloudkill',
+            level=5,
+            is_cantrip=False
+        )
+
+        self.assertEqual(cantrip.display_icon_url, '/static/img/spells/cantrip_icon.svg')
+        self.assertEqual(spell.display_icon_url, '/static/img/spells/spell_icon.svg')
+
+    def test_non_caster_character_sees_no_spells_and_gets_notice(self):
+        """Nemagické povolání (např. Barbar) nevidí cizí kouzla a zobrazí se mu informační box."""
+        from dm_site_app.models import Spells_All_db
+
+        Spells_All_db.objects.create(
+            api_index='fireball-test2',
+            name_cz='Ohnivá koule test',
+            name_en='Fireball',
+            level=3,
+            classes='Kouzelník, Čaroděj'
+        )
+
+        barbarian_char = Char_info.objects.create(
+            player=self.player,
+            name='Conan',
+            character_class='Barbar',
+            level=1,
+            race='Člověk'
+        )
+
+        self.client.login(username='tester', password='heslo123')
+        res = self.client.get(reverse('player_site_app:char_schopnosti_detail', kwargs={'char_id': barbarian_char.id}))
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.context['max_spell_level'], 0)
+        self.assertFalse(res.context['has_spellcasting'])
+        self.assertEqual(len(res.context['spell_items']), 0)
+        self.assertContains(res, 'podle pravidel D&D 5e neovládá magická kouzla')
+
+    def test_toggle_learn_spell_validation_dnd5e(self):
+        """Systém odmítne naučení kouzla pro nepovolenou třídu nebo nepovolenou úroveň."""
+        from dm_site_app.models import Spells_All_db
+
+        sorcerer_char = Char_info.objects.create(
+            player=self.player,
+            name='Glem',
+            character_class='Čaroděj',
+            level=1,
+            race='Tiefling'
+        )
+        cantrip = Spells_All_db.objects.create(
+            api_index='poison-spray-val',
+            name_cz='Oblak jedu',
+            name_en='Poison Spray',
+            level=0,
+            is_cantrip=True,
+            classes='Čaroděj, Černokněžník, Kouzelník'
+        )
+        high_level_spell = Spells_All_db.objects.create(
+            api_index='cloudkill-val',
+            name_cz='Mrak smrti',
+            name_en='Cloudkill',
+            level=5,
+            is_cantrip=False,
+            classes='Čaroděj, Kouzelník'
+        )
+
+        self.client.login(username='tester', password='heslo123')
+
+        # 1. Čaroděj na 1. úrovni se MŮŽE naučit Oblak jedu (Poison Spray, Trik 0. úrovně)
+        res_cantrip = self.client.post(reverse('player_site_app:toggle_learn_spell'), {
+            'char_id': sorcerer_char.id,
+            'spell_id': cantrip.id,
+            'action': 'learn',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_cantrip.status_code, 200)
+        self.assertTrue(res_cantrip.json()['success'])
+
+        # 2. Čaroděj na 1. úrovni se NEMŮŽE naučit Mrak smrti (Cloudkill, 5. úroveň) -> odmítnuto kódem 403
+        res_locked = self.client.post(reverse('player_site_app:toggle_learn_spell'), {
+            'char_id': sorcerer_char.id,
+            'spell_id': high_level_spell.id,
+            'action': 'learn',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_locked.status_code, 403)
+        self.assertFalse(res_locked.json()['success'])
+        self.assertIn('maximálně 1. úrovně', res_locked.json()['error'])
+
+
 

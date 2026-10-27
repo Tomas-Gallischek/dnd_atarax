@@ -30,7 +30,17 @@
     <div class="rpg-summary-stat">
         <span class="rpg-stat-label">Max. úroveň kouzel</span>
         <span class="rpg-stat-val text-sapphire">
-            {% if max_spell_level == 0 %}Pouze triky{% else %}Level {{ max_spell_level }}{% endif %}
+            {% if max_spell_level > 0 %}
+                Level {{ max_spell_level }}
+            {% elif can_cast_cantrips %}
+                Pouze triky (0. úroveň)
+            {% elif is_half_caster and character.level < 2 %}
+                Od 2. úrovně
+            {% elif is_third_caster and character.level < 3 %}
+                Od 3. úrovně
+            {% else %}
+                Žádná kouzla
+            {% endif %}
         </span>
     </div>
     <div class="rpg-summary-stat">
@@ -77,6 +87,19 @@
     <div class="legend-item"><span class="legend-dot dot-available"></span> <strong>Dostupné k naučení</strong> (splňuješ úroveň)</div>
     <div class="legend-item"><span class="legend-dot dot-locked"></span> <strong>Zatím nedostupné</strong> (vyžaduje vyšší úroveň)</div>
 </div>
+
+{% if not has_spellcasting and not spell_items %}
+<div class="rpg-noncaster-box">
+    <div class="rpg-noncaster-icon">🛡️</div>
+    <div class="rpg-noncaster-content">
+        <h3>Povolání {{ character.character_class|default:"Postava" }} podle pravidel D&D 5e neovládá magická kouzla</h3>
+        <p>
+            Postava povolání <strong>{{ character.character_class }}</strong> se spoléhá na svou fyzickou zdatnost, zbraně a bojové dovednosti namísto sesílání kouzel. 
+            V knize kouzel se zobrazují pouze schopnosti a kouzla, na které má postava nárok podle svého povolání, rasy nebo zvláštních darů udělených Pánem jeskyně.
+        </p>
+    </div>
+</div>
+{% endif %}
 
 <!-- HLAVNÍ RPG ROZVRŽENÍ: Levá stupnice levelů + Pravý strom kouzel -->
 <div class="rpg-spellbook-layout">
@@ -164,7 +187,7 @@
                             <div class="spell-info-wrap">
                                 <div class="spell-school-tag">{{ s.school }}</div>
                                 <h3 class="spell-title-cz">{{ s.name_cz }}</h3>
-                                <span class="spell-title-en">{{ s.name_en }}</span>
+                                <span class="spell-title-en">{{ s.name_en }}{% if s.is_cantrip %} &bull; Trik 0. úrovně{% else %} &bull; Kouzlo {{ s.level }}. úrovně{% endif %}</span>
 
                                 <div class="spell-chips-list">
                                     <span class="spell-chip">⏱️ {{ s.casting_time }}</span>
@@ -211,7 +234,7 @@
 
         <header class="modal-spell-header">
             <div class="modal-spell-icon-wrap">
-                <img id="modalSpellIcon" src="/static/img/spells/default_spell.jpg" alt="Ikonka kouzla" class="modal-spell-icon">
+                <img id="modalSpellIcon" src="/static/img/spells/cantrip_icon.svg" alt="Ikonka schopnosti" class="modal-spell-icon">
                 <div id="modalSpellBadgeWrap" class="modal-badge-container"></div>
             </div>
             <div class="modal-spell-title-group">
@@ -315,14 +338,16 @@ function openSpellModal(spellId) {
     const s = SPELLS_MAP[spellId];
     if (!s) return;
 
-    // Nastavení hlavičky
-    document.getElementById('modalSpellIcon').src = s.icon_url || '/static/img/spells/default_spell.jpg';
+    // Nastavení hlavičky a ikony (2 sjednocené RPG ikonky: trik vs kouzlo)
+    const isTrick = Boolean(s.is_cantrip || s.level === 0);
+    const iconSrc = isTrick ? '/static/img/spells/cantrip_icon.svg' : '/static/img/spells/spell_icon.svg';
+    document.getElementById('modalSpellIcon').src = iconSrc;
     document.getElementById('modalSpellTitleCz').textContent = s.name_cz;
-    document.getElementById('modalSpellTitleEn').textContent = s.name_en;
+    document.getElementById('modalSpellTitleEn').textContent = `${s.name_en} (${isTrick ? 'Trik 0. úrovně / Cantrip' : `Kouzlo ${s.level}. úrovně`})`;
     document.getElementById('modalSpellSchoolBadge').textContent = s.school || 'Kouzlo';
 
     const tierBadge = document.getElementById('modalSpellTierBadge');
-    if (s.is_cantrip || s.level === 0) {
+    if (isTrick) {
         tierBadge.textContent = '🪄 Trik';
         tierBadge.className = 'badge badge-sapphire';
     } else {
@@ -481,6 +506,8 @@ function handleLearnSpell(spellId, action) {
             updateSpellCardDOM(s);
             renderModalActionButtons(s);
             updateCounters();
+        } else if (data.error) {
+            alert(data.error);
         }
     })
     .catch(err => {
@@ -514,6 +541,8 @@ function handleEquipSpell(spellId) {
             updateSpellCardDOM(s);
             renderModalActionButtons(s);
             updateCounters();
+        } else if (data.error) {
+            alert(data.error);
         }
     })
     .catch(err => {

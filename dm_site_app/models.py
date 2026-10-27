@@ -455,12 +455,7 @@ class Spells_All_db(models.Model):
 
     @property
     def display_icon_url(self):
-        if self.icon:
-            try:
-                return self.icon.url
-            except Exception:
-                pass
-        return self.icon_url or '/static/img/spells/default_spell.jpg'
+        return '/static/img/spells/cantrip_icon.svg' if self.is_trick else '/static/img/spells/spell_icon.svg'
 
     @property
     def is_trick(self):
@@ -554,12 +549,7 @@ class Spells_Active(models.Model):
 
     @property
     def display_icon_url(self):
-        if self.icon:
-            try:
-                return self.icon.url
-            except Exception:
-                pass
-        return self.icon_url or '/static/img/spells/default_spell.jpg'
+        return '/static/img/spells/cantrip_icon.svg' if self.is_trick else '/static/img/spells/spell_icon.svg'
 
     @property
     def is_trick(self):

@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- Background Gradients -->
+    <radialGradient id="bgGlowCantrip" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="70%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </radialGradient>
+    <radialGradient id="auraCyan" cx="50%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.45" />
+      <stop offset="60%" stop-color="#0284c7" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0" />
+    </radialGradient>
+    <!-- Metallic & Energy Gradients -->
+    <linearGradient id="wandGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="50%" stop-color="#94a3b8" />
+      <stop offset="100%" stop-color="#cbd5e1" />
+    </linearGradient>
+    <linearGradient id="wandGrip" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#4338ca" />
+    </linearGradient>
+    <linearGradient id="crystalGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0f2fe" />
+      <stop offset="40%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#1e3a8a" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Dark Base Circle -->
+  <circle cx="64" cy="64" r="60" fill="url(#bgGlowCantrip)" stroke="url(#borderGrad)" stroke-width="3" />
+  <circle cx="64" cy="64" r="54" fill="none" stroke="#0ea5e9" stroke-width="1" stroke-dasharray="3 3" opacity="0.4" />
+  <circle cx="64" cy="64" r="48" fill="url(#auraCyan)" />
+
+  <!-- Magic Sparkles & Stars -->
+  <g filter="url(#glow)">
+    <!-- Main 4-point star at tip -->
+    <path d="M 86,22 Q 86,36 100,36 Q 86,36 86,50 Q 86,36 72,36 Q 86,36 86,22 Z" fill="#e0f2fe" />
+    <!-- Secondary small stars -->
+    <path d="M 40,32 Q 40,38 46,38 Q 40,38 40,44 Q 40,38 34,38 Q 40,38 40,32 Z" fill="#7dd3fc" opacity="0.85" />
+    <path d="M 98,68 Q 98,73 103,73 Q 98,73 98,78 Q 98,73 93,73 Q 98,73 98,68 Z" fill="#38bdf8" opacity="0.75" />
+    <path d="M 30,76 Q 30,80 34,80 Q 30,80 30,84 Q 30,80 26,80 Q 30,80 30,76 Z" fill="#38bdf8" opacity="0.6" />
+    <circle cx="68" cy="20" r="2" fill="#bae6fd" />
+    <circle cx="106" cy="50" r="1.5" fill="#e0f2fe" />
+    <circle cx="50" cy="56" r="1.5" fill="#7dd3fc" />
+  </g>
+
+  <!-- Wand / Rod -->
+  <!-- Wand Handle Base -->
+  <path d="M 28,100 L 40,88 L 46,94 L 34,106 Z" fill="url(#wandGrip)" stroke="#6366f1" stroke-width="1" />
+  <circle cx="31" cy="103" r="4" fill="#a5b4fc" />
+
+  <!-- Wand Shaft -->
+  <path d="M 39,89 L 75,53 L 79,57 L 43,93 Z" fill="url(#wandGradient)" />
+  <!-- Wand Spiral Wrap Accent -->
+  <path d="M 48,80 L 52,84 M 58,70 L 62,74 M 68,60 L 72,64" stroke="#0ea5e9" stroke-width="1.5" stroke-linecap="round" opacity="0.9" />
+
+  <!-- Wand Crystal Tip (Gem) -->
+  <g filter="url(#glow)">
+    <polygon points="86,36 93,45 86,54 79,45" fill="url(#crystalGlow)" stroke="#f0f9ff" stroke-width="1.2" />
+    <line x1="86" y1="36" x2="86" y2="54" stroke="#ffffff" stroke-width="1" opacity="0.8" />
+  </g>
+
+  <!-- Subtle Arcane Orbit Ring -->
+  <ellipse cx="86" cy="45" rx="18" ry="7" fill="none" stroke="#38bdf8" stroke-width="1.2" transform="rotate(-30 86 45)" opacity="0.75" stroke-dasharray="4 2" />
+
+  <!-- Bottom Label Pill: TRIK -->
+  <rect x="39" y="104" width="50" height="15" rx="7.5" fill="#0f172a" stroke="#0284c7" stroke-width="1.5" />
+  <text x="64" y="115" font-family="'Segoe UI', Roboto, sans-serif" font-size="8.5" font-weight="800" fill="#38bdf8" text-anchor="middle" letter-spacing="1.5">TRIK</text>
+</svg>

@@ -292,6 +292,31 @@ def inv_view(request, char_id=None):
     })
 
 
+def can_character_cast_cantrips(character):
+    """Určí, zda má postava podle pravidel D&D 5e přístup k magickým trikům (0. úroveň)."""
+    if not character:
+        return False
+    char_class = (character.character_class or "").lower().strip()
+    lvl = max(1, character.level)
+
+    # Plnohodnotní sesilatelé mají triky od 1. úrovně
+    full_casters = [
+        "kouzelník", "čaroděj", "klerik", "druid", "bard", "černokněžník",
+        "wizard", "sorcerer", "cleric", "druid", "bard", "warlock"
+    ]
+    if any(fc in char_class for fc in full_casters):
+        return True
+
+    # Třetinoví sesilatelé (Mystický rytíř, Mystický šejdíř) mají triky od 3. úrovně
+    third_casters = ["bojovník", "tulák", "fighter", "rogue"]
+    if any(tc in char_class for tc in third_casters) and lvl >= 3:
+        return True
+
+    # Polo-sesilatelé (Paladin, Hraničář) v 5e SRD triky nemají.
+    # Nemagická povolání (Barbar, Mnich) v 5e SRD triky nemají.
+    return False
+
+
 def get_max_spell_level_for_character(character):
     """Vypočítá nejvyšší úroveň kouzel (1-9), kterou postava může sesílat podle úrovně a povolání."""
     if not character:
@@ -323,7 +348,8 @@ def get_max_spell_level_for_character(character):
             return 3
         return 4
     else:
-        return min(9, max(1, (lvl + 1) // 2))
+        # Nemagická povolání (Barbar, Mnich atd.) nemají sloty pro kouzla
+        return 0
 
 
 @login_required(login_url='player_site_app:index')
@@ -342,17 +368,44 @@ def char_schopnosti_view(request, char_id=None):
         })
 
     max_spell_level = get_max_spell_level_for_character(character)
+    can_cast_cantrips_flag = can_character_cast_cantrips(character)
 
     class_name = (character.character_class or "").strip()
+    char_class_lower = class_name.lower()
     race_name = (character.race or "").strip()
+    race_name_lower = race_name.lower()
     bg_name = (character.background or "").strip()
 
-    # 1. Filtrování relevantních kouzel pro postavu
+    is_half_caster = any(hc in char_class_lower for hc in ["paladin", "hraničář", "ranger"])
+    is_third_caster = any(tc in char_class_lower for tc in ["bojovník", "tulák", "fighter", "rogue"])
+    is_full_caster = any(fc in char_class_lower for fc in [
+        "kouzelník", "čaroděj", "klerik", "druid", "bard", "černokněžník",
+        "wizard", "sorcerer", "cleric", "druid", "bard", "warlock"
+    ])
+
+    # 1. Filtrování relevantních kouzel striktně podle pravidel D&D 5e:
     q = Q()
+    has_class_spells = False
+
+    # A) Podle povolání postavy:
     if class_name and class_name != "Ostatní":
-        q |= Q(classes__icontains=class_name)
+        if is_full_caster:
+            q |= Q(classes__icontains=class_name)
+            has_class_spells = True
+        elif is_half_caster:
+            # Paladin a Hraničář mají kouzla specifická pro svou třídu
+            q |= Q(classes__icontains=class_name)
+            has_class_spells = True
+        elif is_third_caster and character.level >= 3:
+            # Mystický rytíř (Bojovník) a Mystický šejdíř (Tulák) od 3. úrovně čerpají z kouzelnického seznamu
+            q |= Q(classes__icontains="Kouzelník")
+            has_class_spells = True
+
+    # B) Podle rasy (vrozená rasová kouzla/triky např. Tiefling, Elf, Gnom):
     if race_name and race_name != "Ostatní":
         q |= Q(races__icontains=race_name)
+
+    # C) Podle zázemí:
     if bg_name and bg_name != "Ostatní":
         q |= Q(backgrounds__icontains=bg_name)
 
@@ -360,23 +413,36 @@ def char_schopnosti_view(request, char_id=None):
     active_map = {sa.template_spell_id: sa for sa in active_spells_qs if sa.template_spell_id}
     active_by_index = {sa.api_index: sa for sa in active_spells_qs if sa.api_index}
 
-    # Zahrnout kouzla, která již postava v DB vlastní
+    # D) Zahrnout kouzla, která již postava v DB vlastní / má přidělena od DM
     active_template_ids = [sa.template_spell_id for sa in active_spells_qs if sa.template_spell_id]
     if active_template_ids:
         q |= Q(id__in=active_template_ids)
 
-    relevant_spells = Spells_All_db.objects.filter(q).distinct().order_by('level', 'name_cz')
-    # Pokud pro zadané povolání/rasu v DB zatím nejsou žádná specifická kouzla, zobrazit všechna dostupná
-    if not relevant_spells.exists():
-        relevant_spells = Spells_All_db.objects.all().order_by('level', 'name_cz')
+    # Pokud postava nemá žádné magické zaměření ani rasová kouzla (např. Barbar),
+    # seznam je prázdný (žádný fallback na all()!)
+    if not q:
+        relevant_spells = Spells_All_db.objects.none()
+    else:
+        relevant_spells = Spells_All_db.objects.filter(q).distinct().order_by('level', 'name_cz')
 
-    # 2. Sestavení položek kouzel se stavem
+    # 2. Sestavení položek kouzel se stavem podle D&D 5e pravidel
     spell_items = []
     for sp in relevant_spells:
         active_inst = active_map.get(sp.id) or active_by_index.get(sp.api_index)
         is_learned = bool(active_inst and active_inst.nauceno)
         is_equipped = bool(active_inst and active_inst.vybaveno)
-        can_learn = (sp.level == 0) or (sp.level <= max_spell_level)
+
+        is_trick = sp.is_trick or sp.level == 0
+        is_racial = bool(race_name_lower and race_name_lower in (sp.races or "").lower())
+        is_already_owned = bool(active_inst)
+
+        # Určení, zda se postava může kouzlo naučit
+        if is_trick:
+            # Triky: Plnohodnotný sesilatel, nebo rasový trik, nebo již vlastněný
+            can_learn = can_cast_cantrips_flag or is_racial or is_already_owned
+        else:
+            # Kouzla: Musí mít dostatečný max_spell_level pro danou úroveň
+            can_learn = (max_spell_level > 0 and sp.level <= max_spell_level) or (is_racial and sp.level <= max(1, max_spell_level))
 
         if is_equipped:
             state = 'equipped'
@@ -393,7 +459,7 @@ def char_schopnosti_view(request, char_id=None):
             'name_cz': sp.name_cz,
             'name_en': sp.name_en,
             'level': sp.level,
-            'is_cantrip': sp.is_trick,
+            'is_cantrip': is_trick,
             'school': sp.school or "Univerzální",
             'school_en': sp.school_en,
             'casting_time': sp.casting_time or "1 akce",
@@ -412,7 +478,7 @@ def char_schopnosti_view(request, char_id=None):
             'higher_levels': sp.higher_levels or "",
             'classes': sp.classes or "",
             'races': sp.races or "",
-            'icon_url': sp.display_icon_url,
+            'icon_url': '/static/img/spells/cantrip_icon.svg' if is_trick else '/static/img/spells/spell_icon.svg',
             'is_learned': is_learned,
             'is_equipped': is_equipped,
             'can_learn': can_learn,
@@ -424,7 +490,11 @@ def char_schopnosti_view(request, char_id=None):
     level_tiers = []
     for lvl in range(10):
         tier_spells = [s for s in spell_items if s['level'] == lvl]
-        tier_unlocked = (lvl == 0) or (lvl <= max_spell_level)
+        if lvl == 0:
+            tier_unlocked = can_cast_cantrips_flag or any(s['can_learn'] or s['is_learned'] for s in tier_spells)
+        else:
+            tier_unlocked = (max_spell_level > 0 and lvl <= max_spell_level)
+
         level_tiers.append({
             'level': lvl,
             'name': "Magické triky (Cantrips)" if lvl == 0 else f"{lvl}. Úroveň kouzel",
@@ -442,6 +512,8 @@ def char_schopnosti_view(request, char_id=None):
     total_cantrips_learned = sum(1 for s in spell_items if s['level'] == 0 and s['is_learned'])
     total_spells_learned = sum(1 for s in spell_items if s['level'] > 0 and s['is_learned'])
 
+    has_spellcasting = has_class_spells or can_cast_cantrips_flag or (max_spell_level > 0) or len(spell_items) > 0
+
     return render(request, 'player_site_app/char_schopnosti.html', {
         'player': player,
         'character': character,
@@ -450,6 +522,10 @@ def char_schopnosti_view(request, char_id=None):
         'level_tiers': level_tiers,
         'spell_items': spell_items,
         'max_spell_level': max_spell_level,
+        'can_cast_cantrips': can_cast_cantrips_flag,
+        'has_spellcasting': has_spellcasting,
+        'is_half_caster': is_half_caster,
+        'is_third_caster': is_third_caster,
         'total_learned': total_learned,
         'total_equipped': total_equipped,
         'total_cantrips_learned': total_cantrips_learned,
@@ -459,7 +535,7 @@ def char_schopnosti_view(request, char_id=None):
 
 @login_required(login_url='player_site_app:index')
 def toggle_learn_spell(request):
-    """Přepne stav 'naučeno' pro kouzlo postavy."""
+    """Přepne stav 'naučeno' pro kouzlo postavy s D&D 5e validací."""
     if request.method != 'POST':
         return JsonResponse({'error': 'Pouze POST metoda'}, status=405)
 
@@ -470,6 +546,47 @@ def toggle_learn_spell(request):
     player = get_object_or_404(Player, user=request.user)
     character = get_object_or_404(Char_info, id=char_id, player=player)
     spell_template = get_object_or_404(Spells_All_db, id=spell_id)
+
+    # Validace D&D 5e pravidel:
+    max_spell_level = get_max_spell_level_for_character(character)
+    can_cast_cantrips_flag = can_character_cast_cantrips(character)
+
+    char_class = (character.character_class or "").lower().strip()
+    race_name = (character.race or "").strip().lower()
+    spell_classes = (spell_template.classes or "").lower()
+    spell_races = (spell_template.races or "").lower()
+
+    is_class_match = bool(char_class and char_class in spell_classes)
+    if not is_class_match and character.level >= 3 and any(tc in char_class for tc in ["bojovník", "tulák", "fighter", "rogue"]):
+        if "kouzelník" in spell_classes or "wizard" in spell_classes:
+            is_class_match = True
+
+    is_race_match = bool(race_name and race_name in spell_races)
+    existing_active = Spells_Active.objects.filter(char_own=character, template_spell=spell_template).first()
+
+    is_trying_to_learn = (action == 'learn') or (action == 'toggle' and (not existing_active or not existing_active.nauceno))
+
+    if is_trying_to_learn:
+        # 1. Musí mít na kouzlo nárok (třída, rasa nebo již vlastněné)
+        if not (is_class_match or is_race_match or existing_active):
+            return JsonResponse({
+                'success': False,
+                'error': f'Kouzlo "{spell_template.name_cz}" není určeno pro povolání {character.character_class}.'
+            }, status=403)
+
+        # 2. Úroveň kouzla
+        if spell_template.is_trick or spell_template.level == 0:
+            if not can_cast_cantrips_flag and not is_race_match and not existing_active:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Povolání {character.character_class} nemá na {character.level}. úrovni přístup k magickým trikům.'
+                }, status=403)
+        else:
+            if spell_template.level > max_spell_level:
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Postava na {character.level}. úrovni může sesílat kouzla maximálně {max_spell_level}. úrovně (toto kouzlo je {spell_template.level}. úrovně).'
+                }, status=403)
 
     active_spell, created = Spells_Active.objects.get_or_create(
         char_own=character,
@@ -536,7 +653,7 @@ def toggle_learn_spell(request):
 
 @login_required(login_url='player_site_app:index')
 def toggle_equip_spell(request):
-    """Přepne stav 'vybaveno' pro naučené kouzlo postavy."""
+    """Přepne stav 'vybaveno' pro naučené kouzlo postavy s D&D validací."""
     if request.method != 'POST':
         return JsonResponse({'error': 'Pouze POST metoda'}, status=405)
 
@@ -547,43 +664,73 @@ def toggle_equip_spell(request):
     character = get_object_or_404(Char_info, id=char_id, player=player)
     spell_template = get_object_or_404(Spells_All_db, id=spell_id)
 
-    active_spell, created = Spells_Active.objects.get_or_create(
-        char_own=character,
-        template_spell=spell_template,
-        defaults={
-            'api_index': spell_template.api_index,
-            'name_cz': spell_template.name_cz,
-            'name_en': spell_template.name_en,
-            'level': spell_template.level,
-            'is_cantrip': spell_template.is_cantrip,
-            'school': spell_template.school,
-            'school_en': spell_template.school_en,
-            'casting_time': spell_template.casting_time,
-            'range': spell_template.range,
-            'components': spell_template.components,
-            'material': spell_template.material,
-            'duration': spell_template.duration,
-            'concentration': spell_template.concentration,
-            'ritual': spell_template.ritual,
-            'attack_type': spell_template.attack_type,
-            'damage_type': spell_template.damage_type,
-            'damage_dice': spell_template.damage_dice,
-            'saving_throw': spell_template.saving_throw,
-            'heal_dice': spell_template.heal_dice,
-            'description': spell_template.description,
-            'higher_levels': spell_template.higher_levels,
-            'classes': spell_template.classes,
-            'races': spell_template.races,
-            'backgrounds': spell_template.backgrounds,
-            'icon': spell_template.icon,
-            'icon_url': spell_template.icon_url,
-            'raw_data': spell_template.raw_data,
-            'nauceno': True,
-            'vybaveno': True,
-        }
-    )
+    # Validace D&D pravidel:
+    max_spell_level = get_max_spell_level_for_character(character)
+    can_cast_cantrips_flag = can_character_cast_cantrips(character)
+    char_class = (character.character_class or "").lower().strip()
+    race_name = (character.race or "").strip().lower()
+    spell_classes = (spell_template.classes or "").lower()
+    spell_races = (spell_template.races or "").lower()
 
-    if not created:
+    is_class_match = bool(char_class and char_class in spell_classes)
+    if not is_class_match and character.level >= 3 and any(tc in char_class for tc in ["bojovník", "tulák", "fighter", "rogue"]):
+        if "kouzelník" in spell_classes or "wizard" in spell_classes:
+            is_class_match = True
+
+    is_race_match = bool(race_name and race_name in spell_races)
+    active_spell = Spells_Active.objects.filter(char_own=character, template_spell=spell_template).first()
+
+    if not active_spell:
+        if not (is_class_match or is_race_match):
+            return JsonResponse({
+                'success': False,
+                'error': f'Kouzlo "{spell_template.name_cz}" není určeno pro povolání {character.character_class}.'
+            }, status=403)
+        if (spell_template.is_trick or spell_template.level == 0) and not can_cast_cantrips_flag and not is_race_match:
+            return JsonResponse({
+                'success': False,
+                'error': f'Povolání {character.character_class} nemá přístup k magickým trikům.'
+            }, status=403)
+        if spell_template.level > 0 and spell_template.level > max_spell_level:
+            return JsonResponse({
+                'success': False,
+                'error': f'Postava nemůže sesílat kouzlo {spell_template.level}. úrovně.'
+            }, status=403)
+
+        active_spell = Spells_Active.objects.create(
+            char_own=character,
+            template_spell=spell_template,
+            api_index=spell_template.api_index,
+            name_cz=spell_template.name_cz,
+            name_en=spell_template.name_en,
+            level=spell_template.level,
+            is_cantrip=spell_template.is_cantrip,
+            school=spell_template.school,
+            school_en=spell_template.school_en,
+            casting_time=spell_template.casting_time,
+            range=spell_template.range,
+            components=spell_template.components,
+            material=spell_template.material,
+            duration=spell_template.duration,
+            concentration=spell_template.concentration,
+            ritual=spell_template.ritual,
+            attack_type=spell_template.attack_type,
+            damage_type=spell_template.damage_type,
+            damage_dice=spell_template.damage_dice,
+            saving_throw=spell_template.saving_throw,
+            heal_dice=spell_template.heal_dice,
+            description=spell_template.description,
+            higher_levels=spell_template.higher_levels,
+            classes=spell_template.classes,
+            races=spell_template.races,
+            backgrounds=spell_template.backgrounds,
+            icon=spell_template.icon,
+            icon_url=spell_template.icon_url,
+            raw_data=spell_template.raw_data,
+            nauceno=True,
+            vybaveno=True,
+        )
+    else:
         active_spell.vybaveno = not active_spell.vybaveno
         if active_spell.vybaveno:
             active_spell.nauceno = True

@@ -3601,3 +3601,37 @@
     opacity: 1;
 }
 
+/* Informační box pro nemagická povolání */
+.rpg-noncaster-box {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: linear-gradient(135deg, rgba(30, 27, 46, 0.95), rgba(18, 14, 28, 0.95));
+    border: 1px solid rgba(212, 175, 55, 0.35);
+    border-radius: var(--radius-md);
+    padding: 24px 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.rpg-noncaster-icon {
+    font-size: 2.8rem;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.4));
+}
+
+.rpg-noncaster-content h3 {
+    margin: 0 0 8px 0;
+    font-family: var(--font-heading);
+    color: var(--gold-300, #f6e05e);
+    font-size: 1.25rem;
+}
+
+.rpg-noncaster-content p {
+    margin: 0;
+    color: var(--text-secondary, #cbd5e1);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+
