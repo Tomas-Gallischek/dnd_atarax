@@ -1,0 +1,29 @@
+Teď tě bude čekat velký úkol. Budeme do hry implementovat kouzla podle oficiálních pravidel. Vem si kolik času na to potřebuješ a DŮKLADNĚ SI NASTUDUJ ZADÁNÍ A NIC NEVYNECHEJ! Díky:
+
+1) Ve složce "dm_site_app/management" jsi mi v minulosti už vytvořil hezky fungující skripty, které přes api stahovaly informace o příšerách a o Itemech z oficiálního API. Chci aby jsi pro kouzla volil stejný postup a stejně jako předtím si je i přeložil přes google API před uložením. POZOR NA LIMIT DOTAZŮ NA API!
+
+2) Chci stáhnou informace o všech dostupných kouzlech podle oficiálních 5e pravidel DnD. Bavíme se jak o kouzlech tak tricích. 
+
+3) V modelech v "Char_info" máš vypsané všechny rasy, povolání i zázemí, které pro mojí hru platí. Pokud teda v API najdeš nějaké kouzla které jsou pro jiné povolání tak ty stahovat nemusíš. 
+
+4) Pro kouzla mi vytvoř v modelech na úrovni "dm_site_app" databázový model pro ně určený. Chci, aby v modelu bylo zakomponováno i pro jakou rasu/povolání/zázemí dané kouzlo nebo trik je, aby se to dalo následně hezky filtrovat. 
+
+5) Ke každému kouzlu budu chtít i ikonku kouzla. Pokud v rámci API nějaký obrázek nebo ikonka už je tak to prostě stáhni, pokud ne, nastav všude nějakou defaultní ikonku pro všechny kouzla a v budoucnu se k tomu někdy vrátíme a doděláme ikonky pro všechny kouzla.
+
+6) až bude skript hotový tak ho ještě nespouštěj! Spustím ho sám až nahodím aktualizovaný kod na server aby to nespadlo. 
+
+7) Udělej zvlášť databázi pro všechny kouzla a zvlášť "totožnou" databázi pro kouzla, které postavy umí. Takže jedna db funguje jako šablona a druhá ukládá přímo data ze hry, stejně jako u itemů nebo monster. u aktivních kouzel přidej taky boolen "Naučeno", které bude buď True nebo False ta taky ForeigenKay na konkrétní charakter.
+
+8) Všechny kouzla budeme vykreslovat v "char_schopnosti.html". Tady chci aby:
+- Se na stránce dalo proklikávat mezi kouzly a triky aby to bylo přehledné.
+- Aby se vykreslovaly pouze kouzla a triky relevantní pro danou postavu podle jejího povolání atd. 
+- Aby kouzla byly přehledně seřazené od nejmenších levelů nahoře po poslední kouzla na konci
+- Nenaučené kouzla se taky vykreslují, ale jsou zašedlé
+- Pokud kouzlo už můžu umět, ale ještě jsem se ho nenaučil, je zašedlé ale lehce září
+- Pokud kouzlo už umím, je normálně barevně
+- Po rozkliknutí jakéhokoliv kouzla nebo triku se mi zatmaví zbytek stránky a vyjede mi přehledná karta s detailem schopnosti (popis, hody kostkou atd., prostě všechno info)
+- U kouzel, na které už splňuju požadavky ale ještě je neumím bude tlačítko "naučit", které přepíše v databázi, že toto kouzlo už umím.
+- zatím nebudeme řešit logiku toho, že postava má omezený počet kouzel, které se může naučit. V tomhle jsou pravidla dost složité. Takže pujde v tuhle chvíli naučit všechno a já jako DM budu korigovat jestli si hráči zapisují jen tolik kouzel, na které mají nárok. 
+- U kouzel a schopností které už umím chci, aby bylo tlačítko "vybavit". To změní v databázi boolen nejen na "naučeno" ale taky na "vybaveno" a to budou kouzla a triky, které má postava k dispozici během hraní. Podle DnD pravidel si totiž ruzné postavy a povolání mohou volit různé množství kouzel a triků ma dem, takže to uděláme stejně jako u kouzel, nebudeme kontrolovat jestli má postava vybavený počet kouzel a triků podle pravidel a já si to ohlídám osobně. 
+- Chci, aby se "Vybavené" kouzla a triky vizuálně odlišovaly.
+- Chci, aby celá tato stránka měla vizuál a strukturu jako v RPG hrách. Takže rozklikávací ikonka s názvem schopnosti a po rozkliknutí se ukáže detail. Na levé straně stránky stupnice levelů a podél ní se budou vykreslovat právě schopnosti, které se na jednotlivých levelech odemykají.Tak aby to odpovídalo a aby to bylo hezky přehledné.  

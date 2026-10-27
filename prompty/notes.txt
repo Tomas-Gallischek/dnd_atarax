@@ -1,0 +1,27 @@
+Teď se vrhneme na systém různých typů poznámek, protože jich bude více tipů:
+
+Přehled databázových modelů:
+1) CharNotes (vytvořeno) (DÁLE JEN "POZNÁMKY") = Soukromé poznámky pro hráče a jeho postavu 
+2) CharBackstory (vytvořeno) (DÁLE JEN "BACKSTORY") = Informace k postavě hráče. Jednotlivé zápisy mohou být "veřejné", takže je uvidí i ostatní hráči
+3) Kronika (VYTVOŘ!) (DÁLE JEN "KRONIKA") = Model na úrovni dm_site_app. Struktura: název, category (info nebo lore), popis, datum_vytvoreni. 
+- Do kroniky budu zapisovat já jako DM a budu moct zápisky "odkrýt hráčům"
+
+
+Stránky html:
+1) char_over_view.html:
+- Na této stránce budou krom toho co už tam je i poznámky hráče. Bude tam tlačítko "přidat poznámku". Když na něj kliknu, vyjede mi okno s textovým editorem, do kterého budu moc napsat poznámku, pojmenovat si ji a uložit. Pokud nějaké poznámky mám, zobrazí se mi na stránce její název, krátký popis (celý text se mi ukáže až po rozkliknutí), tlačítko smazat poznámku a taky tlačítko "přidat do oblíbených" <- může být reprezentováno tlačítkem hvězdičky. K všem těmto funkcionalitám dodej i patřičnou logiku a případně i uprav databázový model pokud budeš potřebovat. 
+
+2) char_roleplay.html:
+- Na této stránce si hráč může upravovat backstory své postavy. Funguje to vlastně stejně jako poznámky s tím rozdílem, že hráč může i nastavit, jestli bude záznam veřejný nebo ne (model už je na to připravený). Jinak systém vlastně stejný jako u poznámek (textové pole po rozkliknutí atd.)
+
+3) all_chars.html + all_chars_detail.html
+- Tyto 2 stránky musíš vytvoři a nastylovat je. Bude se jednat o stránku, kde se hráč ze svého profilu bude moct prokliknout na postavy ostatních hráčů a uvidí tam informace o nich. Vykresli zatím jen nejdůležitější inforamce jako Jméno, rasu, povolání, atributy, achivementy atd. Například goldy, temnou esenci nebo inventář vykreslovat nemusíš. Rozhodni sám co je podle tebe relevatní pro cizího hráče.
+- Důležité ale je aby se tam zobrazily VEŘEJNÉ záznamy z BACKSTORY postavy (poznámky NE)
+- Na "all_chars" se logicky vykreslí jen všechny postavy s možností rozkliknout a až rozkliknutí povede na "all_chars_dfetail", kde NESMÍ být žádná možnost editace postavy. 
+
+4) kronika.html (na úrovni player_site_app):
+- Tato stránka bude rozdělená na 2 části (Info a Příběh) a budou se zde vykreslovat informace z databáze kroniky, podle toho do jaké kategorie patří a to podle datumu přidání
+
+5) kronika_edit.html (na úrovni dm_site_app):
+- Tuto stránku musíš ještě vytvořit.
+- Zde chci mít možnost přidávat do databáze kroniky nové záznamy. Klasicky něco jako: Přidat záznam, zvolit kategorii, napsat text a uložit. 
