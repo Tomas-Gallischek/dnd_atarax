@@ -482,6 +482,16 @@ class Esence_Items_Shop(models.Model):
     rarity = models.CharField(max_length=100, verbose_name="Rarita", choices=Rarities, default="basic")
     cost = models.IntegerField(default=0, verbose_name="Cena", blank=True, null=True) 
 
+    @property
+    def dismantle_value(self):
+        """Vrátí počet temné esence získané za rozebrání předmětu podle rarity."""
+        values = {
+            'basic': 5,
+            'rare': 25,
+            'epic': 50,
+            'legendary': 100,
+        }
+        return values.get(self.rarity, 0)
 
     def __str__(self):
         return f"{self.name} - {self.rarity} - {self.category}"

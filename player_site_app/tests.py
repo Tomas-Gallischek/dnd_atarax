@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from dm_site_app.models import OverAllSettings
-from .models import Player, Char_info
+from .models import Player, Char_info, Esence_Items_Shop, Esence_Items_Owners
 
 
 class PlayerAuthAndCharacterTests(TestCase):
@@ -582,4 +582,161 @@ class PlayerAuthAndCharacterTests(TestCase):
             'spell_id': spell.id,
         })
         self.assertEqual(res.status_code, 404)
+
+
+class PlayerReforgeAndEquipTests(TestCase):
+    def setUp(self):
+        self.settings, _ = OverAllSettings.objects.get_or_create(
+            id=1,
+            defaults={'loging_active': True, 'editing_active': True}
+        )
+        self.user = User.objects.create_user(username='tester', password='heslo123')
+        self.player = Player.objects.create(user=self.user, nickname='Tester', temna_esence=10, pin_code='4321')
+
+        self.border_basic = Esence_Items_Shop.objects.create(
+            name='Dřevěný rámeček',
+            category='borders',
+            rarity='basic',
+            cost=10
+        )
+        self.border_rare = Esence_Items_Shop.objects.create(
+            name='Stříbrný rámeček',
+            category='borders',
+            rarity='rare',
+            cost=25
+        )
+        self.border_epic = Esence_Items_Shop.objects.create(
+            name='Zlatý rámeček',
+            category='borders',
+            rarity='epic',
+            cost=50
+        )
+        self.border_legendary = Esence_Items_Shop.objects.create(
+            name='Dračí rámeček',
+            category='borders',
+            rarity='legendary',
+            cost=100
+        )
+        self.chest = Esence_Items_Shop.objects.create(
+            name='Tajemná truhla',
+            category='treasures',
+            rarity='basic',
+            cost=10
+        )
+
+    def test_reforge_basic_item_success(self):
+        """Hráč může rozebrat basic předmět a získá 5 temné esence."""
+        owner_record = Esence_Items_Owners.objects.create(player=self.player, item=self.border_basic)
+        self.client.login(username='tester', password='heslo123')
+
+        res = self.client.post(reverse('player_site_app:reforge_tresure'), {
+            'item_id': self.border_basic.id,
+            'player_id': self.player.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['value'], 5)
+        self.assertEqual(data['new_essence'], 15)
+
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.temna_esence, 15)
+        self.assertFalse(Esence_Items_Owners.objects.filter(id=owner_record.id).exists())
+        self.assertTrue(Esence_Items_Shop.objects.filter(id=self.border_basic.id).exists())
+
+    def test_reforge_rarities_essence_values(self):
+        """Ověření hodnot esence pro vzácnou, epickou a legendární raritu (25, 50, 100)."""
+        Esence_Items_Owners.objects.create(player=self.player, item=self.border_rare)
+        Esence_Items_Owners.objects.create(player=self.player, item=self.border_epic)
+        Esence_Items_Owners.objects.create(player=self.player, item=self.border_legendary)
+        self.client.login(username='tester', password='heslo123')
+
+        # Rare -> +25 (10 + 25 = 35)
+        self.client.post(reverse('player_site_app:reforge_tresure'), {'item_id': self.border_rare.id})
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.temna_esence, 35)
+
+        # Epic -> +50 (35 + 50 = 85)
+        self.client.post(reverse('player_site_app:reforge_tresure'), {'item_id': self.border_epic.id})
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.temna_esence, 85)
+
+        # Legendary -> +100 (85 + 100 = 185)
+        self.client.post(reverse('player_site_app:reforge_tresure'), {'item_id': self.border_legendary.id})
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.temna_esence, 185)
+
+    def test_cannot_reforge_treasure_chest(self):
+        """Truhlu nelze rozebírat, pouze otevřít."""
+        Esence_Items_Owners.objects.create(player=self.player, item=self.chest)
+        self.client.login(username='tester', password='heslo123')
+
+        res = self.client.post(reverse('player_site_app:reforge_tresure'), {
+            'item_id': self.chest.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(res.status_code, 400)
+        data = res.json()
+        self.assertFalse(data['success'])
+        self.assertIn('Truhly nelze rozebírat', data['error'])
+
+    def test_reforge_active_frame_clears_or_repoints(self):
+        """Pokud hráč rozebere aktivní rámeček, active_ramecek se správně aktualizuje."""
+        rec1 = Esence_Items_Owners.objects.create(player=self.player, item=self.border_basic)
+        rec2 = Esence_Items_Owners.objects.create(player=self.player, item=self.border_basic)
+
+        self.player.active_ramecek = rec1
+        self.player.save()
+
+        self.client.login(username='tester', password='heslo123')
+
+        # 1. Rozebere 1. kus: active_ramecek se přepojí na 2. kus stejného rámečku
+        self.client.post(reverse('player_site_app:reforge_tresure'), {'item_id': self.border_basic.id})
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.active_ramecek, rec2)
+
+        # 2. Rozebere 2. kus: active_ramecek se nastaví na None
+        self.client.post(reverse('player_site_app:reforge_tresure'), {'item_id': self.border_basic.id})
+        self.player.refresh_from_db()
+        self.assertIsNone(self.player.active_ramecek)
+
+    def test_equip_and_unequip_frame(self):
+        """Hráč může nasadit vlastněný rámeček a následně jej sundat."""
+        owner_record = Esence_Items_Owners.objects.create(player=self.player, item=self.border_rare)
+        self.client.login(username='tester', password='heslo123')
+
+        # 1. Nasadit
+        res_equip = self.client.post(reverse('player_site_app:equip_frame'), {
+            'item_id': self.border_rare.id,
+            'action': 'equip',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_equip.status_code, 200)
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.active_ramecek, owner_record)
+
+        # 2. Sundat
+        res_unequip = self.client.post(reverse('player_site_app:equip_frame'), {
+            'action': 'unequip',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_unequip.status_code, 200)
+        self.player.refresh_from_db()
+        self.assertIsNone(self.player.active_ramecek)
+
+    def test_cannot_equip_non_border_item(self):
+        """Nelze nasadit předmět, který není rámeček (např. truhlu)."""
+        Esence_Items_Owners.objects.create(player=self.player, item=self.chest)
+        self.client.login(username='tester', password='heslo123')
+
+        res = self.client.post(reverse('player_site_app:equip_frame'), {
+            'item_id': self.chest.id,
+            'action': 'equip',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.status_code, 400)
+
 

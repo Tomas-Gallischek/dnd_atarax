@@ -52,7 +52,7 @@
     {% if grouped_items %}
         <div class="fantasy-shop-grid">
             {% for entry in grouped_items %}
-                <div class="fantasy-shop-card rarity-card-{{ entry.item.rarity }}">
+                <div class="fantasy-shop-card rarity-card-{{ entry.item.rarity }}" id="invCard-{{ entry.item.id }}" data-item-id="{{ entry.item.id }}" data-category="{{ entry.item.category }}">
                     <!-- Kategorie, rarita a počet kusů -->
                     <div class="shop-card-badge-row">
                         <span class="shop-rarity-pill pill-{{ entry.item.rarity }}">
@@ -64,7 +64,9 @@
                                 {{ entry.item.get_category_display }}
                             </span>
                             {% if entry.count > 1 %}
-                                <span class="inv-count-badge" title="Počet kusů">{{ entry.count }}×</span>
+                                <span class="inv-count-badge" id="invCountBadge-{{ entry.item.id }}" title="Počet kusů">{{ entry.count }}×</span>
+                            {% else %}
+                                <span class="inv-count-badge" id="invCountBadge-{{ entry.item.id }}" style="display: none;" title="Počet kusů">1×</span>
                             {% endif %}
                         </div>
                     </div>
@@ -88,10 +90,8 @@
                     </div>
 
                     <!-- Stavová lišta položky -->
-                    <div class="inv-status-bar">
-                        {% if player.active_ramecek and player.active_ramecek.item_id == entry.item.id %}
-                            <span class="inv-equipped-badge">✨ Aktivní rámeček</span>
-                        {% elif entry.item.category == 'treasures' %}
+                    <div class="inv-status-bar" id="invStatusBar-{{ entry.item.id }}">
+                        {% if entry.item.category == 'treasures' %}
                             <form action="{% url 'player_site_app:use_treasure' %}" method="post" class="inv-treasure-form"
                                   data-chest-img="{% if entry.item.image %}{{ entry.item.image.url }}{% endif %}"
                                   data-chest-name="{{ entry.item.name }}"
@@ -107,7 +107,54 @@
                                 </button>
                             </form>
                         {% else %}
-                            <span>✅ Získáno do sbírky</span>
+                            <!-- Položka NENÍ truhla: Možnost nasadit (pokud je to rámeček) a VŽDY možnost rozebrat -->
+                            <div class="inv-non-treasure-actions">
+                                {% if entry.item.category == 'borders' %}
+                                    <div class="inv-frame-slot" id="frameSlot-{{ entry.item.id }}">
+                                        {% if player.active_ramecek and player.active_ramecek.item_id == entry.item.id %}
+                                            <div class="inv-active-frame-wrap">
+                                                <span class="inv-equipped-badge">✨ Aktivní rámeček</span>
+                                                <form action="{% url 'player_site_app:equip_frame' %}" method="post" class="inv-equip-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="item_id" value="{{ entry.item.id }}">
+                                                    <input type="hidden" name="player_id" value="{{ player.id }}">
+                                                    <input type="hidden" name="action" value="unequip">
+                                                    <button type="submit" class="btn-unequip-frame" title="Sundat tento rámeček z profilu">
+                                                        <span>✖</span> Sundat
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        {% else %}
+                                            <form action="{% url 'player_site_app:equip_frame' %}" method="post" class="inv-equip-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="item_id" value="{{ entry.item.id }}">
+                                                <input type="hidden" name="player_id" value="{{ player.id }}">
+                                                <input type="hidden" name="action" value="equip">
+                                                <button type="submit" class="btn-equip-frame" title="Nasadit tento rámeček na profil postavy">
+                                                    <span>🎭</span> Nasadit
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+
+                                <!-- Tlačítko Rozebrat (Pouze u itemů které NEJSOU truhla) -->
+                                <form action="{% url 'player_site_app:reforge_tresure' %}" method="post" class="inv-reforge-form">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="item_id" value="{{ entry.item.id }}">
+                                    <input type="hidden" name="player_id" value="{{ player.id }}">
+                                    <button type="button" class="btn-reforge-item"
+                                            data-item-id="{{ entry.item.id }}"
+                                            data-item-name="{{ entry.item.name }}"
+                                            data-item-rarity="{{ entry.item.rarity }}"
+                                            data-item-rarity-display="{{ entry.item.get_rarity_display }}"
+                                            data-item-value="{{ entry.item.dismantle_value }}"
+                                            data-item-img="{% if entry.item.image %}{{ entry.item.image.url }}{% endif %}"
+                                            title="Rozebrat tento předmět na {{ entry.item.dismantle_value }} temné esence">
+                                        <span>⚡</span> Rozebrat <span class="reforge-essence-badge">+{{ entry.item.dismantle_value }} 🔮</span>
+                                    </button>
+                                </form>
+                            </div>
                         {% endif %}
                     </div>
                 </div>
@@ -176,8 +223,95 @@
     </div>
 </div>
 
+<!-- ==========================================================================
+     MAGICKÝ MODAL ROZEBRÁNÍ PŘEDMĚTU NA TEMNOU ESENCI (DOTAZOVACÍ NOTIFIKACE & ANIMACE)
+     ========================================================================== -->
+<div id="reforgeModal" class="reforge-modal" style="display: none;" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="reforge-modal-dimmer" id="reforgeModalDimmer"></div>
+
+    <div class="reforge-stage-wrapper">
+        <!-- Magická portálová aura za kartou -->
+        <div class="reforge-portal-glow" id="reforgePortalGlow"></div>
+
+        <!-- 1. FÁZE: DOTAZOVACÍ NOTIFIKACE (POTVRZENÍ ROZEBRÁNÍ) -->
+        <div class="reforge-confirm-card" id="reforgeConfirmCard">
+            <div class="reforge-card-header">
+                <span class="reforge-header-icon">⚡</span>
+                <h2 class="reforge-card-title">Rozebrání předmětu</h2>
+                <button type="button" class="reforge-btn-close" id="btnReforgeClose" aria-label="Zavřít">✕</button>
+            </div>
+
+            <!-- Náhled rozebíraného předmětu -->
+            <div class="reforge-item-preview-box">
+                <div class="reforge-preview-frame" id="reforgePreviewFrame">
+                    <img src="" alt="" class="reforge-preview-img" id="reforgePreviewImg">
+                </div>
+                <div class="reforge-preview-meta">
+                    <span class="shop-rarity-pill" id="reforgePreviewRarity">Běžná</span>
+                    <h3 class="reforge-preview-name" id="reforgePreviewName">Název předmětu</h3>
+                </div>
+            </div>
+
+            <!-- Text dotazovací notifikace -->
+            <div class="reforge-confirm-body">
+                <p class="reforge-confirm-question">
+                    Opravdu si přeješ tento předmět <strong>rozebrat na temnou esenci</strong>?
+                </p>
+                <div class="reforge-reward-banner">
+                    <div class="reforge-reward-label">Získaná temná esence:</div>
+                    <div class="reforge-reward-value" id="reforgeRewardEssence">
+                        <span class="reward-number">+25</span> <span class="reward-icon">🔮 TE</span>
+                    </div>
+                </div>
+                <p class="reforge-confirm-warning">
+                    ⚠️ Tato akce je nevratná. Předmět (1 ks) bude trvale zničen a zmizí z tvého inventáře.
+                </p>
+            </div>
+
+            <!-- Tlačítka potvrzení / zrušení -->
+            <div class="reforge-actions-row">
+                <button type="button" class="btn-reforge-cancel" id="btnReforgeCancel">
+                    Zrušit
+                </button>
+                <button type="button" class="btn-reforge-execute" id="btnReforgeExecute">
+                    <span>⚡</span> Ano, rozebrat předmět
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. FÁZE: ANIMACE ROZEBRÁNÍ (DISINTEGRACE A SPOJENÍ S ESENCÍ) -->
+        <div class="reforge-anim-stage" id="reforgeAnimStage" style="display: none;">
+            <div class="reforge-anim-vortex" id="reforgeAnimVortex"></div>
+
+            <div class="reforge-anim-target-box" id="reforgeAnimTargetBox">
+                <div class="reforge-shatter-container" id="reforgeShatterContainer">
+                    <img src="" alt="" class="reforge-anim-img" id="reforgeAnimImg">
+                    <div class="reforge-spark-burst" id="reforgeSparkBurst"></div>
+                    <div class="reforge-arcane-circle" id="reforgeArcaneCircle"></div>
+                </div>
+            </div>
+
+            <!-- Plovoucí ukazatel získané esence -->
+            <div class="reforge-floating-essence" id="reforgeFloatingEssence">
+                +<span id="reforgeFloatAmount">25</span> 🔮
+            </div>
+
+            <div class="reforge-anim-status-box" id="reforgeAnimStatusBox">
+                <div class="reforge-anim-status-title" id="reforgeAnimStatusTitle">🔮 Rozklad hmoty...</div>
+                <div class="reforge-anim-status-desc" id="reforgeAnimStatusDesc">Předmět se přeměňuje v čistou temnou esenci.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Plovoucí Toast notifikace pro rychlou zpětnou vazbu -->
+<div id="ataraxToast" class="atarax-toast" aria-live="polite"></div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    /* ----------------------------------------------------------------------
+       1. MIMIC MODAL PRO OTEVÍRÁNÍ TRUHEL
+       ---------------------------------------------------------------------- */
     const modal = document.getElementById('mimicOpeningModal');
     const actorBox = document.getElementById('mimicActorBox');
     const creatureImg = document.getElementById('mimicCreatureImg');
@@ -195,7 +329,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const awardCategory = document.getElementById('lootAwardCategory');
     const btnSaveLoot = document.getElementById('btnSaveLoot');
 
-    // Interceptování formulářů pro použití truhel
     const forms = document.querySelectorAll('.inv-treasure-form');
     forms.forEach(form => {
         form.addEventListener('submit', function(e) {
@@ -207,7 +340,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData(form);
             formData.append('ajax', '1');
 
-            // 1. Dynamické nastavení PNG obrázku otevírané truhly (bez bílého pozadí)
             const chestImgSrc = form.dataset.chestImg;
             const chestName = form.dataset.chestName || 'Truhla';
             const chestRarity = form.dataset.chestRarity || 'basic';
@@ -227,14 +359,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             };
 
-            // Zobrazení modalu a start napínavé animace
             modal.style.display = 'flex';
             modal.classList.remove('closing');
             actorBox.style.display = 'flex';
             statusBox.style.display = 'block';
             lootReveal.style.display = 'none';
 
-            // Reset tříd Mimica
             creatureImg.className = 'mimic-creature-img rumbling';
             shockwave.className = 'mimic-shockwave';
 
@@ -243,13 +373,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const animationStartTime = Date.now();
 
-            // Změna textu po 650 ms na odhalení Mimica
-            const t1 = setTimeout(() => {
+            setTimeout(() => {
                 statusTitle.textContent = `⚠️ POZOR! ${chestName} ožila...`;
                 statusDesc.textContent = 'Je to divoký MIMIC!';
             }, 650);
 
-            // AJAX volání na backend
             fetch(form.action, {
                 method: 'POST',
                 body: formData,
@@ -264,9 +392,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const elapsed = Date.now() - animationStartTime;
                     const remainingDelay = Math.max(0, 1600 - elapsed);
 
-                    // Počkej na dokončení chvění (min. 1.6s celkem)
                     setTimeout(() => {
-                        // 2. FÁZE: Mimic lunguje a exploduje tlaková vlna
                         statusTitle.textContent = '💥 MIMIC byl poražen!';
                         statusDesc.textContent = 'Vydal svůj skrytý poklad...';
 
@@ -274,12 +400,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         creatureImg.classList.remove('rumbling');
                         creatureImg.classList.add('lunging');
 
-                        // 3. FÁZE: Zobrazení karty získaného rámečku
                         setTimeout(() => {
                             actorBox.style.display = 'none';
                             statusBox.style.display = 'none';
 
-                            // Nastavení detailů karty podle rarity
                             const border = data.border;
                             const rarity = border.rarity || 'basic';
 
@@ -303,13 +427,11 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
 
                             awardFrame.className = `loot-award-frame frame-${rarity}`;
-
                             lootReveal.style.display = 'flex';
                         }, 550);
 
                     }, remainingDelay);
                 } else {
-                    // Chybová hláška z backendu
                     statusTitle.textContent = '❌ Chyba při otevírání!';
                     statusDesc.textContent = data.error || 'Něco se nepovedlo.';
                     setTimeout(() => {
@@ -319,22 +441,346 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(err => {
                 console.error(err);
-                // V případě chyby sítě fallback na běžný submit
                 form.submit();
             });
         });
     });
 
-    // Tlačítko ULOŽIT -> plynulé zavření a reload inventáře
     if (btnSaveLoot) {
         btnSaveLoot.addEventListener('click', function() {
             modal.classList.add('closing');
             setTimeout(() => {
-                // Přechod zpět na přehled inventáře s aktualizovanými položkami
                 window.location.href = "{% url 'player_site_app:dungeon_shop_inv' %}";
             }, 250);
+        });
+    }
+
+    /* ----------------------------------------------------------------------
+       2. TOAST NOTIFIKACE
+       ---------------------------------------------------------------------- */
+    const toastEl = document.getElementById('ataraxToast');
+    let toastTimeout = null;
+
+    function showToast(msg) {
+        if (!toastEl) return;
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toastEl.classList.remove('show');
+        }, 3200);
+    }
+
+    /* ----------------------------------------------------------------------
+       3. NASAZENÍ A ODPOJENÍ RÁMEČKU (EQUIP_FRAME)
+       ---------------------------------------------------------------------- */
+    function attachEquipHandlers() {
+        const equipForms = document.querySelectorAll('.inv-equip-form');
+        equipForms.forEach(form => {
+            if (form.dataset.attached) return;
+            form.dataset.attached = 'true';
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
+
+                const formData = new FormData(form);
+                formData.append('ajax', '1');
+                const action = formData.get('action') || 'equip';
+                const itemId = formData.get('item_id');
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (submitBtn) submitBtn.disabled = false;
+                    if (data.success) {
+                        showToast(data.message || (action === 'equip' ? 'Rámeček byl nasazen!' : 'Rámeček byl sundán.'));
+
+                        // 1. Aktualizace tlačítek a odznaků ve všech slotech pro rámečky
+                        document.querySelectorAll('.inv-frame-slot').forEach(slot => {
+                            const slotItemId = slot.id.replace('frameSlot-', '');
+                            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+                            if (action === 'equip' && slotItemId === String(itemId)) {
+                                slot.innerHTML = `
+                                    <div class="inv-active-frame-wrap">
+                                        <span class="inv-equipped-badge">✨ Aktivní rámeček</span>
+                                        <form action="{% url 'player_site_app:equip_frame' %}" method="post" class="inv-equip-form">
+                                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                            <input type="hidden" name="item_id" value="${slotItemId}">
+                                            <input type="hidden" name="player_id" value="{{ player.id }}">
+                                            <input type="hidden" name="action" value="unequip">
+                                            <button type="submit" class="btn-unequip-frame" title="Sundat tento rámeček z profilu">
+                                                <span>✖</span> Sundat
+                                            </button>
+                                        </form>
+                                    </div>
+                                `;
+                            } else {
+                                slot.innerHTML = `
+                                    <form action="{% url 'player_site_app:equip_frame' %}" method="post" class="inv-equip-form">
+                                        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                        <input type="hidden" name="item_id" value="${slotItemId}">
+                                        <input type="hidden" name="player_id" value="{{ player.id }}">
+                                        <input type="hidden" name="action" value="equip">
+                                        <button type="submit" class="btn-equip-frame" title="Nasadit tento rámeček na profil postavy">
+                                            <span>🎭</span> Nasadit
+                                        </button>
+                                    </form>
+                                `;
+                            }
+                        });
+
+                        // 2. Aktualizace rámečku avatara postavy v navigační liště
+                        if (action === 'equip' && data.active_frame_url) {
+                            document.querySelectorAll('.char-avatar-wrap').forEach(wrap => {
+                                let frame = wrap.querySelector('.char-avatar-frame');
+                                if (!frame) {
+                                    frame = document.createElement('img');
+                                    frame.className = 'char-avatar-frame';
+                                    frame.setAttribute('aria-hidden', 'true');
+                                    wrap.appendChild(frame);
+                                }
+                                frame.src = data.active_frame_url;
+                                frame.style.display = 'block';
+                            });
+                        } else if (action === 'unequip') {
+                            document.querySelectorAll('.char-avatar-frame').forEach(frame => {
+                                frame.style.display = 'none';
+                            });
+                        }
+
+                        // Znovu připojíme listenery na nově vyrenderované formuláře
+                        attachEquipHandlers();
+                    } else {
+                        alert(data.error || 'Akce se nezdařila.');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    form.submit();
+                });
+            });
+        });
+    }
+
+    attachEquipHandlers();
+
+    /* ----------------------------------------------------------------------
+       4. ROZEBRÁNÍ PŘEDMĚTU NA TEMNOU ESENCI (DOTAZOVACÍ NOTIFIKACE & ANIMACE)
+       ---------------------------------------------------------------------- */
+    const reforgeModal = document.getElementById('reforgeModal');
+    const reforgeModalDimmer = document.getElementById('reforgeModalDimmer');
+    const reforgeConfirmCard = document.getElementById('reforgeConfirmCard');
+    const reforgePreviewImg = document.getElementById('reforgePreviewImg');
+    const reforgePreviewFrame = document.getElementById('reforgePreviewFrame');
+    const reforgePreviewName = document.getElementById('reforgePreviewName');
+    const reforgePreviewRarity = document.getElementById('reforgePreviewRarity');
+    const reforgeRewardEssence = document.getElementById('reforgeRewardEssence');
+    const btnReforgeClose = document.getElementById('btnReforgeClose');
+    const btnReforgeCancel = document.getElementById('btnReforgeCancel');
+    const btnReforgeExecute = document.getElementById('btnReforgeExecute');
+
+    const reforgeAnimStage = document.getElementById('reforgeAnimStage');
+    const reforgeAnimImg = document.getElementById('reforgeAnimImg');
+    const reforgeSparkBurst = document.getElementById('reforgeSparkBurst');
+    const reforgeArcaneCircle = document.getElementById('reforgeArcaneCircle');
+    const reforgeAnimVortex = document.getElementById('reforgeAnimVortex');
+    const reforgeFloatAmount = document.getElementById('reforgeFloatAmount');
+    const reforgeFloatingEssence = document.getElementById('reforgeFloatingEssence');
+    const reforgeAnimStatusTitle = document.getElementById('reforgeAnimStatusTitle');
+    const reforgeAnimStatusDesc = document.getElementById('reforgeAnimStatusDesc');
+
+    let currentReforgeForm = null;
+    let currentReforgeData = null;
+    let currentCardEl = null;
+
+    function closeReforgeModal() {
+        if (!reforgeModal) return;
+        reforgeModal.style.display = 'none';
+        reforgeConfirmCard.style.display = 'block';
+        reforgeAnimStage.style.display = 'none';
+        if (btnReforgeExecute) btnReforgeExecute.disabled = false;
+        currentReforgeForm = null;
+        currentReforgeData = null;
+        currentCardEl = null;
+    }
+
+    if (btnReforgeClose) btnReforgeClose.addEventListener('click', closeReforgeModal);
+    if (btnReforgeCancel) btnReforgeCancel.addEventListener('click', closeReforgeModal);
+    if (reforgeModalDimmer) reforgeModalDimmer.addEventListener('click', closeReforgeModal);
+
+    // Kliknutí na tlačítko "Rozebrat" u jakéhokoliv předmětu
+    document.querySelectorAll('.btn-reforge-item').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const form = btn.closest('form');
+            const itemId = btn.dataset.itemId;
+            const itemName = btn.dataset.itemName;
+            const itemRarity = btn.dataset.itemRarity || 'basic';
+            const itemRarityDisplay = btn.dataset.itemRarityDisplay || 'Běžná';
+            const itemValue = btn.dataset.itemValue || '0';
+            const itemImg = btn.dataset.itemImg || '';
+
+            currentCardEl = document.getElementById('invCard-' + itemId);
+            currentReforgeForm = form;
+            currentReforgeData = { itemId, itemName, itemRarity, itemRarityDisplay, itemValue, itemImg };
+
+            // Vyplnění dat do tázací notifikace
+            if (itemImg) {
+                reforgePreviewImg.src = itemImg;
+                reforgePreviewImg.alt = itemName;
+                reforgePreviewImg.style.display = 'block';
+            } else {
+                reforgePreviewImg.style.display = 'none';
+            }
+
+            reforgePreviewFrame.className = 'reforge-preview-frame frame-' + itemRarity;
+            reforgePreviewName.textContent = itemName;
+            reforgePreviewRarity.className = 'shop-rarity-pill pill-' + itemRarity;
+            reforgePreviewRarity.textContent = itemRarityDisplay;
+
+            reforgeRewardEssence.innerHTML = `<span class="reward-number">+${itemValue}</span> <span class="reward-icon">🔮 TE</span>`;
+
+            // Otevření modálu
+            reforgeConfirmCard.style.display = 'block';
+            reforgeAnimStage.style.display = 'none';
+            btnReforgeExecute.disabled = false;
+            reforgeModal.style.display = 'flex';
+        });
+    });
+
+    // Potvrzení v tázací notifikaci -> spuštění animace a odeslání požadavku
+    if (btnReforgeExecute) {
+        btnReforgeExecute.addEventListener('click', function() {
+            if (!currentReforgeForm || !currentReforgeData) return;
+
+            btnReforgeExecute.disabled = true;
+            const { itemId, itemName, itemValue, itemImg } = currentReforgeData;
+
+            // Spuštění vizuální animace rozebrání
+            reforgeConfirmCard.style.display = 'none';
+            reforgeAnimStage.style.display = 'flex';
+
+            if (itemImg) {
+                reforgeAnimImg.src = itemImg;
+                reforgeAnimImg.style.display = 'block';
+            } else {
+                reforgeAnimImg.style.display = 'none';
+            }
+
+            reforgeAnimStatusTitle.textContent = '🔮 Rozklad hmoty...';
+            reforgeAnimStatusDesc.textContent = 'Předmět se přeměňuje v čistou temnou esenci.';
+
+            reforgeAnimImg.className = 'reforge-anim-img disintegrating';
+            reforgeSparkBurst.className = 'reforge-spark-burst active';
+            reforgeArcaneCircle.className = 'reforge-arcane-circle active';
+            reforgeAnimVortex.className = 'reforge-anim-vortex active';
+            reforgeFloatAmount.textContent = itemValue;
+            reforgeFloatingEssence.className = 'reforge-floating-essence rise-up';
+
+            const animStartTime = Date.now();
+
+            // Odeslání AJAX požadavku na reforge_tresure
+            const formData = new FormData(currentReforgeForm);
+            formData.append('ajax', '1');
+
+            fetch(currentReforgeForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                const elapsed = Date.now() - animStartTime;
+                const remainingDelay = Math.max(0, 1300 - elapsed);
+
+                setTimeout(() => {
+                    if (data.success) {
+                        reforgeAnimStatusTitle.textContent = '✨ Rozebrání dokončeno!';
+                        reforgeAnimStatusDesc.textContent = `Získal jsi +${data.value} temné esence!`;
+
+                        // 1. Aktualizace počtu temné esence v hlavičce stránky
+                        const essenceValueEl = document.querySelector('.essence-value');
+                        if (essenceValueEl && typeof data.new_essence !== 'undefined') {
+                            essenceValueEl.innerHTML = `${data.new_essence} <span class="essence-currency-unit">TE</span>`;
+                            essenceValueEl.classList.add('essence-updated');
+                            setTimeout(() => essenceValueEl.classList.remove('essence-updated'), 900);
+                        }
+
+                        // 2. Aktualizace karty v inventáři
+                        if (data.remaining_count > 1) {
+                            const countBadge = document.getElementById('invCountBadge-' + itemId);
+                            if (countBadge) {
+                                countBadge.textContent = data.remaining_count + '×';
+                                countBadge.style.display = 'inline-block';
+                            }
+                        } else if (data.remaining_count === 1) {
+                            const countBadge = document.getElementById('invCountBadge-' + itemId);
+                            if (countBadge) countBadge.style.display = 'none';
+                        } else {
+                            // 0 kusů -> odstranění karty s animací rozpadu
+                            if (currentCardEl) {
+                                currentCardEl.classList.add('card-disintegrating');
+                                setTimeout(() => {
+                                    currentCardEl.remove();
+
+                                    // Pokud byl odebrán poslední předmět v inventáři, obnovíme stránku pro prázdný stav
+                                    const remainingCards = document.querySelectorAll('.fantasy-shop-card');
+                                    if (remainingCards.length === 0) {
+                                        window.location.reload();
+                                    }
+                                }, 450);
+                            }
+                        }
+
+                        // 3. Aktualizace celkového počtu položek v nástrojové liště
+                        const metaToolbar = document.querySelector('.shop-toolbar-meta strong');
+                        if (metaToolbar && typeof data.total_owned_count !== 'undefined') {
+                            metaToolbar.textContent = data.total_owned_count;
+                        }
+
+                        // 4. Pokud byl rozebrán aktivní rámeček, odstraníme ho z avatara
+                        if (data.active_frame_removed) {
+                            document.querySelectorAll('.char-avatar-frame').forEach(f => {
+                                f.style.display = 'none';
+                            });
+                        }
+
+                        showToast(data.message || `Předmět rozebrán na ${data.value} TE.`);
+
+                        setTimeout(() => {
+                            closeReforgeModal();
+                        }, 750);
+                    } else {
+                        reforgeAnimStatusTitle.textContent = '❌ Chyba při rozebrání';
+                        reforgeAnimStatusDesc.textContent = data.error || 'Něco se nepovedlo.';
+                        setTimeout(() => {
+                            closeReforgeModal();
+                        }, 1800);
+                    }
+                }, remainingDelay);
+            })
+            .catch(err => {
+                console.error(err);
+                currentReforgeForm.submit();
+            });
         });
     }
 });
 </script>
 {% endblock %}
+

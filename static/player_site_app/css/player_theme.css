@@ -3051,3 +3051,553 @@
 
 .text-emerald { color: #34d399 !important; }
 .text-amber { color: #fbbf24 !important; }
+
+/* ==========================================================================
+   Dungeon Shop Inventory - Reforge & Frame Equip UI & Disintegration Animation
+   ========================================================================== */
+
+.inv-non-treasure-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.inv-frame-slot {
+    width: 100%;
+}
+
+.inv-active-frame-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+}
+
+.btn-equip-frame {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.22) 0%, rgba(2, 132, 199, 0.42) 100%);
+    border: 1px solid rgba(56, 189, 248, 0.6);
+    color: #e0f2fe;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 10px rgba(56, 189, 248, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-equip-frame:hover {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.45) 0%, rgba(2, 132, 199, 0.7) 100%);
+    border-color: #38bdf8;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 16px rgba(56, 189, 248, 0.45);
+}
+
+.btn-unequip-frame {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.74rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-unequip-frame:hover {
+    background: rgba(239, 68, 68, 0.35);
+    border-color: #ef4444;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.btn-reforge-item {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.18) 0%, rgba(126, 34, 206, 0.36) 100%);
+    border: 1px solid rgba(168, 85, 247, 0.5);
+    color: #f3e8ff;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4), 0 0 10px rgba(168, 85, 247, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-reforge-item:hover {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.38) 0%, rgba(126, 34, 206, 0.65) 100%);
+    border-color: #c084fc;
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5), 0 0 18px rgba(168, 85, 247, 0.45);
+}
+
+.reforge-essence-badge {
+    background: rgba(192, 132, 252, 0.25);
+    border: 1px solid rgba(192, 132, 252, 0.5);
+    color: #f5d0fe;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: 2px;
+}
+
+/* Modal pro rozebrání */
+.reforge-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    overflow: hidden;
+}
+
+.reforge-modal-dimmer {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 6, 14, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: reforgeFadeIn 0.25s ease-out;
+}
+
+.reforge-stage-wrapper {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.reforge-portal-glow {
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.28) 0%, rgba(126, 34, 206, 0.12) 50%, transparent 70%);
+    filter: blur(40px);
+    pointer-events: none;
+    z-index: 1;
+    animation: reforgePulse 3s infinite alternate ease-in-out;
+}
+
+.reforge-confirm-card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    background: linear-gradient(180deg, #1b1627 0%, #120e1c 100%);
+    border: 1px solid rgba(168, 85, 247, 0.45);
+    border-radius: var(--radius-lg);
+    padding: 1.6rem;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.8), 0 0 30px rgba(168, 85, 247, 0.25);
+    animation: reforgeCardPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reforge-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.reforge-header-icon {
+    font-size: 1.5rem;
+    color: #c084fc;
+}
+
+.reforge-card-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #f8fafc;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.reforge-btn-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+}
+
+.reforge-btn-close:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.reforge-item-preview-box {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(24, 20, 35, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    margin-bottom: 1.25rem;
+}
+
+.reforge-preview-frame {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #0f0c18;
+    border: 2px solid #64748b;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.reforge-preview-frame.frame-basic { border-color: #94a3b8; }
+.reforge-preview-frame.frame-rare { border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.4); }
+.reforge-preview-frame.frame-epic { border-color: #c084fc; box-shadow: 0 0 14px rgba(168, 85, 247, 0.5); }
+.reforge-preview-frame.frame-legendary { border-color: #fbbf24; box-shadow: 0 0 16px rgba(245, 158, 11, 0.55); }
+
+.reforge-preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.reforge-preview-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.reforge-preview-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    word-break: break-word;
+}
+
+.reforge-confirm-body {
+    margin-bottom: 1.5rem;
+}
+
+.reforge-confirm-question {
+    font-size: 0.95rem;
+    color: #e2e8f0;
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+}
+
+.reforge-reward-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.16) 0%, rgba(126, 34, 206, 0.28) 100%);
+    border: 1px solid rgba(192, 132, 252, 0.4);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    margin-bottom: 0.85rem;
+}
+
+.reforge-reward-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e9d5ff;
+}
+
+.reforge-reward-value {
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: #f5d0fe;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-shadow: 0 0 12px rgba(192, 132, 252, 0.7);
+}
+
+.reforge-confirm-warning {
+    font-size: 0.82rem;
+    color: #fca5a5;
+    margin: 0;
+    line-height: 1.45;
+}
+
+.reforge-actions-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-reforge-cancel {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-silver);
+    padding: 8px 18px;
+    border-radius: var(--radius-sm);
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-reforge-cancel:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+}
+
+.btn-reforge-execute {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #a855f7 0%, #7e22ce 100%);
+    border: 1px solid #c084fc;
+    color: #ffffff;
+    padding: 8px 20px;
+    border-radius: var(--radius-sm);
+    font-size: 0.92rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(126, 34, 206, 0.5), 0 0 20px rgba(168, 85, 247, 0.35);
+    transition: all 0.2s ease;
+}
+
+.btn-reforge-execute:hover {
+    background: linear-gradient(135deg, #c084fc 0%, #9333ea 100%);
+    box-shadow: 0 6px 20px rgba(126, 34, 206, 0.65), 0 0 26px rgba(168, 85, 247, 0.55);
+    transform: translateY(-1px);
+}
+
+/* Animace rozebrání */
+.reforge-anim-stage {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 300px;
+    text-align: center;
+}
+
+.reforge-anim-target-box {
+    position: relative;
+    width: 180px;
+    height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.reforge-shatter-container {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reforge-anim-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: all 0.2s ease;
+}
+
+.reforge-anim-img.disintegrating {
+    animation: reforgeDisintegrate 1.25s forwards cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.reforge-arcane-circle {
+    position: absolute;
+    inset: -20px;
+    border: 2px dashed rgba(192, 132, 252, 0.6);
+    border-radius: 50%;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.reforge-arcane-circle.active {
+    animation: reforgeArcaneSpin 1.4s ease-out forwards;
+}
+
+.reforge-spark-burst {
+    position: absolute;
+    inset: -40px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(245, 208, 254, 0.8) 0%, rgba(192, 132, 252, 0.4) 40%, transparent 70%);
+    opacity: 0;
+    transform: scale(0.2);
+    pointer-events: none;
+}
+
+.reforge-spark-burst.active {
+    animation: reforgeBurst 1.2s ease-out forwards;
+}
+
+.reforge-floating-essence {
+    position: absolute;
+    top: 35%;
+    font-size: 2.4rem;
+    font-weight: 900;
+    color: #f5d0fe;
+    text-shadow: 0 0 20px #c084fc, 0 0 35px #a855f7;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+}
+
+.reforge-floating-essence.rise-up {
+    animation: reforgeEssenceRise 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.reforge-anim-status-box {
+    margin-top: 1rem;
+}
+
+.reforge-anim-status-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 0.35rem;
+    text-shadow: 0 0 16px rgba(192, 132, 252, 0.5);
+}
+
+.reforge-anim-status-desc {
+    font-size: 0.95rem;
+    color: #c084fc;
+}
+
+/* Keyframe animace */
+@keyframes reforgeFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes reforgePulse {
+    0% { transform: scale(0.9); opacity: 0.6; }
+    100% { transform: scale(1.15); opacity: 0.95; }
+}
+
+@keyframes reforgeCardPop {
+    from { transform: scale(0.92); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes reforgeDisintegrate {
+    0% {
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 10px rgba(192, 132, 252, 0.6));
+    }
+    30% {
+        transform: scale(1.1) rotate(3deg);
+        filter: drop-shadow(0 0 25px rgba(245, 208, 254, 0.9)) brightness(1.6);
+    }
+    60% {
+        transform: scale(1.05) rotate(-3deg);
+        filter: drop-shadow(0 0 35px rgba(192, 132, 252, 1)) contrast(1.8) hue-rotate(30deg);
+        opacity: 0.85;
+    }
+    100% {
+        transform: scale(0) rotate(180deg);
+        filter: blur(12px) drop-shadow(0 0 45px rgba(168, 85, 247, 1));
+        opacity: 0;
+    }
+}
+
+@keyframes reforgeArcaneSpin {
+    0% { transform: rotate(0deg) scale(0.7); opacity: 0; }
+    40% { opacity: 1; }
+    100% { transform: rotate(360deg) scale(1.4); opacity: 0; }
+}
+
+@keyframes reforgeBurst {
+    0% { opacity: 0; transform: scale(0.2); }
+    40% { opacity: 1; transform: scale(1.1); }
+    100% { opacity: 0; transform: scale(1.6); }
+}
+
+@keyframes reforgeEssenceRise {
+    0% { opacity: 0; transform: translateY(20px) scale(0.6); }
+    35% { opacity: 1; transform: translateY(-10px) scale(1.2); }
+    75% { opacity: 1; transform: translateY(-40px) scale(1); }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.8); }
+}
+
+/* Animace rozpadu karty v mřížce */
+.fantasy-shop-card.card-disintegrating {
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    transform: scale(0.75) translateY(-20px) !important;
+    opacity: 0 !important;
+    filter: blur(8px) brightness(1.5) !important;
+    pointer-events: none !important;
+}
+
+/* Essence flash v hlavičce */
+.essence-value.essence-updated {
+    animation: essenceCounterPulse 0.8s ease-out;
+}
+
+@keyframes essenceCounterPulse {
+    0% { transform: scale(1); color: #fef08a; }
+    40% { transform: scale(1.3); color: #c084fc; text-shadow: 0 0 20px #c084fc, 0 0 35px #a855f7; }
+    100% { transform: scale(1); color: #fef08a; }
+}
+
+/* Toast notifikace */
+.atarax-toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #171223;
+    border: 1px solid rgba(168, 85, 247, 0.5);
+    color: #ffffff;
+    padding: 12px 20px;
+    border-radius: var(--radius-md);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7), 0 0 16px rgba(168, 85, 247, 0.3);
+    font-size: 0.92rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    z-index: 1000000;
+    transform: translateY(30px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    pointer-events: none;
+}
+
+.atarax-toast.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+

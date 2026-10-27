@@ -1060,3 +1060,195 @@ def use_treasure(request):
         return redirect('player_site_app:dungeon_shop_inv')
 
     return redirect('player_site_app:dungeon_shop_inv')
+
+@login_required(login_url='player_site_app:index')
+def reforge_tresure(request):
+    """
+    Rozebere vlastněný předmět hráče (POUZE předměty, které NEJSOU truhla)
+    na temnou esenci podle rarity a odstraní 1 kus z inventáře hráče.
+    """
+    if request.method == "POST":
+        item_id = request.POST.get('item_id')
+        player_id = request.POST.get('player_id')
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+            'application/json' in request.headers.get('Accept', '') or
+            request.POST.get('ajax') == '1'
+        )
+
+        try:
+            player_id = int(player_id) if player_id else request.user.player.id
+            player = get_object_or_404(Player, id=player_id)
+
+            # Bezpečnostní kontrola vlastníka
+            if hasattr(request.user, 'player') and request.user.player.id != player.id and not request.user.is_staff:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Nemáš oprávnění k této akci!'}, status=403)
+                messages.error(request, "Nemáš oprávnění k této akci!")
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            item = get_object_or_404(Esence_Items_Shop, id=item_id)
+
+            # Kontrola: Truhly se nesmí rozebírat
+            if item.category == 'treasures':
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Truhly nelze rozebírat, pouze otevřít!'}, status=400)
+                messages.error(request, "Truhly nelze rozebírat, pouze otevřít!")
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            # Hledáme 1 kus vlastněného záznamu hráče
+            owner_record = Esence_Items_Owners.objects.filter(
+                player=player,
+                item=item
+            ).first()
+
+            if not owner_record:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Tento předmět nemáš ve svém inventáři!'}, status=404)
+                messages.error(request, "Tento předmět nemáš ve svém inventáři!")
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            # Zisk esence podle rarity (basic: 5, rare: 25, epic: 50, legendary: 100)
+            value = getattr(item, 'dismantle_value', 0)
+            if not value:
+                rarity_map = {'basic': 5, 'rare': 25, 'epic': 50, 'legendary': 100}
+                value = rarity_map.get(item.rarity, 0)
+
+            # Pokud byl tento předmět aktivní rámeček hráče, ošetříme ho
+            active_frame_removed = False
+            if player.active_ramecek_id == owner_record.id or (player.active_ramecek and player.active_ramecek.item_id == item.id):
+                another_copy = Esence_Items_Owners.objects.filter(
+                    player=player,
+                    item=item
+                ).exclude(id=owner_record.id).first()
+
+                if another_copy:
+                    player.active_ramecek = another_copy
+                else:
+                    player.active_ramecek = None
+                    active_frame_removed = True
+
+            # Přidání esence hráči
+            if player.temna_esence is None:
+                player.temna_esence = 0
+            player.temna_esence += value
+            player.save()
+
+            # Odstranění POUZE vlastněného záznamu hráče (nikoliv položky v obchodě)
+            item_name = item.name
+            owner_record.delete()
+
+            remaining_count = Esence_Items_Owners.objects.filter(player=player, item=item).count()
+            total_owned_count = Esence_Items_Owners.objects.filter(player=player).count()
+
+            msg = f"Předmět „{item_name}“ byl úspěšně rozebrán na {value} temné esence!"
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': msg,
+                    'item_id': item.id,
+                    'item_name': item_name,
+                    'value': value,
+                    'new_essence': player.temna_esence,
+                    'remaining_count': remaining_count,
+                    'total_owned_count': total_owned_count,
+                    'active_frame_removed': active_frame_removed,
+                })
+
+            messages.success(request, msg)
+            return redirect('player_site_app:dungeon_shop_inv')
+
+        except Exception as e:
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': 'Nastala chyba při zpracovávání vašeho požadavku.'}, status=500)
+            messages.error(request, "Nastala chyba při zpracovávání vašeho požadavku.")
+            return redirect('player_site_app:dungeon_shop_inv')
+
+    return redirect('player_site_app:dungeon_shop_inv')
+
+
+# Alias pro správný pravopis
+reforge_treasure = reforge_tresure
+
+
+@login_required(login_url='player_site_app:index')
+def equip_frame(request):
+    """
+    Nasadí nebo sundá rámeček profilu hráče (Player.active_ramecek).
+    """
+    if request.method == "POST":
+        item_id = request.POST.get('item_id')
+        player_id = request.POST.get('player_id')
+        action = request.POST.get('action', 'equip')
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+            'application/json' in request.headers.get('Accept', '') or
+            request.POST.get('ajax') == '1'
+        )
+
+        try:
+            player_id = int(player_id) if player_id else request.user.player.id
+            player = get_object_or_404(Player, id=player_id)
+
+            if hasattr(request.user, 'player') and request.user.player.id != player.id and not request.user.is_staff:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Nemáš oprávnění k této akci!'}, status=403)
+                messages.error(request, 'Nemáš oprávnění k této akci!')
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            if action == 'unequip':
+                player.active_ramecek = None
+                player.save()
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'action': 'unequip',
+                        'message': 'Rámeček byl úspěšně sundán z profilu.',
+                        'active_item_id': None,
+                        'active_frame_url': None,
+                    })
+                messages.success(request, 'Rámeček byl úspěšně sundán z profilu.')
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            # Akce nasazení rámečku
+            item = get_object_or_404(Esence_Items_Shop, id=item_id)
+            if item.category != 'borders':
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Pouze rámečky lze nasadit na profil!'}, status=400)
+                messages.error(request, 'Pouze rámečky lze nasadit na profil!')
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            owner_record = Esence_Items_Owners.objects.filter(
+                player=player,
+                item=item
+            ).first()
+
+            if not owner_record:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Tento rámeček nemáš ve svém inventáři!'}, status=404)
+                messages.error(request, 'Tento rámeček nemáš ve svém inventáři!')
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            player.active_ramecek = owner_record
+            player.save()
+
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'action': 'equip',
+                    'message': f"Rámeček „{owner_record.item.name}“ byl úspěšně nasazen!",
+                    'active_item_id': owner_record.item.id,
+                    'active_frame_url': player.active_frame_url,
+                })
+
+            messages.success(request, f"Rámeček „{owner_record.item.name}“ byl úspěšně nasazen!")
+            return redirect('player_site_app:dungeon_shop_inv')
+
+        except Exception as e:
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': 'Nastala chyba při zpracování rámečku.'}, status=500)
+            messages.error(request, 'Nastala chyba při zpracování rámečku.')
+            return redirect('player_site_app:dungeon_shop_inv')
+
+    return redirect('player_site_app:dungeon_shop_inv')
+
