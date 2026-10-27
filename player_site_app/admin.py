@@ -100,6 +100,7 @@ class CharInfoAdmin(admin.ModelAdmin):
         'avatar_preview',
         'name',
         'player',
+        'is_public',
         'character_class',
         'race',
         'level',
@@ -108,7 +109,7 @@ class CharInfoAdmin(admin.ModelAdmin):
         'hit_points_max',
         'armor_class',
     )
-    list_filter = ('character_class', 'race', 'level', 'player')
+    list_filter = ('is_public', 'character_class', 'race', 'level', 'player')
     search_fields = ('name', 'player__user__username', 'player__nickname')
     ordering = ('-level', 'name')
     inlines = [ItemsActiveInline]
@@ -140,7 +141,7 @@ class CharInfoAdmin(admin.ModelAdmin):
                 ('name', 'character_class', 'level'),
                 ('image', 'image_url'),
                 ('race', 'background', 'alignment'),
-                'experience_points',
+                ('experience_points', 'is_public'),
             ),
         }),
         ('Bojové statistiky & Životy', {

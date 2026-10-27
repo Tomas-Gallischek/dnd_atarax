@@ -1,6 +1,7 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from dm_site_app.models import OverAllSettings
 from .models import Player, Char_info, Esence_Items_Shop, Esence_Items_Owners
 
@@ -872,6 +873,297 @@ class PlayerReforgeAndEquipTests(TestCase):
         self.assertEqual(res_locked.status_code, 403)
         self.assertFalse(res_locked.json()['success'])
         self.assertIn('maximálně 1. úrovně', res_locked.json()['error'])
+
+
+class PlayerHiddenCharacterAndDmTests(TestCase):
+    def setUp(self):
+        self.settings, _ = OverAllSettings.objects.get_or_create(
+            id=1,
+            defaults={'loging_active': True, 'editing_active': True}
+        )
+        self.user1 = User.objects.create_user(username='hrac_bob', password='password123')
+        self.player1 = Player.objects.create(user=self.user1, nickname='Bob')
+
+        self.user2 = User.objects.create_user(username='hrac_alice', password='password123')
+        self.player2 = Player.objects.create(user=self.user2, nickname='Alice')
+
+        self.dm_user = User.objects.create_superuser(username='dm_dan', password='password123')
+        self.dm_player = Player.objects.create(user=self.dm_user, nickname='DanDM', admin=True)
+
+    def test_hidden_character_isolation_and_dm_visibility(self):
+        """Běžní hráči nevidí skryté postavy v družině a nemají k nim přístup (404). DM je vidí a spravuje."""
+        # Veřejná postava
+        public_char = Char_info.objects.create(
+            player=self.player1,
+            name='Veřejný Hrdina',
+            character_class='Bojovník',
+            level=3,
+            is_public=True
+        )
+
+        # Skrytá postava (pouze pro DM)
+        secret_char = Char_info.objects.create(
+            player=self.dm_player,
+            name='Tajemný Inkvizitor',
+            character_class='Paladin',
+            level=10,
+            is_public=False
+        )
+
+        # 1. Běžný hráč (Alice)
+        self.client.login(username='hrac_alice', password='password123')
+
+        # V all_chars vidí veřejnou, NEVIDÍ skrytou
+        roster_res = self.client.get(reverse('player_site_app:all_chars'))
+        self.assertEqual(roster_res.status_code, 200)
+        self.assertContains(roster_res, 'Veřejný Hrdina')
+        self.assertNotContains(roster_res, 'Tajemný Inkvizitor')
+
+        # V all_chars_detail na skrytou postavu dostane 404
+        secret_detail_res = self.client.get(reverse('player_site_app:all_chars_detail', kwargs={'char_id': secret_char.id}))
+        self.assertEqual(secret_detail_res.status_code, 404)
+
+        # Běžný hráč se nemůže pokusit přepnout viditelnost (403)
+        toggle_forbidden = self.client.post(reverse('player_site_app:toggle_char_visibility'), {
+            'char_id': secret_char.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(toggle_forbidden.status_code, 403)
+
+        # 2. Dungeon Master (DanDM)
+        self.client.login(username='dm_dan', password='password123')
+
+        # DM v all_chars VIDÍ skrytou postavu i s označením
+        dm_roster = self.client.get(reverse('player_site_app:all_chars'))
+        self.assertEqual(dm_roster.status_code, 200)
+        self.assertContains(dm_roster, 'Tajemný Inkvizitor')
+        self.assertContains(dm_roster, 'Skrytá')
+
+        # DM může otevřít detail v all_chars_detail
+        dm_detail = self.client.get(reverse('player_site_app:all_chars_detail', kwargs={'char_id': secret_char.id}))
+        self.assertEqual(dm_detail.status_code, 200)
+        self.assertContains(dm_detail, 'Tajemný Inkvizitor')
+        self.assertContains(dm_detail, 'Skrytá před hráči')
+
+        # DM může otevřít deník postavy (char_overview)
+        dm_overview = self.client.get(reverse('player_site_app:char_overview', kwargs={'char_id': secret_char.id}))
+        self.assertEqual(dm_overview.status_code, 200)
+        self.assertContains(dm_overview, 'Tajemný Inkvizitor')
+        self.assertContains(dm_overview, 'id="dmSecretBanner"')
+
+        # DM přepne viditelnost na veřejnou
+        toggle_res = self.client.post(reverse('player_site_app:toggle_char_visibility'), {
+            'char_id': secret_char.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(toggle_res.status_code, 200)
+        self.assertTrue(toggle_res.json()['success'])
+        self.assertTrue(toggle_res.json()['is_public'])
+
+        secret_char.refresh_from_db()
+        self.assertTrue(secret_char.is_public)
+
+        # Nyní běžný hráč (Alice) postavu již vidí
+        self.client.login(username='hrac_alice', password='password123')
+        roster_now = self.client.get(reverse('player_site_app:all_chars'))
+        self.assertContains(roster_now, 'Tajemný Inkvizitor')
+
+        detail_now = self.client.get(reverse('player_site_app:all_chars_detail', kwargs={'char_id': secret_char.id}))
+        self.assertEqual(detail_now.status_code, 200)
+
+    def test_create_character_by_dm(self):
+        """DM může vytvořit novou postavu (výchozí stav: skrytá). Běžný hráč nemá oprávnění."""
+        # 1. Běžný hráč se pokusí vytvořit postavu -> zamítnuto a přesměrováno
+        self.client.login(username='hrac_bob', password='password123')
+        res_forbidden = self.client.post(reverse('player_site_app:create_character'), {
+            'name': 'Hackerova postava',
+            'character_class': 'Tulák',
+            'race': 'Elf',
+            'level': 1,
+        })
+        self.assertRedirects(res_forbidden, reverse('player_site_app:prehled_postav'))
+        self.assertFalse(Char_info.objects.filter(name='Hackerova postava').exists())
+
+        # 2. DM vytvoří novou skrytou postavu
+        self.client.login(username='dm_dan', password='password123')
+        res_dm = self.client.post(reverse('player_site_app:create_character'), {
+            'name': 'Temný Černokněžník',
+            'character_class': 'Černokněžník',
+            'race': 'Tiefling',
+            'level': 5,
+            'player_id': self.dm_player.id,
+            # is_public není zaškrtnuto -> defaultně False (skrytá)
+        })
+        created_char = Char_info.objects.filter(name='Temný Černokněžník').first()
+        self.assertIsNotNone(created_char)
+        self.assertFalse(created_char.is_public)
+        self.assertEqual(created_char.level, 5)
+        self.assertEqual(created_char.character_class, 'Černokněžník')
+        # Přesměrováno přímo do deníku postavy
+        self.assertRedirects(res_dm, reverse('player_site_app:char_overview', kwargs={'char_id': created_char.id}))
+
+
+class PlayerCharacterAvatarTests(TestCase):
+    def setUp(self):
+        OverAllSettings.objects.get_or_create(id=1, defaults={'loging_active': True, 'editing_active': True})
+        self.user_player = User.objects.create_user(username='hrac_avatar', password='password123')
+        self.player = Player.objects.create(user=self.user_player, nickname='Aragorn', pin_code='9876')
+
+        self.user_other = User.objects.create_user(username='hrac_cizi', password='password123')
+        self.player_other = Player.objects.create(user=self.user_other, nickname='Gimli', pin_code='5432')
+
+        self.user_dm = User.objects.create_user(username='dm_avatar', password='password123', is_staff=True)
+        self.player_dm = Player.objects.create(user=self.user_dm, nickname='Gandalf', pin_code='1111', admin=True)
+
+        self.char_barbar = Char_info.objects.create(
+            player=self.player,
+            name='Conan',
+            character_class='Barbar',
+            race='Člověk',
+            level=3
+        )
+
+        self.char_kouzelnik = Char_info.objects.create(
+            player=self.player,
+            name='Raistlin',
+            character_class='Kouzelník',
+            race='Člověk',
+            level=5
+        )
+
+    def test_default_class_avatars_mapped_correctly(self):
+        """Postava bez nahraného obrázku automaticky používá unikátní SVG obrázek svého povolání."""
+        self.assertFalse(self.char_barbar.has_custom_image)
+        self.assertEqual(self.char_barbar.default_class_image_url, '/static/img/classes/barbar.svg')
+        self.assertEqual(self.char_barbar.profile_image_url, '/static/img/classes/barbar.svg')
+
+        self.assertFalse(self.char_kouzelnik.has_custom_image)
+        self.assertEqual(self.char_kouzelnik.default_class_image_url, '/static/img/classes/kouzelnik.svg')
+        self.assertEqual(self.char_kouzelnik.profile_image_url, '/static/img/classes/kouzelnik.svg')
+
+    def test_all_classes_have_unique_svgs(self):
+        """Všech 13 tříd má platnou cestu na SVG."""
+        classes = [
+            'Barbar', 'Bard', 'Bojovník', 'Čaroděj', 'Černokněžník',
+            'Druid', 'Hraničář', 'Klerik', 'Kouzelník', 'Mnich',
+            'Paladin', 'Tulák', 'Ostatní'
+        ]
+        urls = set()
+        for cls_name in classes:
+            char = Char_info(player=self.player, name='Test', character_class=cls_name)
+            url = char.default_class_image_url
+            self.assertTrue(url.startswith('/static/img/classes/'))
+            self.assertTrue(url.endswith('.svg'))
+            urls.add(url)
+        # Všech 13 unikátních svg souborů
+        self.assertEqual(len(urls), 13)
+
+    def test_class_change_updates_default_avatar(self):
+        """Při změně povolání u postavy bez vlastního obrázku se výchozí obrázek automaticky změní."""
+        char = Char_info.objects.create(player=self.player, name='Měňavec', character_class='Tulák')
+        self.assertEqual(char.profile_image_url, '/static/img/classes/tulak.svg')
+
+        char.character_class = 'Paladin'
+        char.save()
+        self.assertEqual(char.profile_image_url, '/static/img/classes/paladin.svg')
+
+    def test_upload_avatar_file_success(self):
+        """Hráč může nahrát vlastní profilový obrázek."""
+        self.client.login(username='hrac_avatar', password='password123')
+        fake_image = SimpleUploadedFile(
+            name='hrdina.png',
+            content=b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4',
+            content_type='image/png'
+        )
+
+        response = self.client.post(reverse('player_site_app:upload_char_avatar'), {
+            'char_id': self.char_barbar.id,
+            'action': 'upload',
+            'image': fake_image,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(response.status_code, 200)
+        json_data = response.json()
+        self.assertTrue(json_data['success'])
+        self.assertTrue(json_data['has_custom_image'])
+
+        self.char_barbar.refresh_from_db()
+        self.assertTrue(self.char_barbar.has_custom_image)
+        self.assertTrue(self.char_barbar.image.name.startswith('characters/'))
+        self.assertIn('characters/', self.char_barbar.profile_image_url)
+
+    def test_set_avatar_from_url_and_reset(self):
+        """Hráč může nastavit obrázek z URL a následně jej resetovat zpět na výchozí obrázek povolání."""
+        self.client.login(username='hrac_avatar', password='password123')
+
+        # 1. Nastavení z URL
+        url_resp = self.client.post(reverse('player_site_app:upload_char_avatar'), {
+            'char_id': self.char_kouzelnik.id,
+            'action': 'url',
+            'image_url': 'https://example.com/kouzelnik_art.webp',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(url_resp.status_code, 200)
+        self.char_kouzelnik.refresh_from_db()
+        self.assertTrue(self.char_kouzelnik.has_custom_image)
+        self.assertEqual(self.char_kouzelnik.profile_image_url, 'https://example.com/kouzelnik_art.webp')
+
+        # 2. Reset na výchozí obrázek povolání
+        reset_resp = self.client.post(reverse('player_site_app:upload_char_avatar'), {
+            'char_id': self.char_kouzelnik.id,
+            'action': 'reset',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(reset_resp.status_code, 200)
+        reset_json = reset_resp.json()
+        self.assertTrue(reset_json['success'])
+        self.assertFalse(reset_json['has_custom_image'])
+        self.assertEqual(reset_json['profile_image_url'], '/static/img/classes/kouzelnik.svg')
+
+        self.char_kouzelnik.refresh_from_db()
+        self.assertFalse(self.char_kouzelnik.has_custom_image)
+        self.assertEqual(self.char_kouzelnik.profile_image_url, '/static/img/classes/kouzelnik.svg')
+
+    def test_cannot_change_other_players_character_avatar(self):
+        """Běžný hráč nemůže změnit profilový obrázek cizí postavy."""
+        self.client.login(username='hrac_cizi', password='password123')
+        fake_image = SimpleUploadedFile('hacked.jpg', b'fakejpgdata', content_type='image/jpeg')
+
+        response = self.client.post(reverse('player_site_app:upload_char_avatar'), {
+            'char_id': self.char_barbar.id,  # Vlastníkem je hrac_avatar
+            'action': 'upload',
+            'image': fake_image,
+        })
+        self.assertEqual(response.status_code, 404)
+
+    def test_dm_can_change_any_character_avatar(self):
+        """Dungeon Master může změnit profilový obrázek kterékoliv postavy."""
+        self.client.login(username='dm_avatar', password='password123')
+
+        resp = self.client.post(reverse('player_site_app:upload_char_avatar'), {
+            'char_id': self.char_barbar.id,
+            'action': 'url',
+            'image_url': 'https://example.com/dm_custom_conan.png',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp.status_code, 200)
+        self.char_barbar.refresh_from_db()
+        self.assertEqual(self.char_barbar.profile_image_url, 'https://example.com/dm_custom_conan.png')
+
+    def test_overview_page_contains_clickable_avatar_and_modal(self):
+        """Stránka s přehledem postavy obsahuje klikatelný avatar a modal pro změnu."""
+        self.client.login(username='hrac_avatar', password='password123')
+        resp = self.client.get(reverse('player_site_app:char_overview', kwargs={'char_id': self.char_barbar.id}))
+        self.assertEqual(resp.status_code, 200)
+        self.assertContains(resp, 'char-avatar-clickable')
+        self.assertContains(resp, 'openAvatarModal()')
+        self.assertContains(resp, 'id="avatarModal"')
+        self.assertContains(resp, 'id="avatarDropzone"')
+        self.assertContains(resp, '/static/img/classes/barbar.svg')
+
+
+
 
 
 

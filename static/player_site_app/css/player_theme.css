@@ -3634,4 +3634,779 @@
     line-height: 1.5;
 }
 
+/* ==========================================================================
+   DM SKRYTÉ POSTAVY (SECRET CHARACTERS) & DM MANAGEMENT
+   ========================================================================== */
+
+/* Odznaky stavu viditelnosti */
+.badge-purple {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.9), rgba(107, 33, 168, 0.95));
+    color: #f3e8ff;
+    border: 1px solid rgba(192, 132, 252, 0.5);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.35);
+    font-weight: 700;
+}
+
+.badge-success {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.9), rgba(5, 150, 105, 0.95));
+    color: #ffffff;
+    border: 1px solid rgba(52, 211, 153, 0.5);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.3);
+    font-weight: 700;
+}
+
+/* DM Banner na detailu postavy / přehledu */
+.dm-secret-character-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px 22px;
+    border-radius: var(--radius-md, 10px);
+    margin-bottom: 22px;
+    transition: all 0.3s ease;
+}
+
+.dm-secret-character-banner.is-hidden {
+    background: linear-gradient(135deg, rgba(42, 18, 62, 0.95), rgba(22, 14, 38, 0.95));
+    border: 1px solid rgba(192, 132, 252, 0.45);
+    box-shadow: 0 4px 22px rgba(107, 33, 168, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dm-secret-character-banner.is-public {
+    background: linear-gradient(135deg, rgba(14, 46, 38, 0.95), rgba(10, 28, 26, 0.95));
+    border: 1px solid rgba(52, 211, 153, 0.45);
+    box-shadow: 0 4px 20px rgba(16, 185, 129, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.dm-secret-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.dm-secret-icon {
+    font-size: 2.2rem;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 10px rgba(192, 132, 252, 0.4));
+}
+
+.dm-secret-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dm-secret-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.dm-secret-title {
+    font-family: var(--font-heading);
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.dm-secret-desc {
+    font-size: 0.88rem;
+    color: var(--text-muted, #94a3b8);
+    margin: 0;
+    line-height: 1.45;
+}
+
+.dm-visibility-form {
+    flex-shrink: 0;
+}
+
+/* Karta skryté postavy v mřížce družiny */
+.char-roster-card.char-roster-card-hidden {
+    border: 1px dashed rgba(192, 132, 252, 0.55);
+    background: linear-gradient(135deg, rgba(32, 18, 52, 0.9), rgba(18, 12, 30, 0.9));
+    box-shadow: 0 4px 20px rgba(147, 51, 234, 0.2);
+    position: relative;
+}
+
+.dm-card-secret-ribbon {
+    background: linear-gradient(135deg, #7e22ce, #9333ea);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 6px;
+    display: inline-block;
+    margin-bottom: 10px;
+    border: 1px solid rgba(216, 180, 254, 0.4);
+    box-shadow: 0 2px 8px rgba(126, 34, 206, 0.4);
+}
+
+.char-selection-item.char-item-hidden {
+    border-left: 4px solid #a855f7;
+    background: linear-gradient(90deg, rgba(147, 51, 234, 0.08), rgba(24, 20, 33, 0.8));
+}
+
+.char-name-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+}
+
+.char-selection-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* DM Tlačítka a barva */
+.btn-outline-purple {
+    background: transparent;
+    border: 1px solid rgba(192, 132, 252, 0.5);
+    color: #e9d5ff;
+}
+.btn-outline-purple:hover {
+    background: rgba(147, 51, 234, 0.25);
+    border-color: #c084fc;
+    color: #ffffff;
+}
+
+/* Modální okno pro vytvoření postavy (DM) */
+.dm-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 3, 8, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.dm-modal-dialog {
+    background: linear-gradient(145deg, #1b162c, #0f0c1c);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    border-radius: var(--radius-lg, 14px);
+    max-width: 580px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 12px 48px rgba(0, 0, 0, 0.85), 0 0 30px rgba(212, 175, 55, 0.15);
+    animation: dmModalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dmModalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.dm-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.dm-modal-title {
+    margin: 0;
+    font-family: var(--font-heading);
+    font-size: 1.25rem;
+    color: var(--gold-300, #f6e05e);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.dm-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+    transition: color 0.15s;
+}
+.dm-modal-close:hover {
+    color: #ffffff;
+}
+
+.dm-modal-body {
+    padding: 22px 24px;
+}
+
+.dm-modal-intro {
+    font-size: 0.9rem;
+    color: var(--text-secondary, #cbd5e1);
+    line-height: 1.5;
+    margin-bottom: 20px;
+    background: rgba(30, 24, 46, 0.65);
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-left: 3px solid var(--gold-400, #d4af37);
+}
+
+.dm-visibility-checkbox-card {
+    background: rgba(32, 20, 48, 0.7);
+    border: 1px solid rgba(168, 85, 247, 0.35);
+    border-radius: 10px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dm-visibility-checkbox-card:hover {
+    border-color: rgba(192, 132, 252, 0.7);
+    background: rgba(42, 26, 64, 0.8);
+}
+
+.dm-checkbox-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    margin: 0;
+}
+
+.dm-checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+    accent-color: #a855f7;
+    cursor: pointer;
+}
+
+.dm-checkbox-text strong {
+    display: block;
+    color: #f1f5f9;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.dm-checkbox-sub {
+    font-size: 0.83rem;
+    color: var(--text-muted, #94a3b8);
+    margin: 0;
+    line-height: 1.4;
+}
+
+.dm-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* DM tabulka postav kampaně */
+.dm-campaign-roster-section {
+    background: rgba(22, 18, 32, 0.75);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: var(--radius-md, 10px);
+    padding: 22px;
+}
+
+.dm-chars-table-wrap {
+    overflow-x: auto;
+}
+
+.dm-chars-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.dm-chars-table th, .dm-chars-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.9rem;
+}
+
+.dm-chars-table tr.row-secret td {
+    background: rgba(147, 51, 234, 0.05);
+}
+
+.char-table-avatar-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.char-avatar-xs {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(212, 175, 55, 0.4);
+}
+
+.char-table-name {
+    font-weight: 700;
+    color: #f1f5f9;
+    text-decoration: none;
+}
+.char-table-name:hover {
+    color: var(--gold-300, #f6e05e);
+}
+
+.dm-table-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ==========================================================================
+   DnD Atarax - Změna profilového obrázku postavy & Třídní avatary
+   ========================================================================== */
+
+/* Interaktivní avatary s proklikem */
+.char-avatar-clickable {
+    cursor: pointer;
+    position: relative;
+    user-select: none;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), filter 0.2s ease;
+}
+
+.char-avatar-clickable:hover {
+    transform: scale(1.04);
+}
+
+.char-avatar-clickable:focus-visible {
+    outline: 2px solid var(--gold-400, #fbbf24);
+    outline-offset: 3px;
+    border-radius: 50%;
+}
+
+/* Hover overlay na hrdinském avataru v hlavičce */
+.char-header-avatar-wrap {
+    position: relative;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.char-avatar-edit-overlay {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: rgba(12, 10, 18, 0.78);
+    backdrop-filter: blur(3px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease, transform 0.22s ease;
+    z-index: 5;
+}
+
+.char-avatar-clickable:hover .char-avatar-edit-overlay,
+.char-avatar-clickable:focus .char-avatar-edit-overlay {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.char-avatar-edit-icon {
+    font-size: 1.35rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.8));
+    animation: avatarPulseIcon 1.5s ease-in-out infinite;
+}
+
+.char-avatar-edit-text {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--gold-300, #fde68a);
+    margin-top: 3px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.9);
+}
+
+@keyframes avatarPulseIcon {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+}
+
+/* Ikonka ve floating navigační liště */
+.char-avatar-nav-xs {
+    cursor: pointer;
+    transition: transform 0.18s ease, filter 0.18s ease;
+}
+.char-avatar-nav-xs:hover {
+    transform: scale(1.12);
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+}
+
+/* Kolečko s kamerou v dropdownu */
+.char-avatar-edit-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    border: 2px solid #15121b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.char-avatar-clickable:hover .char-avatar-edit-badge {
+    transform: scale(1.18);
+    background: linear-gradient(135deg, #d97706, #b45309);
+}
+
+.char-nav-avatar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 4px;
+    padding: 3px 8px;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 4px;
+    color: #38bdf8;
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.char-nav-avatar-btn:hover {
+    background: rgba(56, 189, 248, 0.25);
+    border-color: #38bdf8;
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+/* Modální okno změny profilového obrázku */
+.avatar-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 4, 10, 0.82);
+    backdrop-filter: blur(8px);
+    z-index: 100000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.avatar-modal-dialog {
+    background: linear-gradient(155deg, #1b162b 0%, #100d1a 100%);
+    border: 1px solid rgba(212, 175, 55, 0.45);
+    border-radius: 16px;
+    max-width: 580px;
+    width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    box-shadow: 0 16px 50px rgba(0, 0, 0, 0.9), 0 0 35px rgba(212, 175, 55, 0.18);
+    animation: avatarModalPop 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes avatarModalPop {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.avatar-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(212, 175, 55, 0.22);
+}
+
+.avatar-modal-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    color: var(--gold-300, #fde68a);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatar-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: var(--text-muted, #94a3b8);
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+    transition: color 0.15s;
+}
+.avatar-modal-close:hover {
+    color: #ffffff;
+}
+
+.avatar-modal-body {
+    padding: 22px 24px;
+}
+
+/* Karta náhledu a informací */
+.avatar-preview-card {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    background: rgba(28, 22, 42, 0.65);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+
+.avatar-preview-circle {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+}
+
+.avatar-preview-circle .char-avatar-lg {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #0f0c18;
+}
+
+.avatar-preview-circle .char-avatar-frame {
+    position: absolute;
+    inset: -6px;
+    width: calc(100% + 12px);
+    height: calc(100% + 12px);
+    pointer-events: none;
+}
+
+.avatar-preview-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.avatar-char-name {
+    margin: 0 0 4px 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #f8fafc;
+    font-family: var(--font-display);
+}
+
+.avatar-char-class {
+    margin: 0 0 8px 0;
+    font-size: 0.88rem;
+    color: var(--text-silver, #cbd5e1);
+}
+
+.avatar-char-class strong {
+    color: var(--gold-400, #fbbf24);
+}
+
+/* Chybové hlášky v modalu */
+.avatar-modal-alert {
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    margin-bottom: 16px;
+    line-height: 1.45;
+}
+
+.avatar-modal-alert.alert-error {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+.avatar-modal-alert.alert-success {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    color: #6ee7b7;
+}
+
+/* Navigace záložek */
+.avatar-tabs-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    background: #0d0a15;
+    padding: 5px;
+    border-radius: 10px;
+    border: 1px solid #282136;
+    margin-bottom: 18px;
+}
+
+.avatar-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 9px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    color: #94a3b8;
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.avatar-tab-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.avatar-tab-btn.active {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+}
+
+/* Dropzone pro nahrávání souboru */
+.avatar-dropzone {
+    border: 2px dashed rgba(245, 158, 11, 0.35);
+    border-radius: 12px;
+    background: rgba(22, 18, 32, 0.65);
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.22s ease;
+}
+
+.avatar-dropzone:hover,
+.avatar-dropzone.drag-over {
+    border-color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    transform: scale(1.01);
+}
+
+.avatar-dropzone-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.avatar-dropzone-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.avatar-dropzone-text {
+    font-size: 0.95rem;
+    color: #f1f5f9;
+}
+
+.avatar-dropzone-text strong {
+    color: var(--gold-300, #fde68a);
+}
+
+.avatar-dropzone-hint {
+    font-size: 0.78rem;
+    color: #94a3b8;
+}
+
+/* Info o vybraném souboru */
+.avatar-selected-file-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(30, 24, 46, 0.8);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    border-radius: 8px;
+    padding: 8px 14px;
+    margin-top: 12px;
+    font-size: 0.85rem;
+}
+
+.avatar-file-name {
+    font-weight: 600;
+    color: #38bdf8;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 320px;
+}
+
+.avatar-file-size {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    margin-left: 8px;
+}
+
+.btn-clear-file {
+    background: none;
+    border: none;
+    color: #ef4444;
+    font-size: 1.2rem;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+}
+.btn-clear-file:hover {
+    color: #f87171;
+}
+
+/* Karta pro reset na výchozí obrázek */
+.avatar-reset-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgba(28, 22, 42, 0.65);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+}
+
+.avatar-reset-icon-preview {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    border: 2px solid var(--border-gold, #b45309);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+    flex-shrink: 0;
+    background: #0f0c18;
+}
+
+/* Patička modalu */
+.avatar-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+
+
 

@@ -21,11 +21,48 @@
     </div>
 
     <div class="atarax-header-actions">
+        {% if is_dm %}
+        <a href="{% url 'player_site_app:char_overview' target_char.id %}" class="btn btn-gold btn-sm">
+            <span>👑</span> Spravovat v deníku (DM)
+        </a>
+        {% endif %}
         <a href="{% url 'player_site_app:all_chars' %}" class="btn btn-outline-sapphire btn-sm">
             &larr; Zpět na družinu
         </a>
     </div>
 </div>
+
+{% if is_dm %}
+<!-- DM Kontrola viditelnosti postavy -->
+<div class="dm-secret-character-banner {% if not target_char.is_public %}is-hidden{% else %}is-public{% endif %}" id="dmSecretBanner">
+    <div class="dm-secret-info">
+        <span class="dm-secret-icon">{% if not target_char.is_public %}🕵️{% else %}🌐{% endif %}</span>
+        <div class="dm-secret-text-group">
+            <div class="dm-secret-title-row">
+                <span class="dm-secret-title">👑 Pán Jeskyně (DM) &bull; Stav postavy:</span>
+                <span class="badge {% if not target_char.is_public %}badge-purple{% else %}badge-success{% endif %}">
+                    {% if not target_char.is_public %}🕵️ Skrytá před hráči (Tajná){% else %}🌐 Veřejná pro družinu{% endif %}
+                </span>
+            </div>
+            <p class="dm-secret-desc">
+                {% if not target_char.is_public %}
+                    Tuto postavu vidíte v družině pouze vy jako DM. Běžní hráči ji vůbec nevidí a nemají k ní přístup.
+                {% else %}
+                    Tato postava je viditelná pro všechny hráče v družině.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    <form method="POST" action="{% url 'player_site_app:toggle_char_visibility' %}" class="dm-visibility-form">
+        {% csrf_token %}
+        <input type="hidden" name="char_id" value="{{ target_char.id }}">
+        <input type="hidden" name="next" value="{% url 'player_site_app:all_chars_detail' target_char.id %}">
+        <button type="submit" class="btn {% if not target_char.is_public %}btn-gold{% else %}btn-outline-danger{% endif %} btn-sm">
+            {% if not target_char.is_public %}<span>🌐</span> Zveřejnit pro hráče{% else %}<span>🕵️</span> Skrýt před hráči{% endif %}
+        </button>
+    </form>
+</div>
+{% endif %}
 
 <!-- 1. Bojové statistiky a životy (pouze ke čtení) -->
 <div class="combat-stats-row">

@@ -5,11 +5,15 @@
 {% block player_content %}
 {% if character %}
 <div class="atarax-page-header char-header-with-avatar">
-    <div class="char-header-avatar-wrap">
-        <img src="{{ character.profile_image_url }}" alt="{{ character.name }}" class="char-avatar char-avatar-hero">
+    <div class="char-header-avatar-wrap char-avatar-clickable" onclick="openAvatarModal()" role="button" tabindex="0" title="Kliknutím změníte profilový obrázek postavy" aria-label="Změnit profilový obrázek postavy">
+        <img src="{{ character.profile_image_url }}" alt="{{ character.name }}" class="char-avatar char-avatar-hero" id="heroCharAvatar">
         {% if character.frame_url %}
-        <img src="{{ character.frame_url }}" alt="Rámeček" class="char-avatar-frame" aria-hidden="true">
+        <img src="{{ character.frame_url }}" alt="Rámeček" class="char-avatar-frame" id="heroCharFrame" aria-hidden="true">
         {% endif %}
+        <div class="char-avatar-edit-overlay" aria-hidden="true">
+            <span class="char-avatar-edit-icon">📷</span>
+            <span class="char-avatar-edit-text">Změnit</span>
+        </div>
     </div>
     <div class="atarax-header-title-group char-header-title-flex">
         <h1><span>🛡️</span> {{ character.name }}</h1>
@@ -25,6 +29,41 @@
         <span class="currency-pill currency-silver">🪙 {{ character.silver }} st</span>
     </div>
 </div>
+
+{% if is_dm %}
+<!-- DM Kontrola viditelnosti postavy -->
+<div class="dm-secret-character-banner {% if not character.is_public %}is-hidden{% else %}is-public{% endif %}" id="dmSecretBanner">
+    <div class="dm-secret-info">
+        <span class="dm-secret-icon" id="dmSecretIcon">{% if not character.is_public %}🕵️{% else %}🌐{% endif %}</span>
+        <div class="dm-secret-text-group">
+            <div class="dm-secret-title-row">
+                <span class="dm-secret-title">👑 Pán Jeskyně (DM) &bull; Viditelnost postavy pro družinu:</span>
+                <span class="badge {% if not character.is_public %}badge-purple{% else %}badge-success{% endif %}" id="dmSecretBadge">
+                    {% if not character.is_public %}🕵️ Skrytá před hráči (Tajná){% else %}🌐 Veřejná pro družinu{% endif %}
+                </span>
+            </div>
+            <p class="dm-secret-desc" id="dmSecretDesc">
+                {% if not character.is_public %}
+                    Tuto postavu a její deník vidíte <strong>pouze vy jako DM</strong>. Běžní hráči o její existenci vůbec nevědí a v seznamu družiny se nezobrazuje.
+                {% else %}
+                    Tato postava je <strong>veřejně viditelná pro všechny hráče</strong> v přehledu družiny (základní údaje, staty a veřejná backstory).
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    <form method="POST" action="{% url 'player_site_app:toggle_char_visibility' %}" class="dm-visibility-form" id="dmVisibilityForm" onsubmit="handleDmVisibilityToggle(event)">
+        {% csrf_token %}
+        <input type="hidden" name="char_id" value="{{ character.id }}">
+        <button type="submit" class="btn {% if not character.is_public %}btn-gold{% else %}btn-outline-danger{% endif %} btn-sm" id="dmVisibilityBtn">
+            {% if not character.is_public %}
+                <span>🌐</span> Zveřejnit pro hráče
+            {% else %}
+                <span>🕵️</span> Skrýt před hráči
+            {% endif %}
+        </button>
+    </form>
+</div>
+{% endif %}
 
 <!-- 1. Bojové statistiky a životy -->
 <div class="combat-stats-row">
@@ -257,6 +296,70 @@ function toggleNoteExpansion(noteId) {
         preview.style.display = 'block';
         btn.innerHTML = '<span>Číst celé</span> &darr;';
     }
+}
+
+function handleDmVisibilityToggle(e) {
+    e.preventDefault();
+    const form = e.target;
+    const btn = document.getElementById('dmVisibilityBtn');
+    if (!btn) return form.submit();
+
+    const originalContent = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Ukládám...';
+
+    const formData = new FormData(form);
+    fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        btn.disabled = false;
+        if (data.success) {
+            const banner = document.getElementById('dmSecretBanner');
+            const badge = document.getElementById('dmSecretBadge');
+            const icon = document.getElementById('dmSecretIcon');
+            const desc = document.getElementById('dmSecretDesc');
+
+            if (data.is_public) {
+                if (banner) banner.className = 'dm-secret-character-banner is-public';
+                if (icon) icon.textContent = '🌐';
+                if (badge) {
+                    badge.className = 'badge badge-success';
+                    badge.textContent = '🌐 Veřejná pro družinu';
+                }
+                if (desc) {
+                    desc.innerHTML = 'Tato postava je <strong>veřejně viditelná pro všechny hráče</strong> v přehledu družiny (základní údaje, staty a veřejná backstory).';
+                }
+                btn.className = 'btn btn-outline-danger btn-sm';
+                btn.innerHTML = '<span>🕵️</span> Skrýt před hráči';
+            } else {
+                if (banner) banner.className = 'dm-secret-character-banner is-hidden';
+                if (icon) icon.textContent = '🕵️';
+                if (badge) {
+                    badge.className = 'badge badge-purple';
+                    badge.textContent = '🕵️ Skrytá před hráči (Tajná)';
+                }
+                if (desc) {
+                    desc.innerHTML = 'Tuto postavu a její deník vidíte <strong>pouze vy jako DM</strong>. Běžní hráči o její existenci vůbec nevědí a v seznamu družiny se nezobrazuje.';
+                }
+                btn.className = 'btn btn-gold btn-sm';
+                btn.innerHTML = '<span>🌐</span> Zveřejnit pro hráče';
+            }
+        } else {
+            alert(data.error || 'Nastala chyba při změně viditelnosti.');
+            btn.innerHTML = originalContent;
+        }
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = originalContent;
+        form.submit();
+    });
 }
 </script>
 

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <radialGradient id="clericBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#713f12" />
+      <stop offset="60%" stop-color="#2a1505" />
+      <stop offset="100%" stop-color="#0a0501" />
+    </radialGradient>
+    <radialGradient id="sunGlowGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="40%" stop-color="#fef08a" />
+      <stop offset="80%" stop-color="#eab308" />
+      <stop offset="100%" stop-color="#a16207" />
+    </radialGradient>
+    <linearGradient id="divineGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" />
+      <stop offset="50%" stop-color="#facc15" />
+      <stop offset="100%" stop-color="#ca8a04" />
+    </linearGradient>
+    <filter id="clericGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="96" fill="url(#clericBg)" stroke="#facc15" stroke-width="4" />
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#fef08a" stroke-width="1.5" stroke-dasharray="8,4" opacity="0.4" />
+
+  <!-- Holy Sun Halo & Cross / Mace -->
+  <g transform="translate(100, 100)" filter="url(#clericGlow)">
+    <!-- 8 Sun Rays -->
+    <g stroke="url(#divineGold)" stroke-width="3" stroke-linecap="round">
+      <line x1="0" y1="-68" x2="0" y2="-45" />
+      <line x1="0" y1="45" x2="0" y2="68" />
+      <line x1="-68" y1="0" x2="-45" y2="0" />
+      <line x1="45" y1="0" x2="68" y2="0" />
+      <line x1="-48" y1="-48" x2="-32" y2="-32" />
+      <line x1="32" y1="32" x2="48" y2="48" />
+      <line x1="48" y1="-48" x2="32" y2="-32" />
+      <line x1="-32" y1="32" x2="-48" y2="48" />
+    </g>
+
+    <!-- Outer Radiant Ring -->
+    <circle cx="0" cy="0" r="42" fill="none" stroke="url(#divineGold)" stroke-width="3" />
+    <circle cx="0" cy="0" r="34" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.6" />
+
+    <!-- Center Holy Cross of the Dawn -->
+    <!-- Vertical Cross Bar -->
+    <path d="M-7, -35 L7, -35 L9, -20 L7, 35 L-7, 35 L-9, -20 Z" fill="url(#sunGlowGrad)" stroke="#713f12" stroke-width="1.5" />
+    <!-- Horizontal Cross Bar -->
+    <path d="M-30, -18 L30, -18 L26, -6 L-26, -6 Z" fill="url(#sunGlowGrad)" stroke="#713f12" stroke-width="1.5" />
+
+    <!-- Sun Disc in Center -->
+    <circle cx="0" cy="-12" r="16" fill="url(#sunGlowGrad)" stroke="#ffffff" stroke-width="2" />
+    <circle cx="0" cy="-12" r="8" fill="#ffffff" />
+    
+    <!-- Holy Flames / Flanged Flairs -->
+    <path d="M0, -42 L5, -34 L-5, -34 Z" fill="#ffffff" />
+    <path d="M-36, -12 L-28, -17 L-28, -7 Z" fill="#ffffff" />
+    <path d="M36, -12 L28, -17 L28, -7 Z" fill="#ffffff" />
+    <path d="M0, 42 L5, 34 L-5, 34 Z" fill="#ffffff" />
+  </g>
+</svg>

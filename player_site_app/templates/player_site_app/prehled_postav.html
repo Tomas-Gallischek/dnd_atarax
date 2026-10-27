@@ -9,7 +9,12 @@
         <p class="atarax-header-subtitle">Vyberte si hrdinu, za kterého chcete hrát a nahlížet do jeho deníku, inventáře a statistik.</p>
     </div>
     <div class="atarax-header-actions">
-        <a href="{% url 'player_site_app:all_chars' %}" class="btn btn-gold btn-sm">
+        {% if is_dm %}
+        <button type="button" class="btn btn-gold btn-sm" onclick="openCreateCharacterModal()">
+            <span>➕</span> Vytvořit postavu (DM)
+        </button>
+        {% endif %}
+        <a href="{% url 'player_site_app:all_chars' %}" class="btn btn-outline-sapphire btn-sm">
             <span>👥</span> Zobrazit celou družinu
         </a>
     </div>
@@ -28,7 +33,7 @@
 {% if characters %}
     <ul class="char-selection-list">
         {% for char in characters %}
-        <li class="char-selection-item">
+        <li class="char-selection-item {% if is_dm and not char.is_public %}char-item-hidden{% endif %}">
             <div class="char-avatar-group">
                 <a href="{% url 'player_site_app:char_overview' char.id %}" class="char-avatar-wrap">
                     <img src="{{ char.profile_image_url }}" alt="{{ char.name }}" class="char-avatar char-avatar-md">
@@ -37,9 +42,18 @@
                     {% endif %}
                 </a>
                 <div>
-                    <a href="{% url 'player_site_app:char_overview' char.id %}" class="char-selection-name">
-                        {{ char.name }}
-                    </a>
+                    <div class="char-name-badge-row">
+                        <a href="{% url 'player_site_app:char_overview' char.id %}" class="char-selection-name">
+                            {{ char.name }}
+                        </a>
+                        {% if is_dm %}
+                            {% if not char.is_public %}
+                                <span class="badge badge-purple" title="Tuto postavu vidíte pouze vy jako DM. Běžní hráči o ní nevědí.">🕵️ Skrytá (pouze DM)</span>
+                            {% else %}
+                                <span class="badge badge-success" title="Viditelná pro celou družinu">🌐 Veřejná</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
                     <div class="char-selection-meta">
                         <span class="badge badge-gold">Úroveň {{ char.level }}</span>
                         {% if char.character_class %}
@@ -55,7 +69,17 @@
                 </div>
             </div>
 
-            <div>
+            <div class="char-selection-actions">
+                {% if is_dm %}
+                <form method="POST" action="{% url 'player_site_app:toggle_char_visibility' %}" class="d-inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="char_id" value="{{ char.id }}">
+                    <input type="hidden" name="next" value="{% url 'player_site_app:prehled_postav' %}">
+                    <button type="submit" class="btn btn-sm {% if not char.is_public %}btn-outline-gold{% else %}btn-outline-danger{% endif %}" title="{% if not char.is_public %}Zveřejnit postavu pro hráče{% else %}Skrýt postavu před hráči{% endif %}">
+                        {% if not char.is_public %}<span>🌐</span> Zveřejnit{% else %}<span>🕵️</span> Skrýt{% endif %}
+                    </button>
+                </form>
+                {% endif %}
                 <a href="{% url 'player_site_app:char_overview' char.id %}" class="btn btn-sapphire">
                     <span>Otevřít deník</span> &rarr;
                 </a>
@@ -67,7 +91,205 @@
     <div class="atarax-empty-state">
         <div class="atarax-empty-icon">🛡️</div>
         <h3 class="atarax-empty-title">Zatím nemáš vytvořenou žádnou postavu</h3>
-        <p class="atarax-empty-desc">Požádej svého Pána jeskyně (DM) o přiřazení nebo vytvoření nové postavy do kampaně.</p>
+        <p class="atarax-empty-desc">
+            {% if is_dm %}
+                Jako Dungeon Master můžete kliknout na tlačítko výše a vytvořit svou první postavu (veřejnou či tajnou).
+            {% else %}
+                Požádej svého Pána jeskyně (DM) o přiřazení nebo vytvoření nové postavy do kampaně.
+            {% endif %}
+        </p>
+        {% if is_dm %}
+        <button type="button" class="btn btn-gold btn-lg mt-2" onclick="openCreateCharacterModal()">
+            <span>➕</span> Vytvořit novou postavu (DM)
+        </button>
+        {% endif %}
     </div>
+{% endif %}
+
+{% if is_dm and all_campaign_characters %}
+<!-- Sekce pro DM: Všechny postavy kampaně -->
+<div class="dm-campaign-roster-section mt-4">
+    <div class="atarax-card-header mb-2">
+        <h2 class="atarax-card-title">
+            <span>👑</span> Všechny postavy v kampani (DM přehled & správa)
+        </h2>
+        <span class="badge badge-sapphire">{{ all_campaign_characters|length }} postav celkem</span>
+    </div>
+    <p class="text-muted text-sm mb-3">
+        Jako Dungeon Master máte přístup ke všem postavám v kampani. Můžete přímo přepínat jejich viditelnost pro hráče nebo otevřít a upravit jejich deník.
+    </p>
+
+    <div class="dm-chars-table-wrap">
+        <table class="atarax-table dm-chars-table">
+            <thead>
+                <tr>
+                    <th>Postava</th>
+                    <th>Hráč</th>
+                    <th>Povolání & Rasa</th>
+                    <th>Úroveň</th>
+                    <th>Viditelnost pro hráče</th>
+                    <th style="text-align: right;">Akce</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for char in all_campaign_characters %}
+                <tr class="{% if not char.is_public %}row-secret{% endif %}">
+                    <td>
+                        <div class="char-table-avatar-cell">
+                            <img src="{{ char.profile_image_url }}" alt="" class="char-avatar char-avatar-xs">
+                            <a href="{% url 'player_site_app:char_overview' char.id %}" class="char-table-name">
+                                {{ char.name }}
+                            </a>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="char-owner-tag">👤 {{ char.player.nickname|default:char.player.user.username }}</span>
+                    </td>
+                    <td>{{ char.character_class }} &bull; {{ char.race }}</td>
+                    <td><span class="badge badge-gold">Úr. {{ char.level }}</span></td>
+                    <td>
+                        {% if not char.is_public %}
+                            <span class="badge badge-purple">🕵️ Skrytá (pouze DM)</span>
+                        {% else %}
+                            <span class="badge badge-success">🌐 Veřejná pro družinu</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <div class="dm-table-actions">
+                            <form method="POST" action="{% url 'player_site_app:toggle_char_visibility' %}" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="char_id" value="{{ char.id }}">
+                                <input type="hidden" name="next" value="{% url 'player_site_app:prehled_postav' %}">
+                                <button type="submit" class="btn btn-xs {% if not char.is_public %}btn-gold{% else %}btn-outline-danger{% endif %}">
+                                    {% if not char.is_public %}Zveřejnit{% else %}Skrýt{% endif %}
+                                </button>
+                            </form>
+                            <a href="{% url 'player_site_app:char_overview' char.id %}" class="btn btn-xs btn-sapphire">
+                                Deník &rarr;
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% if is_dm %}
+<!-- Modal pro vytvoření nové postavy (pouze DM) -->
+<div class="dm-modal-backdrop" id="createCharModal" style="display: none;" onclick="handleModalBackdropClick(event)">
+    <div class="dm-modal-dialog">
+        <div class="dm-modal-header">
+            <h3 class="dm-modal-title">
+                <span>👑</span> Vytvořit novou postavu (DM)
+            </h3>
+            <button type="button" class="dm-modal-close" onclick="closeCreateCharacterModal()">&times;</button>
+        </div>
+        
+        <form method="POST" action="{% url 'player_site_app:create_character' %}" class="dm-create-char-form">
+            {% csrf_token %}
+            <div class="dm-modal-body">
+                <p class="dm-modal-intro">
+                    Vytvořte novou postavu. Výchozí stav je <strong>skrytá před ostatními hráči</strong>, takže si můžete v klidu připravit deník, statistiky, kouzla a poznámky, a zveřejnit ji až v pravý okamžik.
+                </p>
+
+                <div class="form-group mb-3">
+                    <label for="charNameInput" class="form-label required">Jméno postavy:</label>
+                    <input type="text" id="charNameInput" name="name" class="form-control" required placeholder="např. Valerius, Tajemný poutník..." autocomplete="off">
+                </div>
+
+                <div class="grid-2 mb-3">
+                    <div class="form-group">
+                        <label for="charClassSelect" class="form-label">Povolání:</label>
+                        <select id="charClassSelect" name="character_class" class="form-control">
+                            {% for val, label in class_choices %}
+                                <option value="{{ val }}" {% if val == 'Bojovník' %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="charRaceSelect" class="form-label">Rasa:</label>
+                        <select id="charRaceSelect" name="race" class="form-control">
+                            {% for val, label in race_choices %}
+                                <option value="{{ val }}" {% if val == 'Člověk' %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid-2 mb-3">
+                    <div class="form-group">
+                        <label for="charLevelInput" class="form-label">Úroveň:</label>
+                        <input type="number" id="charLevelInput" name="level" class="form-control" value="1" min="1" max="20">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="charPlayerSelect" class="form-label">Přiřadit hráči:</label>
+                        <select id="charPlayerSelect" name="player_id" class="form-control">
+                            {% for p in all_players %}
+                                <option value="{{ p.id }}" {% if p.id == player.id %}selected{% endif %}>
+                                    {{ p.nickname|default:p.user.username }} {% if p.id == player.id %}(Vy - DM){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="dm-visibility-checkbox-card mb-3">
+                    <label class="dm-checkbox-label">
+                        <input type="checkbox" name="is_public" value="true" id="isPublicCheckbox">
+                        <span class="dm-checkbox-custom"></span>
+                        <div class="dm-checkbox-text">
+                            <strong>Zveřejnit postavu pro celou družinu hned</strong>
+                            <p class="dm-checkbox-sub">
+                                Pokud necháte nezaškrtnuté (doporučeno), postava bude <strong>zcela skrytá</strong> a uvidíte ji pouze vy jako DM. Ostatní hráči o ní nebudou vědět.
+                            </p>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="dm-modal-footer">
+                <button type="button" class="btn btn-outline-sapphire" onclick="closeCreateCharacterModal()">Zrušit</button>
+                <button type="submit" class="btn btn-gold">
+                    <span>✨</span> Vytvořit postavu & otevřít deník
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCreateCharacterModal() {
+    const modal = document.getElementById('createCharModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        const nameInput = document.getElementById('charNameInput');
+        if (nameInput) setTimeout(() => nameInput.focus(), 50);
+    }
+}
+
+function closeCreateCharacterModal() {
+    const modal = document.getElementById('createCharModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function handleModalBackdropClick(e) {
+    if (e.target && e.target.id === 'createCharModal') {
+        closeCreateCharacterModal();
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeCreateCharacterModal();
+    }
+});
+</script>
 {% endif %}
 {% endblock %}

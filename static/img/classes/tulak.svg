@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <radialGradient id="rogueBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#27272a" />
+      <stop offset="60%" stop-color="#18181b" />
+      <stop offset="100%" stop-color="#050507" />
+    </radialGradient>
+    <linearGradient id="venomBlade" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e4e4e7" />
+      <stop offset="50%" stop-color="#71717a" />
+      <stop offset="90%" stop-color="#34d399" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+    <linearGradient id="hoodShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3f3f46" />
+      <stop offset="60%" stop-color="#18181b" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+    <filter id="rogueGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="96" fill="url(#rogueBg)" stroke="#71717a" stroke-width="4" />
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#a1a1aa" stroke-width="1.5" stroke-dasharray="3,6" opacity="0.3" />
+
+  <!-- Rogue Hood and Crossed Venom Daggers -->
+  <g transform="translate(100, 100)" filter="url(#rogueGlow)">
+    <!-- Crossed Dagger 1 -->
+    <g transform="rotate(35)">
+      <!-- Curved Blade -->
+      <path d="M0, -68 C5, -50 8, -25 0, 15 L-4, 15 C-2, -25 -5, -50 0, -68 Z" fill="url(#venomBlade)" stroke="#a1a1aa" stroke-width="1" />
+      <!-- Venom edge highlight -->
+      <path d="M0, -68 C5, -50 8, -25 0, 15" stroke="#34d399" stroke-width="1.5" fill="none" />
+      <!-- Guard -->
+      <path d="M-14, 15 C-5, 12 5, 12 14, 15 L12, 20 L-12, 20 Z" fill="#27272a" stroke="#71717a" stroke-width="1" />
+      <!-- Handle -->
+      <rect x="-3" y="20" width="6" height="24" rx="2" fill="#18181b" stroke="#3f3f46" stroke-width="1" />
+      <!-- Ring Pommel -->
+      <circle cx="0" cy="49" r="5" fill="none" stroke="#a1a1aa" stroke-width="2" />
+    </g>
+
+    <!-- Crossed Dagger 2 -->
+    <g transform="rotate(-35)">
+      <!-- Curved Blade -->
+      <path d="M0, -68 C-5, -50 -8, -25 0, 15 L4, 15 C2, -25 5, -50 0, -68 Z" fill="url(#venomBlade)" stroke="#a1a1aa" stroke-width="1" />
+      <!-- Venom edge highlight -->
+      <path d="M0, -68 C-5, -50 -8, -25 0, 15" stroke="#34d399" stroke-width="1.5" fill="none" />
+      <!-- Guard -->
+      <path d="M-14, 15 C-5, 12 5, 12 14, 15 L12, 20 L-12, 20 Z" fill="#27272a" stroke="#71717a" stroke-width="1" />
+      <!-- Handle -->
+      <rect x="-3" y="20" width="6" height="24" rx="2" fill="#18181b" stroke="#3f3f46" stroke-width="1" />
+      <!-- Ring Pommel -->
+      <circle cx="0" cy="49" r="5" fill="none" stroke="#a1a1aa" stroke-width="2" />
+    </g>
+
+    <!-- Hooded Mask Silhouette in Center -->
+    <!-- Cowl / Hood -->
+    <path d="M0, -48 C28, -48 38, -10 32, 28 C20, 24 10, 22 0, 22 C-10, 22 -20, 24 -32, 28 C-38, -10 -28, -48 0, -48 Z" fill="url(#hoodShadow)" stroke="#52525b" stroke-width="2" />
+    <!-- Peak of Hood -->
+    <path d="M0, -56 L8, -42 L-8, -42 Z" fill="#27272a" />
+
+    <!-- Deep Shadow Face Opening -->
+    <path d="M0, -36 C18, -36 22, -10 18, 12 C10, 8 0, 8 0, 8 C0, 8 -10, 8 -18, 12 C-22, -10 -18, -36 0, -36 Z" fill="#040406" />
+
+    <!-- Glowing Eyes in the Shadows -->
+    <ellipse cx="-8" cy="-14" rx="4.5" ry="2" transform="rotate(-15 -8 -14)" fill="#34d399" />
+    <ellipse cx="8" cy="-14" rx="4.5" ry="2" transform="rotate(15 8 -14)" fill="#34d399" />
+  </g>
+</svg>

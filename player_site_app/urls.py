@@ -12,6 +12,7 @@ urlpatterns = [
     # 1. char_over_view..html a poznámky
     path('postava/', views.char_overview, name='char_overview_active'),
     path('postava/<int:char_id>/', views.char_overview, name='char_overview'),
+    path('postava/zmenit-obrazek/', views.upload_char_avatar, name='upload_char_avatar'),
     path('postava/poznamka/pridat/', views.add_char_note, name='add_char_note'),
     path('postava/poznamka/smazat/<int:note_id>/', views.delete_char_note, name='delete_char_note'),
     path('postava/poznamka/oblibene/<int:note_id>/', views.toggle_favorite_note, name='toggle_favorite_note'),
@@ -45,8 +46,10 @@ urlpatterns = [
     path('kronika/', views.kronika_view, name='kronika'),
     path('kronika/<int:entry_id>/', views.kronika_detail_view, name='kronika_detail'),
 
-    # 8. prehled_postav.html & všechny postavy družiny (all_chars)
+    # 8. prehled_postav.html & všechny postavy družiny (all_chars) & DM správa
     path('prehled-postav/', views.prehled_postav, name='prehled_postav'),
+    path('postava/viditelnost/', views.toggle_char_visibility, name='toggle_char_visibility'),
+    path('postava/vytvorit/', views.create_character, name='create_character'),
     path('druzina/', views.all_chars_view, name='all_chars'),
     path('druzina/<int:char_id>/', views.all_chars_detail_view, name='all_chars_detail'),
 

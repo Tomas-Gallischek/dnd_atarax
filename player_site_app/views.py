@@ -13,6 +13,7 @@ from dnd_atarax.terminal import log_player, log_warning, log_info
 from dm_site_app.models import (
     Items_Active, OverAllSettings, Kronika, Spells_All_db, Spells_Active
 )
+import os
 import random
 import time
 
@@ -20,18 +21,25 @@ import time
 def get_player_and_character(request, char_id=None):
     """
     Pomocná funkce pro bezpečné získání profilu hráče a aktivní postavy.
-    Zaručuje striktní izolaci dat: hráč se nikdy nedostane k datům jiného hráče.
+    Zaručuje striktní izolaci dat pro běžné hráče, zatímco DM má možnost spravovat i skryté či cizí postavy.
     """
     player, _ = Player.objects.get_or_create(user=request.user, defaults={'nickname': request.user.username})
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
 
     if char_id:
-        character = get_object_or_404(Char_info, id=char_id, player=player)
+        if is_dm:
+            character = get_object_or_404(Char_info, id=char_id)
+        else:
+            character = get_object_or_404(Char_info, id=char_id, player=player)
         request.session['active_char_id'] = character.id
         return player, character
 
     session_char_id = request.session.get('active_char_id')
     if session_char_id:
-        character = Char_info.objects.filter(id=session_char_id, player=player).first()
+        if is_dm:
+            character = Char_info.objects.filter(id=session_char_id).first()
+        else:
+            character = Char_info.objects.filter(id=session_char_id, player=player).first()
         if character:
             return player, character
 
@@ -39,6 +47,12 @@ def get_player_and_character(request, char_id=None):
     if first_char:
         request.session['active_char_id'] = first_char.id
         return player, first_char
+
+    if is_dm:
+        any_char = Char_info.objects.first()
+        if any_char:
+            request.session['active_char_id'] = any_char.id
+            return player, any_char
 
     return player, None
 
@@ -187,15 +201,23 @@ def logout_view(request):
 
 @login_required(login_url='player_site_app:index')
 def prehled_postav(request):
-    """8. Přehled postav - seznam postav patřících pouze přihlášenému hráči."""
+    """8. Přehled postav - seznam postav patřících přihlášenému hráči (a pro DM možnost vytvářet postavy a vidět stav skrytosti)."""
     player, _ = Player.objects.get_or_create(user=request.user, defaults={'nickname': request.user.username})
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
     characters = player.characters.all()
+    all_players = Player.objects.select_related('user').order_by('nickname', 'user__username') if is_dm else None
+    all_campaign_characters = Char_info.objects.select_related('player', 'player__user').order_by('name') if is_dm else None
 
     return render(request, 'player_site_app/prehled_postav.html', {
         'player': player,
         'characters': characters,
+        'all_campaign_characters': all_campaign_characters,
         'active_character': characters.first() if characters.exists() else None,
         'current_page': 'prehled_postav',
+        'is_dm': is_dm,
+        'all_players': all_players,
+        'class_choices': Char_info.class_choices,
+        'race_choices': Char_info.race_choices,
     })
 
 
@@ -203,6 +225,7 @@ def prehled_postav(request):
 def char_overview(request, char_id=None):
     """1. Přehled postavy - detail zvolené nebo aktivní postavy a její poznámky."""
     player, character = get_player_and_character(request, char_id)
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
     notes = character.char_notes.all() if character else []
 
     return render(request, 'player_site_app/char_over_view..html', {
@@ -211,7 +234,176 @@ def char_overview(request, char_id=None):
         'active_character': character,
         'current_page': 'char_overview',
         'notes': notes,
+        'is_dm': is_dm,
     })
+
+
+@login_required(login_url='player_site_app:index')
+def upload_char_avatar(request):
+    """
+    Změní profilový obrázek postavy (nahráním souboru, zadáním URL, nebo resetem na výchozí podle povolání).
+    Podporuje jak standardní POST odeslání s přesměrováním, tak moderní AJAX požadavek.
+    """
+    if request.method != 'POST':
+        return redirect('player_site_app:char_overview_active')
+
+    player, _ = Player.objects.get_or_create(user=request.user, defaults={'nickname': request.user.username})
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+
+    char_id = request.POST.get('char_id')
+    if char_id:
+        if is_dm:
+            character = get_object_or_404(Char_info, id=char_id)
+        else:
+            character = get_object_or_404(Char_info, id=char_id, player=player)
+    else:
+        _, character = get_player_and_character(request)
+
+    is_ajax = (
+        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+        'application/json' in request.headers.get('Accept', '') or
+        request.POST.get('ajax') == '1'
+    )
+
+    if not character:
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': 'Nebyla nalezena žádná postava k úpravě.'}, status=404)
+        messages.error(request, "Nebyla nalezena žádná postava k úpravě.")
+        return redirect('player_site_app:prehled_postav')
+
+    action = request.POST.get('action', 'upload').strip()
+
+    try:
+        if action == 'reset':
+            # Reset na výchozí obrázek povolání
+            if character.image:
+                try:
+                    if character.image.name and 'default_avatar' not in character.image.name:
+                        character.image.delete(save=False)
+                except Exception:
+                    pass
+                character.image = None
+            character.image_url = None
+            character.save()
+
+            msg = f"Profilový obrázek postavy '{character.name}' byl resetován na výchozí obrázek povolání ({character.character_class or 'Dobrodruh'})."
+            log_info(f"Hráč '{player.nickname}' resetoval profilový obrázek postavy '{character.name}' na výchozí.")
+
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'action': 'reset',
+                    'message': msg,
+                    'char_id': character.id,
+                    'profile_image_url': character.profile_image_url,
+                    'has_custom_image': character.has_custom_image,
+                    'default_image_url': character.default_class_image_url,
+                })
+
+            messages.success(request, msg)
+
+        elif action == 'url':
+            # Nastavení profilového obrázku z externí URL
+            new_url = request.POST.get('image_url', '').strip()
+            if not new_url:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Zadejte prosím platnou URL adresu obrázku.'}, status=400)
+                messages.error(request, "Zadejte prosím platnou URL adresu obrázku.")
+                return redirect('player_site_app:char_overview', char_id=character.id)
+
+            if character.image:
+                try:
+                    if character.image.name and 'default_avatar' not in character.image.name:
+                        character.image.delete(save=False)
+                except Exception:
+                    pass
+                character.image = None
+
+            character.image_url = new_url
+            character.save()
+
+            msg = f"Profilový obrázek postavy '{character.name}' byl úspěšně nastaven z URL adresy."
+            log_info(f"Hráč '{player.nickname}' změnil profilový obrázek postavy '{character.name}' z URL.")
+
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'action': 'url',
+                    'message': msg,
+                    'char_id': character.id,
+                    'profile_image_url': character.profile_image_url,
+                    'has_custom_image': character.has_custom_image,
+                    'default_image_url': character.default_class_image_url,
+                })
+
+            messages.success(request, msg)
+
+        else:
+            # Nahrání souboru ze zařízení hráče
+            uploaded_file = request.FILES.get('image')
+            if not uploaded_file:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Nebyl vybrán žádný soubor s obrázkem.'}, status=400)
+                messages.error(request, "Nebyl vybrán žádný soubor s obrázkem.")
+                return redirect('player_site_app:char_overview', char_id=character.id)
+
+            # Kontrola velikosti (max 5 MB)
+            max_size_bytes = 5 * 1024 * 1024
+            if uploaded_file.size > max_size_bytes:
+                err_msg = "Soubor je příliš velký. Maximální povolená velikost je 5 MB."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect('player_site_app:char_overview', char_id=character.id)
+
+            # Kontrola přípony
+            ext = os.path.splitext(uploaded_file.name)[1].lower()
+            allowed_exts = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']
+            if ext not in allowed_exts:
+                err_msg = f"Nepodporovaný formát souboru ({ext}). Povolené jsou: JPG, PNG, WEBP, GIF, SVG."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect('player_site_app:char_overview', char_id=character.id)
+
+            # Smazání starého vlastního souboru
+            if character.image:
+                try:
+                    if character.image.name and 'default_avatar' not in character.image.name:
+                        character.image.delete(save=False)
+                except Exception:
+                    pass
+
+            character.image = uploaded_file
+            character.image_url = None
+            character.save()
+
+            msg = f"Profilový obrázek postavy '{character.name}' byl úspěšně nahrán."
+            log_info(f"Hráč '{player.nickname}' nahrál nový profilový obrázek pro postavu '{character.name}'.")
+
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'action': 'upload',
+                    'message': msg,
+                    'char_id': character.id,
+                    'profile_image_url': character.profile_image_url,
+                    'has_custom_image': character.has_custom_image,
+                    'default_image_url': character.default_class_image_url,
+                })
+
+            messages.success(request, msg)
+
+    except Exception as e:
+        err = "Došlo k neočekávané chybě při ukládání obrázku."
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': err}, status=500)
+        messages.error(request, err)
+
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER')
+    if next_url:
+        return redirect(next_url)
+    return redirect('player_site_app:char_overview', char_id=character.id)
 
 
 @login_required(login_url='player_site_app:index')
@@ -220,7 +412,11 @@ def add_char_note(request):
     if request.method == 'POST':
         char_id = request.POST.get('char_id')
         player = get_object_or_404(Player, user=request.user)
-        character = get_object_or_404(Char_info, id=char_id, player=player)
+        is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+        if is_dm:
+            character = get_object_or_404(Char_info, id=char_id)
+        else:
+            character = get_object_or_404(Char_info, id=char_id, player=player)
 
         title = request.POST.get('title', '').strip() or 'Nová poznámka'
         note_text = request.POST.get('note', '').strip()
@@ -245,7 +441,11 @@ def add_char_note(request):
 def delete_char_note(request, note_id):
     """Smaže soukromou poznámku hráče."""
     player = get_object_or_404(Player, user=request.user)
-    note_obj = get_object_or_404(CharNotes, id=note_id, player=player)
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+    if is_dm:
+        note_obj = get_object_or_404(CharNotes, id=note_id)
+    else:
+        note_obj = get_object_or_404(CharNotes, id=note_id, player=player)
     char_id = note_obj.character.id
     title = note_obj.title
     note_obj.delete()
@@ -257,7 +457,11 @@ def delete_char_note(request, note_id):
 def toggle_favorite_note(request, note_id):
     """Přepne stav oblíbené poznámky (hvězdička)."""
     player = get_object_or_404(Player, user=request.user)
-    note_obj = get_object_or_404(CharNotes, id=note_id, player=player)
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+    if is_dm:
+        note_obj = get_object_or_404(CharNotes, id=note_id)
+    else:
+        note_obj = get_object_or_404(CharNotes, id=note_id, player=player)
     note_obj.is_favorite = not note_obj.is_favorite
     note_obj.save()
 
@@ -544,7 +748,11 @@ def toggle_learn_spell(request):
     action = request.POST.get('action', 'toggle')
 
     player = get_object_or_404(Player, user=request.user)
-    character = get_object_or_404(Char_info, id=char_id, player=player)
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+    if is_dm:
+        character = get_object_or_404(Char_info, id=char_id)
+    else:
+        character = get_object_or_404(Char_info, id=char_id, player=player)
     spell_template = get_object_or_404(Spells_All_db, id=spell_id)
 
     # Validace D&D 5e pravidel:
@@ -661,7 +869,11 @@ def toggle_equip_spell(request):
     spell_id = request.POST.get('spell_id')
 
     player = get_object_or_404(Player, user=request.user)
-    character = get_object_or_404(Char_info, id=char_id, player=player)
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+    if is_dm:
+        character = get_object_or_404(Char_info, id=char_id)
+    else:
+        character = get_object_or_404(Char_info, id=char_id, player=player)
     spell_template = get_object_or_404(Spells_All_db, id=spell_id)
 
     # Validace D&D pravidel:
@@ -772,7 +984,11 @@ def add_char_backstory(request):
     if request.method == 'POST':
         char_id = request.POST.get('char_id')
         player = get_object_or_404(Player, user=request.user)
-        character = get_object_or_404(Char_info, id=char_id, player=player)
+        is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+        if is_dm:
+            character = get_object_or_404(Char_info, id=char_id)
+        else:
+            character = get_object_or_404(Char_info, id=char_id, player=player)
 
         title = request.POST.get('title', '').strip() or 'Kapitola příběhu'
         backstory_text = request.POST.get('backstory', '').strip()
@@ -782,7 +998,7 @@ def add_char_backstory(request):
             messages.error(request, "Text příběhu nesmí být prázdný.")
         else:
             CharBackstory.objects.create(
-                player=player,
+                player=character.player,
                 character=character,
                 title=title,
                 backstory=backstory_text,
@@ -799,7 +1015,11 @@ def add_char_backstory(request):
 def delete_char_backstory(request, backstory_id):
     """Smaže záznam backstory postavy."""
     player = get_object_or_404(Player, user=request.user)
-    backstory_obj = get_object_or_404(CharBackstory, id=backstory_id, player=player)
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+    if is_dm:
+        backstory_obj = get_object_or_404(CharBackstory, id=backstory_id)
+    else:
+        backstory_obj = get_object_or_404(CharBackstory, id=backstory_id, player=player)
     char_id = backstory_obj.character.id
     title = backstory_obj.title
     backstory_obj.delete()
@@ -811,7 +1031,11 @@ def delete_char_backstory(request, backstory_id):
 def toggle_public_backstory(request, backstory_id):
     """Přepne viditelnost zápisu backstory (veřejný/soukromý)."""
     player = get_object_or_404(Player, user=request.user)
-    backstory_obj = get_object_or_404(CharBackstory, id=backstory_id, player=player)
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+    if is_dm:
+        backstory_obj = get_object_or_404(CharBackstory, id=backstory_id)
+    else:
+        backstory_obj = get_object_or_404(CharBackstory, id=backstory_id, player=player)
     backstory_obj.public = not backstory_obj.public
     backstory_obj.save()
 
@@ -855,9 +1079,18 @@ def char_stats_detail_view(request, char_id=None):
 
 @login_required(login_url='player_site_app:index')
 def all_chars_view(request):
-    """Zobrazí přehled postav všech hráčů (družiny) s možností přechodu na detail."""
+    """Zobrazí přehled postav všech hráčů (družiny) s možností přechodu na detail. Běžní hráči vidí POUZE veřejné postavy."""
     player, active_char = get_player_and_character(request)
-    all_characters = Char_info.objects.select_related('player', 'player__user').order_by('name')
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+
+    if is_dm:
+        all_characters = Char_info.objects.select_related('player', 'player__user').order_by('name')
+    else:
+        all_characters = Char_info.objects.filter(
+            Q(is_public=True) | Q(player=player)
+        ).select_related('player', 'player__user').order_by('name')
+
+    all_players = Player.objects.select_related('user').order_by('nickname', 'user__username') if is_dm else None
 
     return render(request, 'player_site_app/all_chars.html', {
         'player': player,
@@ -865,6 +1098,10 @@ def all_chars_view(request):
         'active_character': active_char,
         'characters': all_characters,
         'current_page': 'all_chars',
+        'is_dm': is_dm,
+        'all_players': all_players,
+        'class_choices': Char_info.class_choices,
+        'race_choices': Char_info.race_choices,
     })
 
 
@@ -875,9 +1112,19 @@ def all_chars_detail_view(request, char_id):
     - Informace (Jméno, rasa, povolání, atributy, achivementy).
     - VEŘEJNÉ zápisy z backstory (soukromé poznámky NIKDY).
     - Žádné finance, temná esence, inventář ani editační tlačítka.
+    - Pro běžné hráče: Skrytá postava (is_public=False) cizího hráče vrátí striktně 404.
     """
     player, active_char = get_player_and_character(request)
-    target_character = get_object_or_404(Char_info.objects.select_related('player'), id=char_id)
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+
+    if is_dm:
+        target_character = get_object_or_404(Char_info.objects.select_related('player'), id=char_id)
+    else:
+        target_character = get_object_or_404(
+            Char_info.objects.select_related('player'),
+            Q(id=char_id) & (Q(is_public=True) | Q(player=player))
+        )
+
     public_backstories = target_character.char_backstories.filter(public=True).order_by('-created_at')
     achievements = Achivements_players.objects.filter(char=target_character, current_status=True).select_related('Achivement')
 
@@ -889,7 +1136,139 @@ def all_chars_detail_view(request, char_id):
         'public_backstories': public_backstories,
         'achievements': achievements,
         'current_page': 'all_chars',
+        'is_dm': is_dm,
     })
+
+
+@login_required(login_url='player_site_app:index')
+def toggle_char_visibility(request):
+    """
+    Přepne viditelnost postavy pro ostatní hráče (veřejná / skrytá).
+    Tato pravomoc je vyhrazena POUZE Dungeon Masterovi (is_staff nebo player.admin).
+    Běžní hráči o existenci skrytých postav vůbec nevědí.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Pouze POST metoda.'}, status=405)
+
+    player, _ = Player.objects.get_or_create(user=request.user, defaults={'nickname': request.user.username})
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+    if not is_dm:
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+            return JsonResponse({'error': 'Tato akce je vyhrazena pouze pro Dungeon Mastera.'}, status=403)
+        messages.error(request, "Tato akce je vyhrazena pouze pro Dungeon Mastera.")
+        return redirect('player_site_app:prehled_postav')
+
+    char_id = request.POST.get('char_id')
+    char = get_object_or_404(Char_info, id=char_id)
+    char.is_public = not char.is_public
+    char.save(update_fields=['is_public'])
+
+    status_str = "veřejná pro celou družinu" if char.is_public else "skrytá před ostatními hráči (tajná)"
+    log_info(f"DM '{request.user.username}' změnil viditelnost postavy '{char.name}' na: {status_str}")
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+        return JsonResponse({
+            'success': True,
+            'char_id': char.id,
+            'is_public': char.is_public,
+            'status_str': status_str,
+            'badge_text': '🌐 Veřejná' if char.is_public else '🕵️ Skrytá',
+            'button_text': 'Skrýt před hráči' if char.is_public else 'Zveřejnit pro hráče',
+            'message': f"Postava '{char.name}' je nyní {status_str}."
+        })
+
+    messages.success(request, f"Postava '{char.name}' je nyní {status_str}.")
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER')
+    if next_url:
+        return redirect(next_url)
+    return redirect('player_site_app:char_overview', char_id=char.id)
+
+
+@login_required(login_url='player_site_app:index')
+def create_character(request):
+    """
+    Umožní Dungeon Masterovi vytvořit novou postavu (výchozí stav: skrytá před ostatními hráči).
+    Po vytvoření postavy přesměruje přímo do jejího deníku, kde DM může upravit její statistiky, inventář, kouzla atd.
+    Tato akce je striktně vyhrazena pro DM.
+    """
+    if request.method != 'POST':
+        return redirect('player_site_app:prehled_postav')
+
+    player, _ = Player.objects.get_or_create(user=request.user, defaults={'nickname': request.user.username})
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+    if not is_dm:
+        messages.error(request, "Vytvářet nové postavy může pouze Dungeon Master.")
+        return redirect('player_site_app:prehled_postav')
+
+    name = request.POST.get('name', '').strip()
+    if not name:
+        messages.error(request, "Jméno postavy nesmí být prázdné.")
+        return redirect('player_site_app:prehled_postav')
+
+    character_class = request.POST.get('character_class', 'Ostatní').strip() or 'Ostatní'
+    race = request.POST.get('race', 'Ostatní').strip() or 'Ostatní'
+    try:
+        level = max(1, min(20, int(request.POST.get('level', 1))))
+    except (ValueError, TypeError):
+        level = 1
+
+    target_player_id = request.POST.get('player_id')
+    if target_player_id:
+        target_player = get_object_or_404(Player, id=target_player_id)
+    else:
+        target_player = player
+
+    # Viditelnost: defaultně SKRYTÁ (is_public=False) pokud DM explicitně nezaškrtl zveřejnění
+    is_public = (request.POST.get('is_public') in ['true', '1', 'on'])
+
+    # Výchozí D&D 5e statistiky
+    try:
+        strength = int(request.POST.get('strength', 10))
+        dexterity = int(request.POST.get('dexterity', 10))
+        constitution = int(request.POST.get('constitution', 10))
+        intelligence = int(request.POST.get('intelligence', 10))
+        wisdom = int(request.POST.get('wisdom', 10))
+        charisma = int(request.POST.get('charisma', 10))
+        armor_class = int(request.POST.get('armor_class', 10 + (dexterity - 10) // 2))
+        hit_points = int(request.POST.get('hit_points', 10 + (constitution - 10) // 2))
+        speed = int(request.POST.get('speed', 30))
+    except (ValueError, TypeError):
+        strength = dexterity = constitution = intelligence = wisdom = charisma = 10
+        armor_class = 10
+        hit_points = 10
+        speed = 30
+
+    new_char = Char_info.objects.create(
+        player=target_player,
+        name=name,
+        character_class=character_class,
+        race=race,
+        level=level,
+        is_public=is_public,
+        strength=strength,
+        dexterity=dexterity,
+        constitution=constitution,
+        intelligence=intelligence,
+        wisdom=wisdom,
+        charisma=charisma,
+        armor_class=armor_class,
+        hit_points_max=max(1, hit_points),
+        hit_points_current=max(1, hit_points),
+        speed=speed,
+    )
+
+    request.session['active_char_id'] = new_char.id
+
+    if is_public:
+        messages.success(request, f"Postava '{new_char.name}' byla úspěšně vytvořena jako VEŘEJNÁ pro celou družinu.")
+    else:
+        messages.success(
+            request,
+            f"Postava '{new_char.name}' byla úspěšně vytvořena jako SKRYTÁ (pouze pro DM). "
+            f"Ostatní hráči o ní nevědí, dokud ji neodkliknete jako veřejnou."
+        )
+
+    return redirect('player_site_app:char_overview', char_id=new_char.id)
 
 
 @login_required(login_url='player_site_app:index')

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <radialGradient id="sorcererBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#701a75" />
+      <stop offset="60%" stop-color="#2e0854" />
+      <stop offset="100%" stop-color="#0a0214" />
+    </radialGradient>
+    <radialGradient id="chaosOrb" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#fdf4ff" />
+      <stop offset="40%" stop-color="#f472b6" />
+      <stop offset="80%" stop-color="#c026d3" />
+      <stop offset="100%" stop-color="#4a044e" />
+    </radialGradient>
+    <linearGradient id="arcaneRays" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#ec4899" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+    <filter id="sorcGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="96" fill="url(#sorcererBg)" stroke="#e879f9" stroke-width="4" />
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#f472b6" stroke-width="1.5" stroke-dasharray="6,3" opacity="0.4" />
+
+  <!-- Chaos Magic Symbol -->
+  <g transform="translate(100, 100)" filter="url(#sorcGlow)">
+    <!-- Swirling Magic Sparks / Dragon Horns -->
+    <path d="M-55, -25 C-65, -60 -25, -75 -15, -70 C-30, -55 -40, -35 -38, -15 Z" fill="url(#arcaneRays)" />
+    <path d="M55, -25 C65, -60 25, -75 15, -70 C30, -55 40, -35 38, -15 Z" fill="url(#arcaneRays)" />
+    
+    <!-- Outer Arcane Ring -->
+    <circle cx="0" cy="0" r="54" fill="none" stroke="url(#arcaneRays)" stroke-width="2.5" stroke-dasharray="14,8" />
+    <circle cx="0" cy="0" r="46" fill="none" stroke="#f472b6" stroke-width="1.5" opacity="0.6" />
+
+    <!-- Dragon Eye / Inner Energy Core -->
+    <circle cx="0" cy="0" r="34" fill="url(#chaosOrb)" stroke="#fdf4ff" stroke-width="2" />
+
+    <!-- Eye Slit / Prismatic Flare -->
+    <path d="M0, -28 C12, -15 12, 15 0, 28 C-12, 15 -12, -15 0, -28 Z" fill="#2e0854" />
+    <path d="M0, -20 C6, -10 6, 10 0, 20 C-6, 10 -6, -10 0, -20 Z" fill="#f43f5e" />
+    <circle cx="0" cy="0" r="5" fill="#fef08a" />
+
+    <!-- Elemental Burst Flames / Lightning Sparks -->
+    <path d="M-60, 40 Q-40, 50 -25, 42 Q-35, 25 -45, 20 Z" fill="#38bdf8" opacity="0.8" />
+    <path d="M60, 40 Q40, 50 25, 42 Q35, 25 45, 20 Z" fill="#f43f5e" opacity="0.8" />
+    <path d="M0, 45 L-12, 72 L-3, 58 L0, 75 L3, 58 L12, 72 Z" fill="url(#arcaneRays)" />
+
+    <!-- Floating Arcane Glyphs -->
+    <polygon points="-42,-42 -36,-46 -38,-38" fill="#38bdf8" />
+    <polygon points="42,-42 36,-46 38,-38" fill="#e879f9" />
+  </g>
+</svg>

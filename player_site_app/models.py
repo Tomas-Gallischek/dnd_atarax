@@ -79,6 +79,11 @@ class Player(models.Model):
                 return None
         return None
 
+    @property
+    def is_dm(self):
+        """Určí, zda má hráč status Dungeon Mastera (administrátor nebo is_staff)."""
+        return bool(self.admin or (self.user and self.user.is_staff))
+
     def __str__(self):
         return self.nickname or self.user.username
 
@@ -157,7 +162,6 @@ class Char_info(models.Model):
         upload_to='characters/',
         blank=True,
         null=True,
-        default='characters/default_avatar.jpg',
         verbose_name="Profilový obrázek"
     )
     image_url = models.CharField(
@@ -197,15 +201,20 @@ class Char_info(models.Model):
 
     # pracovní
     in_fight = models.BooleanField(default=False, verbose_name="V boji")
+
+    # Viditelnost pro ostatní hráče (DM kontrola)
+    is_public = models.BooleanField(
+        default=True,
+        verbose_name="Veřejná postava (viditelná pro ostatní hráče)",
+        help_text="Pokud je vypnuto, postava je skrytá a vidí ji pouze Dungeon Master."
+    )
+
     class Meta:
         verbose_name = "Postava hráče"
         verbose_name_plural = "Postavy hráče"
         ordering = ['-level', 'name']
 
     def save(self, *args, **kwargs):
-        if not self.image and not self.image_url:
-            self.image = 'characters/default_avatar.jpg'
-
         while self.silver >= 10:
             self.gold += 1
             self.silver -= 10
@@ -221,15 +230,66 @@ class Char_info(models.Model):
         super().save(*args, **kwargs)
 
     @property
-    def profile_image_url(self):
+    def has_custom_image(self):
+        """Vrátí True, pokud má postava nahraný vlastní obrázek (nikoliv výchozí zástupný)."""
         if self.image:
-            try:
-                return self.image.url
-            except Exception:
-                pass
-        if self.image_url:
-            return self.image_url
-        return '/static/img/default_avatar.jpg'
+            name = getattr(self.image, 'name', '') or ''
+            if name and name != 'characters/default_avatar.jpg':
+                return True
+        if self.image_url and self.image_url.strip():
+            if 'default_avatar' not in self.image_url:
+                return True
+        return False
+
+    @property
+    def default_class_image_url(self):
+        """Vrátí URL unikátního výchozího profilového obrázku podle povolání postavy."""
+        class_key = (self.character_class or "").strip().lower()
+        mapping = {
+            'barbar': '/static/img/classes/barbar.svg',
+            'bard': '/static/img/classes/bard.svg',
+            'bojovník': '/static/img/classes/bojovnik.svg',
+            'bojovnik': '/static/img/classes/bojovnik.svg',
+            'fighter': '/static/img/classes/bojovnik.svg',
+            'čaroděj': '/static/img/classes/carodej.svg',
+            'carodej': '/static/img/classes/carodej.svg',
+            'sorcerer': '/static/img/classes/carodej.svg',
+            'černokněžník': '/static/img/classes/cernokneznik.svg',
+            'cernokneznik': '/static/img/classes/cernokneznik.svg',
+            'warlock': '/static/img/classes/cernokneznik.svg',
+            'druid': '/static/img/classes/druid.svg',
+            'hraničář': '/static/img/classes/hranicar.svg',
+            'hranicar': '/static/img/classes/hranicar.svg',
+            'ranger': '/static/img/classes/hranicar.svg',
+            'klerik': '/static/img/classes/klerik.svg',
+            'cleric': '/static/img/classes/klerik.svg',
+            'kouzelník': '/static/img/classes/kouzelnik.svg',
+            'kouzelnik': '/static/img/classes/kouzelnik.svg',
+            'wizard': '/static/img/classes/kouzelnik.svg',
+            'mnich': '/static/img/classes/mnich.svg',
+            'monk': '/static/img/classes/mnich.svg',
+            'paladin': '/static/img/classes/paladin.svg',
+            'tulák': '/static/img/classes/tulak.svg',
+            'tulak': '/static/img/classes/tulak.svg',
+            'rogue': '/static/img/classes/tulak.svg',
+        }
+        for key, url in mapping.items():
+            if key in class_key:
+                return url
+        return '/static/img/classes/ostatni.svg'
+
+    @property
+    def profile_image_url(self):
+        """Vrátí URL vlastního profilového obrázku, nebo výchozí obrázek podle povolání postavy."""
+        if self.has_custom_image:
+            if self.image:
+                try:
+                    return self.image.url
+                except Exception:
+                    pass
+            if self.image_url:
+                return self.image_url
+        return self.default_class_image_url
 
     @property
     def frame_url(self):
