@@ -6,6 +6,7 @@ from dnd_atarax.terminal import log_gold
 
 def add_temna_esence(char_id, old_rank, new_rank):
     this_char = Char_info.objects.get(id=char_id)
+    player = Player.objects.get(id=this_char.player.id)
     if new_rank != old_rank:
         if new_rank == "bronze":
             temna_esence_reward = 100
@@ -20,18 +21,18 @@ def add_temna_esence(char_id, old_rank, new_rank):
         elif new_rank == "diamond":
             temna_esence_reward = 600
 
-        this_char.temna_esence += temna_esence_reward
-        this_char.save()
+        player.temna_esence += temna_esence_reward
+        player.save()
 
         log = Logs(
             player=this_char.player,
             character=this_char,
             message=f"Nová úroveň Achivementu:({old_rank} → {new_rank}) - {temna_esence_reward} TE",
-            value=this_char.temna_esence
+            value=player.temna_esence
         )
         log.save()
 
-        log_gold("Nová úroveň Achivementu", f"{this_char.name}: {this_char.temna_esence} temné esence celkem")
+        log_gold("Nová úroveň Achivementu", f"{this_char.name}: {player.temna_esence} temné esence celkem")
 
         return "OK"  
     else:
