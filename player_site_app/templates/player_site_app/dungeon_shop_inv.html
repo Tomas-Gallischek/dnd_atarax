@@ -137,6 +137,35 @@
                                             </form>
                                         {% endif %}
                                     </div>
+                                {% elif entry.item.category == 'icons' %}
+                                    <div class="inv-icon-slot" id="iconSlot-{{ entry.item.id }}">
+                                        {% if character.active_icon and character.active_icon.item_id == entry.item.id or player.active_icon and player.active_icon.item_id == entry.item.id %}
+                                            <div class="inv-active-frame-wrap">
+                                                <span class="inv-equipped-badge" style="background: rgba(168, 85, 247, 0.2); color: #e879f9; border-color: rgba(168, 85, 247, 0.4);">✨ Aktivní ikonka</span>
+                                                <form action="{% url 'player_site_app:equip_icon' %}" method="post" class="inv-equip-icon-form">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="item_id" value="{{ entry.item.id }}">
+                                                    <input type="hidden" name="player_id" value="{{ player.id }}">
+                                                    <input type="hidden" name="char_id" value="{{ character.id }}">
+                                                    <input type="hidden" name="action" value="unequip">
+                                                    <button type="submit" class="btn-unequip-frame" title="Sundat tuto ikonku z profilu">
+                                                        <span>✖</span> Sundat
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        {% else %}
+                                            <form action="{% url 'player_site_app:equip_icon' %}" method="post" class="inv-equip-icon-form">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="item_id" value="{{ entry.item.id }}">
+                                                <input type="hidden" name="player_id" value="{{ player.id }}">
+                                                <input type="hidden" name="char_id" value="{{ character.id }}">
+                                                <input type="hidden" name="action" value="equip">
+                                                <button type="submit" class="btn-equip-frame" style="background: linear-gradient(135deg, #7e22ce, #a855f7); border-color: #c084fc;" title="Nasadit tuto ikonku jako profilový obrázek">
+                                                    <span>🧙</span> Nasadit
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </div>
                                 {% endif %}
 
                                 <!-- Tlačítko Rozebrat (Pouze u itemů které NEJSOU truhla) -->
@@ -418,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             awardTitle.textContent = border.name;
                             awardTitle.className = `loot-award-title title-glow-${rarity}`;
 
-                            awardCategory.textContent = border.category_display || 'Rámeček profilu';
+                            awardCategory.textContent = border.category_display || (border.category === 'icons' ? 'Ikonka profilu' : 'Rámeček profilu');
 
                             if (border.image_url) {
                                 awardImg.src = border.image_url;
@@ -474,9 +503,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     /* ----------------------------------------------------------------------
-       3. NASAZENÍ A ODPOJENÍ RÁMEČKU (EQUIP_FRAME)
+       3. NASAZENÍ A ODPOJENÍ RÁMEČKU A IKONKY (EQUIP_FRAME / EQUIP_ICON)
        ---------------------------------------------------------------------- */
     function attachEquipHandlers() {
+        // A) Rámečky
         const equipForms = document.querySelectorAll('.inv-equip-form');
         equipForms.forEach(form => {
             if (form.dataset.attached) return;
@@ -562,6 +592,94 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
 
                         // Znovu připojíme listenery na nově vyrenderované formuláře
+                        attachEquipHandlers();
+                    } else {
+                        alert(data.error || 'Akce se nezdařila.');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    form.submit();
+                });
+            });
+        });
+
+        // B) Ikonky profilu
+        const equipIconForms = document.querySelectorAll('.inv-equip-icon-form');
+        equipIconForms.forEach(form => {
+            if (form.dataset.attached) return;
+            form.dataset.attached = 'true';
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
+
+                const formData = new FormData(form);
+                formData.append('ajax', '1');
+                const action = formData.get('action') || 'equip';
+                const itemId = formData.get('item_id');
+
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (submitBtn) submitBtn.disabled = false;
+                    if (data.success) {
+                        showToast(data.message || (action === 'equip' ? 'Ikonka byla nasazena!' : 'Ikonka byla sundána.'));
+
+                        // 1. Aktualizace tlačítek a odznaků ve všech slotech pro ikonky
+                        document.querySelectorAll('.inv-icon-slot').forEach(slot => {
+                            const slotItemId = slot.id.replace('iconSlot-', '');
+                            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+
+                            if (action === 'equip' && slotItemId === String(itemId)) {
+                                slot.innerHTML = `
+                                    <div class="inv-active-frame-wrap">
+                                        <span class="inv-equipped-badge" style="background: rgba(168, 85, 247, 0.2); color: #e879f9; border-color: rgba(168, 85, 247, 0.4);">✨ Aktivní ikonka</span>
+                                        <form action="{% url 'player_site_app:equip_icon' %}" method="post" class="inv-equip-icon-form">
+                                            <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                            <input type="hidden" name="item_id" value="${slotItemId}">
+                                            <input type="hidden" name="player_id" value="{{ player.id }}">
+                                            <input type="hidden" name="char_id" value="{{ character.id }}">
+                                            <input type="hidden" name="action" value="unequip">
+                                            <button type="submit" class="btn-unequip-frame" title="Sundat tuto ikonku z profilu">
+                                                <span>✖</span> Sundat
+                                            </button>
+                                        </form>
+                                    </div>
+                                `;
+                            } else {
+                                slot.innerHTML = `
+                                    <form action="{% url 'player_site_app:equip_icon' %}" method="post" class="inv-equip-icon-form">
+                                        <input type="hidden" name="csrfmiddlewaretoken" value="${csrfToken}">
+                                        <input type="hidden" name="item_id" value="${slotItemId}">
+                                        <input type="hidden" name="player_id" value="{{ player.id }}">
+                                        <input type="hidden" name="char_id" value="{{ character.id }}">
+                                        <input type="hidden" name="action" value="equip">
+                                        <button type="submit" class="btn-equip-frame" style="background: linear-gradient(135deg, #7e22ce, #a855f7); border-color: #c084fc;" title="Nasadit tuto ikonku jako profilový obrázek">
+                                            <span>🧙</span> Nasadit
+                                        </button>
+                                    </form>
+                                `;
+                            }
+                        });
+
+                        // 2. Aktualizace profilového obrázku avatara v navigační liště
+                        if (action === 'equip' && data.active_icon_url) {
+                            document.querySelectorAll('.char-avatar').forEach(img => {
+                                img.src = data.active_icon_url;
+                            });
+                        }
+
+                        // Znovu připojíme listenery
                         attachEquipHandlers();
                     } else {
                         alert(data.error || 'Akce se nezdařila.');

@@ -333,6 +333,7 @@ def upload_char_avatar(request):
     try:
         if action == 'reset':
             # Reset na výchozí obrázek povolání
+            character.active_icon = None
             if character.image:
                 try:
                     if character.image.name and 'default_avatar' not in character.image.name:
@@ -377,6 +378,7 @@ def upload_char_avatar(request):
                 character.image = None
 
             character.image_url = new_url
+            character.active_icon = None
             character.save()
 
             msg = f"Profilový obrázek postavy '{character.name}' byl úspěšně nastaven z URL adresy."
@@ -391,6 +393,55 @@ def upload_char_avatar(request):
                     'profile_image_url': character.profile_image_url,
                     'has_custom_image': character.has_custom_image,
                     'default_image_url': character.default_class_image_url,
+                })
+
+            messages.success(request, msg)
+
+        elif action == 'icon':
+            # Nastavení profilového obrázku z vlastněné ikonky z Dungeon Shopu
+            item_id = request.POST.get('item_id') or request.POST.get('icon_id')
+            owner_rec = Esence_Items_Owners.objects.filter(
+                player=player,
+                item_id=item_id,
+                item__category='icons'
+            ).first()
+
+            if not owner_rec:
+                err_msg = "Tuto ikonku nemáš ve svém inventáři!"
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err_msg}, status=400)
+                messages.error(request, err_msg)
+                return redirect('player_site_app:char_overview', char_id=character.id)
+
+            if character.image:
+                try:
+                    if character.image.name and 'default_avatar' not in character.image.name:
+                        character.image.delete(save=False)
+                except Exception:
+                    pass
+                character.image = None
+
+            character.image_url = None
+            character.active_icon = owner_rec
+            character.save()
+
+            player.active_icon = owner_rec
+            player.save()
+
+            msg = f"Profilový obrázek postavy '{character.name}' byl nastaven na ikonku '{owner_rec.item.name}'."
+            log_info(f"Hráč '{player.nickname}' nastavil profilovou ikonku '{owner_rec.item.name}' pro postavu '{character.name}'.")
+
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'action': 'icon',
+                    'message': msg,
+                    'char_id': character.id,
+                    'profile_image_url': character.profile_image_url,
+                    'has_custom_image': character.has_custom_image,
+                    'default_image_url': character.default_class_image_url,
+                    'active_icon_name': owner_rec.item.name,
+                    'active_icon_id': owner_rec.item.id,
                 })
 
             messages.success(request, msg)
@@ -433,6 +484,7 @@ def upload_char_avatar(request):
 
             character.image = uploaded_file
             character.image_url = None
+            character.active_icon = None
             character.save()
 
             msg = f"Profilový obrázek postavy '{character.name}' byl úspěšně nahrán."
@@ -1587,41 +1639,45 @@ CHEST_DROP_RATES = {
 
 def get_border_from_treasure(player_id, item_id, rarity, request=None):
     """
-    Vylosuje právě JEDEN rámeček z truhly na základě její rarity
-    a přidá jej do vlastnictví hráče.
+    Vylosuje právě JEDEN předmět (rámeček nebo profilovou ikonku) z truhly
+    na základě její rarity a přidá jej do vlastnictví hráče.
     """
     player = get_object_or_404(Player, id=player_id)
 
     # Získání vah pravděpodobnosti pro danou raritu truhly (výchozí: basic)
     weights_dict = CHEST_DROP_RATES.get(rarity, CHEST_DROP_RATES['basic'])
 
-    # 1. Losování rarity vyhraného rámečku podle definovaných vah
+    # 1. Losování rarity vyhraného předmětu podle definovaných vah
     target_rarity = random.choices(
         population=list(weights_dict.keys()),
         weights=list(weights_dict.values()),
         k=1
     )[0]
 
-    # 2. Výběr rámečků dané vylosované rarity
-    pool = list(Esence_Items_Shop.objects.filter(category="borders", rarity=target_rarity))
+    # 2. Výběr předmětů (rámečky i profilové ikonky) dané vylosované rarity
+    pool = list(Esence_Items_Shop.objects.filter(category__in=["borders", "icons"], rarity=target_rarity))
 
-    # Záchranný fallback: pokud pro danou raritu není žádný rámeček, vybereme ze všech existujících
+    # Záchranný fallback: pokud pro danou raritu není žádný předmět, vybereme ze všech existujících rámečků a ikonek
     if not pool:
-        pool = list(Esence_Items_Shop.objects.filter(category="borders"))
+        pool = list(Esence_Items_Shop.objects.filter(category__in=["borders", "icons"]))
 
     if not pool:
         return None
 
-    # 3. Každá truhla obsahuje pouze 1 rámeček
-    won_border = random.choice(pool)
+    # 3. Každá truhla obsahuje právě 1 náhodný předmět (rámeček nebo ikonku)
+    won_item = random.choice(pool)
 
     # Uložení do inventáře hráče
     Esence_Items_Owners.objects.create(
         player=player,
-        item=won_border,
+        item=won_item,
     )
 
-    return won_border
+    return won_item
+
+
+# Alias pro jednotné použití v kódu
+get_item_from_treasure = get_border_from_treasure
 
 
 @login_required(login_url='player_site_app:index')
@@ -1687,23 +1743,26 @@ def use_treasure(request):
                         pass
 
                 if won_border:
+                    category_label = won_border.get_category_display()
+                    item_payload = {
+                        'id': won_border.id,
+                        'name': won_border.name,
+                        'rarity': won_border.rarity,
+                        'rarity_display': won_border.get_rarity_display(),
+                        'image_url': won_border.image.url if won_border.image else '',
+                        'category': won_border.category,
+                        'category_display': category_label,
+                    }
                     if is_ajax:
                         return JsonResponse({
                             'success': True,
                             'chest_name': treasure_name,
                             'chest_rarity': rarity,
                             'chest_image_url': chest_image_url,
-                            'border': {
-                                'id': won_border.id,
-                                'name': won_border.name,
-                                'rarity': won_border.rarity,
-                                'rarity_display': won_border.get_rarity_display(),
-                                'image_url': won_border.image.url if won_border.image else '',
-                                'category': won_border.category,
-                                'category_display': won_border.get_category_display(),
-                            }
+                            'border': item_payload,
+                            'item': item_payload,
                         })
-                    messages.success(request, f'Truhla „{treasure_name}“ byla otevřena! Získal jsi rámeček: {won_border.name}.')
+                    messages.success(request, f'Truhla „{treasure_name}“ byla otevřena! Získal jsi {category_label.lower()}: {won_border.name}.')
                 else:
                     if is_ajax:
                         return JsonResponse({'success': False, 'error': 'Z truhly se nepodařilo nic vylosovat.'}, status=400)
@@ -1790,6 +1849,29 @@ def reforge_tresure(request):
                     player.active_ramecek = None
                     active_frame_removed = True
 
+            # Pokud byl tento předmět aktivní ikonka hráče či některé postavy, ošetříme ji
+            active_icon_removed = False
+            if player.active_icon_id == owner_record.id or (player.active_icon and player.active_icon.item_id == item.id):
+                another_copy_icon = Esence_Items_Owners.objects.filter(
+                    player=player,
+                    item=item
+                ).exclude(id=owner_record.id).first()
+
+                if another_copy_icon:
+                    player.active_icon = another_copy_icon
+                else:
+                    player.active_icon = None
+                    active_icon_removed = True
+
+            for p_char in player.characters.all():
+                if p_char.active_icon_id == owner_record.id or (p_char.active_icon and p_char.active_icon.item_id == item.id):
+                    another_char_copy = Esence_Items_Owners.objects.filter(
+                        player=player,
+                        item=item
+                    ).exclude(id=owner_record.id).first()
+                    p_char.active_icon = another_char_copy
+                    p_char.save()
+
             # Přidání esence hráči
             if player.temna_esence is None:
                 player.temna_esence = 0
@@ -1834,6 +1916,7 @@ def reforge_tresure(request):
                     'remaining_count': remaining_count,
                     'total_owned_count': total_owned_count,
                     'active_frame_removed': active_frame_removed,
+                    'active_icon_removed': active_icon_removed,
                 })
 
             messages.success(request, msg)
@@ -1932,4 +2015,109 @@ def equip_frame(request):
             return redirect('player_site_app:dungeon_shop_inv')
 
     return redirect('player_site_app:dungeon_shop_inv')
+
+
+@login_required(login_url='player_site_app:index')
+def equip_icon(request):
+    """
+    Nasadí nebo sundá profilovou ikonku hráče a postavy (Player.active_icon a Char_info.active_icon).
+    """
+    if request.method == "POST":
+        item_id = request.POST.get('item_id')
+        player_id = request.POST.get('player_id')
+        char_id = request.POST.get('char_id')
+        action = request.POST.get('action', 'equip')
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+            'application/json' in request.headers.get('Accept', '') or
+            request.POST.get('ajax') == '1'
+        )
+
+        try:
+            player_id = int(player_id) if player_id else request.user.player.id
+            player = get_object_or_404(Player, id=player_id)
+
+            if hasattr(request.user, 'player') and request.user.player.id != player.id and not request.user.is_staff:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Nemáš oprávnění k této akci!'}, status=403)
+                messages.error(request, 'Nemáš oprávnění k této akci!')
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            target_character = None
+            if char_id:
+                try:
+                    target_character = Char_info.objects.filter(id=int(char_id), player=player).first()
+                except (ValueError, TypeError):
+                    pass
+            if not target_character:
+                _, active_char = get_player_and_character(request)
+                if active_char and active_char.player_id == player.id:
+                    target_character = active_char
+                elif player.characters.exists():
+                    target_character = player.characters.first()
+
+            if action == 'unequip':
+                player.active_icon = None
+                player.save()
+                if target_character:
+                    target_character.active_icon = None
+                    target_character.save()
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'action': 'unequip',
+                        'message': 'Ikonka byla úspěšně sundána z profilu.',
+                        'active_item_id': None,
+                        'active_icon_url': None,
+                    })
+                messages.success(request, 'Ikonka byla úspěšně sundána z profilu.')
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            # Akce nasazení ikonky
+            item = get_object_or_404(Esence_Items_Shop, id=item_id)
+            if item.category != 'icons':
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Pouze ikonky lze nasadit jako profilový obrázek!'}, status=400)
+                messages.error(request, 'Pouze ikonky lze nasadit jako profilový obrázek!')
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            owner_record = Esence_Items_Owners.objects.filter(
+                player=player,
+                item=item
+            ).first()
+
+            if not owner_record:
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': 'Tuto ikonku nemáš ve svém inventáři!'}, status=404)
+                messages.error(request, 'Tuto ikonku nemáš ve svém inventáři!')
+                return redirect('player_site_app:dungeon_shop_inv')
+
+            player.active_icon = owner_record
+            player.save()
+
+            if target_character:
+                target_character.active_icon = owner_record
+                target_character.image_url = None
+                target_character.save()
+
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'action': 'equip',
+                    'message': f"Ikonka „{owner_record.item.name}“ byla úspěšně nasazena!",
+                    'active_item_id': owner_record.item.id,
+                    'active_icon_url': player.active_icon_url,
+                })
+
+            messages.success(request, f"Ikonka „{owner_record.item.name}“ byla úspěšně nasazena!")
+            return redirect('player_site_app:dungeon_shop_inv')
+
+        except Exception as e:
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': 'Nastala chyba při zpracování ikonky.'}, status=500)
+            messages.error(request, 'Nastala chyba při zpracování ikonky.')
+            return redirect('player_site_app:dungeon_shop_inv')
+
+    return redirect('player_site_app:dungeon_shop_inv')
+
 

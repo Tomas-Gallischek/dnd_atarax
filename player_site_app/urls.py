@@ -65,4 +65,5 @@ urlpatterns = [
     path('reforge_tresure/', views.reforge_tresure, name='reforge_tresure'),
     path('reforge_treasure/', views.reforge_treasure, name='reforge_treasure'),
     path('equip_frame/', views.equip_frame, name='equip_frame'),
+    path('equip_icon/', views.equip_icon, name='equip_icon'),
 ]

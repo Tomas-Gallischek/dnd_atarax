@@ -1398,7 +1398,143 @@ class PlayerInventoryItemRemovalTests(TestCase):
 
 
 
+class DungeonShopIconsTests(TestCase):
+    def setUp(self):
+        OverAllSettings.objects.get_or_create(id=1, defaults={'loging_active': True, 'editing_active': True})
+        self.user = User.objects.create_user(username='hrac_ikona', password='password123')
+        self.player = Player.objects.create(user=self.user, nickname='SberatelIkon', temna_esence=100)
+        self.char = Char_info.objects.create(player=self.player, name='Merlin', level=5, character_class='Kouzelník')
 
+        # Ikonka z obchodu s reálným obrázkem
+        self.icon_item = Esence_Items_Shop.objects.create(
+            name='Kouzelnická hůl testovací',
+            category='icons',
+            rarity='rare',
+            cost=20,
+            image='esence_items/icons/icon_rare_kouzelnicka_hul.svg'
+        )
+        self.owned_icon = Esence_Items_Owners.objects.create(
+            player=self.player,
+            item=self.icon_item
+        )
 
+        # Truhla
+        self.chest_item = Esence_Items_Shop.objects.create(
+            name='Truhla dobrodruha',
+            category='treasures',
+            rarity='basic',
+            cost=10
+        )
+        self.owned_chest = Esence_Items_Owners.objects.create(
+            player=self.player,
+            item=self.chest_item
+        )
 
+    def test_icons_seeded_in_database(self):
+        """V databázi existuje 34 ikonek podle zadání (12 basic, 10 rare, 8 epic, 4 legendary)."""
+        icons = Esence_Items_Shop.objects.filter(category='icons').exclude(name='Kouzelnická hůl testovací')
+        self.assertEqual(icons.filter(rarity='basic').count(), 12)
+        self.assertEqual(icons.filter(rarity='rare').count(), 10)
+        self.assertEqual(icons.filter(rarity='epic').count(), 8)
+        self.assertEqual(icons.filter(rarity='legendary').count(), 4)
 
+    def test_treasure_drop_can_award_icons_and_borders(self):
+        """Otevírání truhly vybírá jak z rámečků, tak z profilových ikonek."""
+        from player_site_app.views import get_border_from_treasure
+        selected = get_border_from_treasure(self.player.id, self.chest_item.id, 'basic')
+        self.assertIsNotNone(selected)
+        self.assertIn(selected.category, ['borders', 'icons'])
+
+    def test_equip_and_unequip_icon_view(self):
+        """Hráč může nasadit a sundat ikonku ze svého profilu/postavy."""
+        self.client.login(username='hrac_ikona', password='password123')
+
+        # 1. Nasazení ikonky
+        equip_url = reverse('player_site_app:equip_icon')
+        res = self.client.post(equip_url, {
+            'item_id': self.icon_item.id,
+            'player_id': self.player.id,
+            'char_id': self.char.id,
+            'action': 'equip',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['action'], 'equip')
+
+        self.player.refresh_from_db()
+        self.char.refresh_from_db()
+        self.assertEqual(self.player.active_icon, self.owned_icon)
+        self.assertEqual(self.char.active_icon, self.owned_icon)
+
+        # 2. Sundání ikonky
+        res_unequip = self.client.post(equip_url, {
+            'item_id': self.icon_item.id,
+            'player_id': self.player.id,
+            'char_id': self.char.id,
+            'action': 'unequip',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_unequip.status_code, 200)
+        self.player.refresh_from_db()
+        self.char.refresh_from_db()
+        self.assertIsNone(self.player.active_icon)
+        self.assertIsNone(self.char.active_icon)
+
+    def test_reforge_icon_awards_essence_and_cleans_equipped(self):
+        """Rozložení ikonky připíše temnou esenci dle rarity (rare=25) a zruší její nasazení."""
+        self.client.login(username='hrac_ikona', password='password123')
+
+        # Nejprve ikonku nasadíme
+        self.player.active_icon = self.owned_icon
+        self.player.save()
+        self.char.active_icon = self.owned_icon
+        self.char.save()
+
+        initial_essence = self.player.temna_esence
+        reforge_url = reverse('player_site_app:reforge_tresure')
+        res = self.client.post(reforge_url, {
+            'item_id': self.icon_item.id,
+            'player_id': self.player.id,
+            'char_id': self.char.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['value'], 25)
+
+        self.player.refresh_from_db()
+        self.char.refresh_from_db()
+        self.assertEqual(self.player.temna_esence, initial_essence + 25)
+        self.assertIsNone(self.player.active_icon)
+        self.assertIsNone(self.char.active_icon)
+        self.assertFalse(Esence_Items_Owners.objects.filter(id=self.owned_icon.id).exists())
+
+    def test_upload_char_avatar_with_icon_action(self):
+        """V nabídce změny avatara lze postavu nastavit na vlastněnou ikonku."""
+        self.client.login(username='hrac_ikona', password='password123')
+
+        url = reverse('player_site_app:upload_char_avatar')
+        res = self.client.post(url, {
+            'char_id': self.char.id,
+            'action': 'icon',
+            'item_id': self.icon_item.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data['success'])
+        self.assertEqual(data['action'], 'icon')
+
+        self.char.refresh_from_db()
+        self.assertEqual(self.char.active_icon, self.owned_icon)
+        self.assertTrue(self.char.has_custom_image)
+        self.assertEqual(self.char.profile_image_url, self.icon_item.image.url)
+
+    def test_player_owned_avatar_icons_property(self):
+        """Property owned_avatar_icons vrací jen předměty kategorie 'icons'."""
+        self.assertEqual(list(self.player.owned_avatar_icons), [self.owned_icon])

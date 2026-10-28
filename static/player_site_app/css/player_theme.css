@@ -4497,7 +4497,7 @@
 /* Navigace záložek */
 .avatar-tabs-nav {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(4, 1fr);
     gap: 6px;
     background: #0d0a15;
     padding: 5px;
@@ -4506,20 +4506,27 @@
     margin-bottom: 18px;
 }
 
+@media (max-width: 640px) {
+    .avatar-tabs-nav {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
 .avatar-tab-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
-    padding: 9px 12px;
+    padding: 9px 8px;
     background: transparent;
     border: none;
     border-radius: 7px;
     color: #94a3b8;
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.18s ease;
+    white-space: nowrap;
 }
 
 .avatar-tab-btn:hover {
@@ -4531,6 +4538,28 @@
     background: linear-gradient(135deg, #d97706, #b45309);
     color: #ffffff;
     box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+}
+
+.avatar-icon-option-card {
+    background: #14101e;
+    border: 2px solid #2d243f;
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.avatar-icon-option-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.25);
+    border-color: #a855f7 !important;
+}
+
+.avatar-icon-option-card.selected {
+    border-color: #a855f7 !important;
+    background: rgba(168, 85, 247, 0.12) !important;
+    box-shadow: 0 0 16px rgba(168, 85, 247, 0.35);
 }
 
 /* Dropzone pro nahrávání souboru */

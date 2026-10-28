@@ -42,6 +42,15 @@ class Player(models.Model):
         verbose_name="Aktivní rámeček"
     )
 
+    active_icon = models.ForeignKey(
+        "Esence_Items_Owners",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='active_in_players_icon',
+        verbose_name="Aktivní ikonka"
+    )
+
     admin = models.BooleanField(default=False, verbose_name="Jsi administrátor", blank=True, null=True)
 
     class Meta:
@@ -52,6 +61,8 @@ class Player(models.Model):
         super().clean()
         if self.active_ramecek and self.active_ramecek.player_id != self.id:
             raise ValidationError({'active_ramecek': "Vybraný rámeček nevlastní tento hráč!"})
+        if self.active_icon and self.active_icon.player_id != self.id:
+            raise ValidationError({'active_icon': "Vybranou ikonku nevlastní tento hráč!"})
 
     def save(self, *args, **kwargs):
         if not self.user_id:
@@ -78,6 +89,28 @@ class Player(models.Model):
             except Exception:
                 return None
         return None
+
+    @property
+    def active_icon_url(self):
+        """Vrátí URL aktivní ikonky hráče (nebo None)."""
+        if self.active_icon and self.active_icon.item and self.active_icon.item.image:
+            try:
+                return self.active_icon.item.image.url
+            except Exception:
+                return None
+        return None
+
+    @property
+    def owned_avatar_icons(self):
+        """Vrátí unikátní položky ikonek, které hráč vlastní."""
+        records = self.esence_items.filter(item__category='icons').select_related('item').order_by('item__rarity', 'item__name')
+        seen = set()
+        result = []
+        for r in records:
+            if r.item_id not in seen:
+                seen.add(r.item_id)
+                result.append(r)
+        return result
 
     @property
     def is_dm(self):
@@ -170,6 +203,14 @@ class Char_info(models.Model):
         null=True,
         verbose_name="Externí URL profilového obrázku"
     )
+    active_icon = models.ForeignKey(
+        "Esence_Items_Owners",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='active_in_characters',
+        verbose_name="Aktivní ikonka z Dungeon Shopu"
+    )
     race = models.CharField(max_length=50, blank=True, null=True, verbose_name="Rasa", default="Ostatní", choices=race_choices)
     character_class = models.CharField(max_length=50, blank=True, null=True, verbose_name="Povolání", default="Ostatní", choices=class_choices)
     level = models.IntegerField(default=1, verbose_name="Úroveň")
@@ -231,7 +272,9 @@ class Char_info(models.Model):
 
     @property
     def has_custom_image(self):
-        """Vrátí True, pokud má postava nahraný vlastní obrázek (nikoliv výchozí zástupný)."""
+        """Vrátí True, pokud má postava nahraný vlastní obrázek nebo aktivní ikonku."""
+        if self.active_icon_id:
+            return True
         if self.image:
             name = getattr(self.image, 'name', '') or ''
             if name and name != 'characters/default_avatar.jpg':
@@ -280,7 +323,12 @@ class Char_info(models.Model):
 
     @property
     def profile_image_url(self):
-        """Vrátí URL vlastního profilového obrázku, nebo výchozí obrázek podle povolání postavy."""
+        """Vrátí URL aktivní ikonky z Esence Shopu, vlastního profilového obrázku, nebo výchozí obrázek podle povolání postavy."""
+        if self.active_icon and self.active_icon.item and self.active_icon.item.image:
+            try:
+                return self.active_icon.item.image.url
+            except Exception:
+                pass
         if self.has_custom_image:
             if self.image:
                 try:
@@ -289,6 +337,11 @@ class Char_info(models.Model):
                     pass
             if self.image_url:
                 return self.image_url
+        if self.player and getattr(self.player, 'active_icon', None) and self.player.active_icon.item and self.player.active_icon.item.image:
+            try:
+                return self.player.active_icon.item.image.url
+            except Exception:
+                pass
         return self.default_class_image_url
 
     @property
@@ -578,8 +631,9 @@ class Logs(models.Model):
 
 EsenceShopChoices = [
     ('borders', 'Rámečky'),
+    ('icons', 'Ikonky profilu'),
     ('backgrounds', 'Pozadí'),
-    ('treasures', 'Truhly') # ty pak mohou být taky basic/rare/epic/legendary
+    ('treasures', 'Truhly'),
 ]   
 
 Rarities = [

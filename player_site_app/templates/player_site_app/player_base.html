@@ -192,7 +192,9 @@
                         {% if target_char.race %}&bull; <span>{{ target_char.race }}</span>{% endif %}
                     </p>
                     <div class="avatar-status-badge-wrap">
-                        {% if target_char.has_custom_image %}
+                        {% if target_char.active_icon %}
+                            <span class="badge badge-purple" id="avatarCurrentBadge">🔮 Ikonka: {{ target_char.active_icon.item.name }}</span>
+                        {% elif target_char.has_custom_image %}
                             <span class="badge badge-purple" id="avatarCurrentBadge">🎨 Vlastní obrázek hrdiny</span>
                         {% else %}
                             <span class="badge badge-gold" id="avatarCurrentBadge">⚔️ Výchozí obrázek povolání</span>
@@ -204,16 +206,19 @@
             <!-- Chybová / stavová hláška -->
             <div id="avatarModalAlert" class="avatar-modal-alert" style="display: none;"></div>
 
-            <!-- Záložky možností: Nahrát / URL / Výchozí -->
+            <!-- Záložky možností: Nahrát / URL / Výchozí / Získané ikonky -->
             <div class="avatar-tabs-nav" role="tablist">
                 <button type="button" class="avatar-tab-btn active" id="avatarTabUploadBtn" onclick="switchAvatarTab('upload')" role="tab" aria-selected="true">
-                    <span>📁</span> Nahrát ze zařízení
+                    <span>📁</span> Nahrát
                 </button>
                 <button type="button" class="avatar-tab-btn" id="avatarTabUrlBtn" onclick="switchAvatarTab('url')" role="tab" aria-selected="false">
-                    <span>🌐</span> Zadat URL odkaz
+                    <span>🌐</span> URL odkaz
+                </button>
+                <button type="button" class="avatar-tab-btn" id="avatarTabIconsBtn" onclick="switchAvatarTab('icons')" role="tab" aria-selected="false">
+                    <span>🔮</span> Získané ikonky
                 </button>
                 <button type="button" class="avatar-tab-btn" id="avatarTabResetBtn" onclick="switchAvatarTab('reset')" role="tab" aria-selected="false">
-                    <span>🔄</span> Výchozí povolání
+                    <span>🔄</span> Výchozí
                 </button>
             </div>
 
@@ -310,6 +315,76 @@
                     </div>
                 </form>
             </div>
+
+            <!-- 4. ZÁLOŽKA: Vlastněné ikonky z Dungeon Shopu -->
+            <div class="avatar-tab-pane" id="avatarTabIcons" style="display: none;">
+                <p class="avatar-tab-desc" style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 14px;">
+                    Vyberte si ze své sbírky ikonek získaných z truhel v Dungeon Shopu:
+                </p>
+
+                <form id="avatarIconForm" method="POST" action="{% url 'player_site_app:upload_char_avatar' %}" onsubmit="submitAvatarIcon(event)">
+                    {% csrf_token %}
+                    <input type="hidden" name="char_id" value="{{ target_char.id }}">
+                    <input type="hidden" name="action" value="icon">
+                    <input type="hidden" name="item_id" id="avatarSelectedIconId" value="{% if target_char.active_icon %}{{ target_char.active_icon.item.id }}{% endif %}">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+
+                    {% if target_char.player.owned_avatar_icons %}
+                        <div class="avatar-icons-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)); gap: 12px; max-height: 280px; overflow-y: auto; padding: 4px 4px 10px 4px;">
+                            {% for owner in target_char.player.owned_avatar_icons %}
+                                <div class="avatar-icon-option-card {% if target_char.active_icon and target_char.active_icon.item.id == owner.item.id %}selected{% endif %}"
+                                     id="avatarIconOption-{{ owner.item.id }}"
+                                     data-icon-id="{{ owner.item.id }}"
+                                     data-icon-url="{% if owner.item.image %}{{ owner.item.image.url }}{% endif %}"
+                                     data-icon-name="{{ owner.item.name }}"
+                                     onclick="selectAvatarIcon('{{ owner.item.id }}', '{% if owner.item.image %}{{ owner.item.image.url }}{% endif %}', '{{ owner.item.name|escapejs }}')"
+                                     role="button"
+                                     tabindex="0">
+                                    <div style="position: relative; width: 56px; height: 56px; margin: 0 auto 6px auto;">
+                                        {% if owner.item.image %}
+                                            <img src="{{ owner.item.image.url }}" alt="{{ owner.item.name }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                                        {% else %}
+                                            <span style="font-size: 2rem;">🔮</span>
+                                        {% endif %}
+                                    </div>
+                                    <div style="font-size: 0.78rem; font-weight: 600; color: #f1f5f9; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ owner.item.name }}">
+                                        {{ owner.item.name }}
+                                    </div>
+                                    <div style="font-size: 0.7rem; color: #a855f7; margin-top: 2px;">
+                                        {{ owner.item.get_rarity_display }}
+                                    </div>
+                                    {% if target_char.active_icon and target_char.active_icon.item.id == owner.item.id %}
+                                        <div class="avatar-icon-selected-badge" style="font-size: 0.65rem; color: #34d399; font-weight: 700; margin-top: 4px;">
+                                            ✓ Nasazeno
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="avatar-modal-footer" style="margin-top: 16px;">
+                            <button type="button" class="btn btn-outline-sapphire" onclick="closeAvatarModal()">Zrušit</button>
+                            <button type="submit" class="btn btn-gold" id="btnSubmitAvatarIcon" style="background: linear-gradient(135deg, #7e22ce, #a855f7); border-color: #c084fc;">
+                                <span>🔮</span> Nastavit vybranou ikonku
+                            </button>
+                        </div>
+                    {% else %}
+                        <div class="avatar-empty-icons-notice" style="text-align: center; padding: 24px 12px; background: rgba(22, 18, 32, 0.6); border-radius: 10px; border: 1px dashed #3a2e54;">
+                            <span style="font-size: 2.4rem; display: block; margin-bottom: 8px;">📦</span>
+                            <h5 style="color: #cbd5e1; margin-bottom: 6px;">Zatím nemáte žádné profilové ikonky</h5>
+                            <p style="color: #94a3b8; font-size: 0.85rem; margin-bottom: 14px;">
+                                Ikonky můžete získat otevřením truhel v Dungeon Shopu za temnou esenci!
+                            </p>
+                            <a href="{% url 'player_site_app:dungeon_shop_inv' %}" class="btn btn-sm btn-purple" style="display: inline-flex; align-items: center; gap: 6px;">
+                                <span>🛒</span> Otevřít Dungeon Shop
+                            </a>
+                        </div>
+                        <div class="avatar-modal-footer" style="margin-top: 16px;">
+                            <button type="button" class="btn btn-outline-sapphire" onclick="closeAvatarModal()">Zavřít</button>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -375,7 +450,7 @@
     }
 
     function switchAvatarTab(tabName) {
-        const tabs = ['upload', 'url', 'reset'];
+        const tabs = ['upload', 'url', 'reset', 'icons'];
         tabs.forEach(t => {
             const btn = document.getElementById('avatarTab' + t.charAt(0).toUpperCase() + t.slice(1) + 'Btn');
             const pane = document.getElementById('avatarTab' + t.charAt(0).toUpperCase() + t.slice(1));
@@ -391,6 +466,13 @@
                 const urlInput = document.getElementById('avatarUrlInput');
                 if (urlInput && urlInput.value.trim()) {
                     previewImg.src = urlInput.value.trim();
+                } else {
+                    previewImg.src = window.avatarModalState.currentProfileUrl;
+                }
+            } else if (tabName === 'icons') {
+                const selectedCard = document.querySelector('.avatar-icon-option-card.selected');
+                if (selectedCard && selectedCard.dataset.iconUrl) {
+                    previewImg.src = selectedCard.dataset.iconUrl;
                 } else {
                     previewImg.src = window.avatarModalState.currentProfileUrl;
                 }
@@ -507,7 +589,10 @@
 
         const badge = document.getElementById('avatarCurrentBadge');
         if (badge) {
-            if (data.has_custom_image) {
+            if (data.action === 'icon' && data.active_icon_name) {
+                badge.className = 'badge badge-purple';
+                badge.textContent = '🔮 Ikonka: ' + data.active_icon_name;
+            } else if (data.has_custom_image) {
                 badge.className = 'badge badge-purple';
                 badge.textContent = '🎨 Vlastní obrázek hrdiny';
             } else {
@@ -668,6 +753,104 @@
         .catch(err => {
             btn.disabled = false;
             btn.innerHTML = origText;
+            form.submit();
+        });
+    }
+
+    function selectAvatarIcon(iconId, iconUrl, iconName) {
+        const inputId = document.getElementById('avatarSelectedIconId');
+        if (inputId) inputId.value = iconId;
+
+        // Aktualizovat výběr karet v mřížce
+        document.querySelectorAll('.avatar-icon-option-card').forEach(card => {
+            const isMatch = (card.dataset.iconId === String(iconId));
+            card.classList.toggle('selected', isMatch);
+        });
+
+        // Náhled
+        const previewImg = document.getElementById('avatarModalPreviewImg');
+        if (previewImg && iconUrl) {
+            previewImg.src = iconUrl;
+        }
+
+        const alertBox = document.getElementById('avatarModalAlert');
+        if (alertBox) {
+            alertBox.style.display = 'none';
+        }
+    }
+
+    function submitAvatarIcon(e) {
+        e.preventDefault();
+        const form = document.getElementById('avatarIconForm');
+        const alertBox = document.getElementById('avatarModalAlert');
+        const btn = document.getElementById('btnSubmitAvatarIcon');
+        const inputId = document.getElementById('avatarSelectedIconId');
+
+        if (!inputId || !inputId.value) {
+            if (alertBox) {
+                alertBox.className = 'avatar-modal-alert alert-error';
+                alertBox.textContent = 'Vyberte prosím kliknutím jednu ze svých ikonek.';
+                alertBox.style.display = 'block';
+            }
+            return;
+        }
+
+        const formData = new FormData(form);
+        const origText = btn ? btn.innerHTML : '';
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Nastavuji...';
+        }
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origText;
+            }
+            if (data.success) {
+                applyNewAvatarToDom(data);
+
+                // Aktualizace odznaků nasazeno v kartách ikonek
+                document.querySelectorAll('.avatar-icon-option-card').forEach(card => {
+                    const existingBadge = card.querySelector('.avatar-icon-selected-badge');
+                    if (existingBadge) existingBadge.remove();
+
+                    if (card.dataset.iconId === String(data.active_icon_id)) {
+                        const newBadge = document.createElement('div');
+                        newBadge.className = 'avatar-icon-selected-badge';
+                        newBadge.style.cssText = 'font-size: 0.65rem; color: #34d399; font-weight: 700; margin-top: 4px;';
+                        newBadge.textContent = '✓ Nasazeno';
+                        card.appendChild(newBadge);
+                    }
+                });
+
+                if (alertBox) {
+                    alertBox.className = 'avatar-modal-alert alert-success';
+                    alertBox.textContent = data.message || 'Profilová ikonka byla úspěšně nastavena!';
+                    alertBox.style.display = 'block';
+                }
+                setTimeout(() => { closeAvatarModal(); }, 600);
+            } else {
+                if (alertBox) {
+                    alertBox.className = 'avatar-modal-alert alert-error';
+                    alertBox.textContent = data.error || 'Nastala chyba při nastavování ikonky.';
+                    alertBox.style.display = 'block';
+                }
+            }
+        })
+        .catch(err => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = origText;
+            }
             form.submit();
         });
     }
