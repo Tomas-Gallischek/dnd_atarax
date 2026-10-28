@@ -1,0 +1,157 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}
+    {% if is_edit %}DnD Atarax - Upravit NPC: {{ npc_obj.name }}{% else %}DnD Atarax - Nové NPC{% endif %}
+{% endblock %}
+
+{% block dm_content %}
+<div class="dm-toolbar-header">
+    <div class="atarax-header-title-group">
+        <h1>
+            <span>{% if is_edit %}✏️{% else %}✨{% endif %}</span>
+            {% if is_edit %}Upravit NPC: {{ npc_obj.name }}{% else %}Vytvořit nové NPC{% endif %}
+        </h1>
+        <p class="atarax-header-subtitle">
+            {% if is_edit %}Změna údajů, portrétu a stavu existující postavy.{% else %}Zápis nové nehráčské postavy do herní databáze kampaně.{% endif %}
+        </p>
+    </div>
+    <div>
+        <a href="{% if is_edit %}{% url 'dm_site_app:npc_detail' npc_obj.id %}{% else %}{% url 'dm_site_app:npc' %}{% endif %}" class="dm-btn-secondary">
+            <span>←</span> Zpět
+        </a>
+    </div>
+</div>
+
+<div class="dm-form-card">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="dm-form-row">
+            <div class="dm-form-group">
+                <label for="id_name">Jméno NPC <span style="color: #ef4444;">*</span></label>
+                <input type="text" id="id_name" name="name" class="dm-form-control" value="{{ npc_obj.name|default:'' }}" required placeholder="Např. Sildar Hallwinter, Hospodská Marta">
+                <span class="form-hint">Hlavní identifikátor postavy.</span>
+            </div>
+
+            <div class="dm-form-group">
+                <label for="id_gender">Pohlaví</label>
+                <select id="id_gender" name="gender" class="dm-form-control">
+                    <option value="">-- Neuvedeno --</option>
+                    <option value="male" {% if npc_obj.gender == 'male' %}selected{% endif %}>Muž</option>
+                    <option value="female" {% if npc_obj.gender == 'female' %}selected{% endif %}>Žena</option>
+                    <option value="other" {% if npc_obj.gender == 'other' %}selected{% endif %}>Jiné / Nestvůra</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="dm-form-group">
+            <label for="id_location">Domovská lokace</label>
+            <select id="id_location" name="location" class="dm-form-control">
+                <option value="">-- Bez přiřazené lokace --</option>
+                {% for loc in locations %}
+                    <option value="{{ loc.id }}" {% if npc_obj.location and npc_obj.location.id == loc.id %}selected{% endif %}>
+                        📍 {{ loc.name }} {% if loc.type %}({{ loc.get_type_display|default:loc.type }}){% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+            <span class="form-hint">Město, budova či dungeon, kde se postava obvykle zdržuje.</span>
+        </div>
+
+        <div class="dm-form-group">
+            <label for="id_description">Podrobný popis, role a tajemství</label>
+            <textarea id="id_description" name="description" class="dm-form-control" rows="5" placeholder="Vzhled, osobnost, motivace, co postava ví, jak mluví, její tajemství pro DM...">{{ npc_obj.description|default:'' }}</textarea>
+        </div>
+
+        <!-- Obrázek NPC -->
+        <div class="dm-form-group">
+            <label>Obrázek / Portrét NPC</label>
+            <span class="form-hint">Můžete nahrát soubor z počítače, nebo zadat externí webovou URL adresu. Pokud nic nenahrajete, použije se výchozí zástupný portrét.</span>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px;">
+                <div>
+                    <label style="font-size: 0.84rem; color: var(--text-muted);">1. Nahrát soubor (PNG, JPG, WEBP):</label>
+                    <input type="file" id="id_image_file" name="image" accept="image/*" class="dm-form-control" onchange="previewNpcFile(this)">
+                </div>
+                <div>
+                    <label style="font-size: 0.84rem; color: var(--text-muted);">2. Nebo externí URL obrázku:</label>
+                    <input type="url" id="id_image_url" name="image_url" class="dm-form-control" value="{{ npc_obj.image_url|default:'' }}" placeholder="https://example.com/avatar.jpg" oninput="previewNpcUrl(this.value)">
+                </div>
+            </div>
+
+            {% if is_edit and npc_obj.has_custom_image %}
+                <div style="margin-top: 10px;">
+                    <label class="dm-checkbox-label" style="font-size: 0.88rem; color: #fca5a5;">
+                        <input type="checkbox" name="remove_image" value="1">
+                        Smazat stávající obrázek a vrátit výchozí zástupný portrét
+                    </label>
+                </div>
+            {% endif %}
+
+            <div class="dm-image-preview-box">
+                <img id="npcPreviewImg" src="{% if is_edit %}{{ npc_obj.display_image_url }}{% else %}/static/img/default_npc.svg{% endif %}" alt="Náhled" class="dm-image-preview-thumb">
+                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                    <strong style="color: #f8fafc; display: block;">Aktuální náhled portrétu</strong>
+                    Tento obrázek se zobrazí v seznamu NPC a na detailní kartě.
+                </div>
+            </div>
+        </div>
+
+        <!-- Kořist & Stav -->
+        <div style="background: rgba(13, 10, 18, 0.6); border: 1px solid var(--border-card); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 12px 0; font-size: 1rem; color: var(--gold-400);">💰 Kořist a herní status</h3>
+            
+            <div class="dm-form-row">
+                <div class="dm-form-group" style="margin-bottom: 0;">
+                    <label for="id_loot_gold">Zlaté mince (GP)</label>
+                    <input type="number" id="id_loot_gold" name="loot_gold" class="dm-form-control" value="{{ npc_obj.loot_gold|default:0 }}" min="0">
+                </div>
+                <div class="dm-form-group" style="margin-bottom: 0;">
+                    <label for="id_loot_silver">Stříbrné mince (SP)</label>
+                    <input type="number" id="id_loot_silver" name="loot_silver" class="dm-form-control" value="{{ npc_obj.loot_silver|default:0 }}" min="0">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-top: 16px;">
+                <label class="dm-checkbox-label">
+                    <input type="checkbox" name="loot_able" {% if npc_obj.loot_able %}checked{% endif %}>
+                    Lze lootit (hráči mohou sebrat poklad)
+                </label>
+                <label class="dm-checkbox-label">
+                    <input type="checkbox" name="is_dead" {% if npc_obj.is_dead %}checked{% endif %}>
+                    Mrtvý / zlikvidován
+                </label>
+                <label class="dm-checkbox-label">
+                    <input type="checkbox" name="in_fight" {% if npc_obj.in_fight %}checked{% endif %}>
+                    Aktuálně v boji
+                </label>
+            </div>
+        </div>
+
+        <div class="dm-form-actions">
+            <a href="{% if is_edit %}{% url 'dm_site_app:npc_detail' npc_obj.id %}{% else %}{% url 'dm_site_app:npc' %}{% endif %}" class="dm-btn-secondary">
+                Zrušit
+            </a>
+            <button type="submit" class="dm-btn-gold">
+                <span>💾</span> {% if is_edit %}Uložit změny{% else %}Vytvořit NPC{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function previewNpcFile(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('npcPreviewImg').src = e.target.result;
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+function previewNpcUrl(url) {
+    if (url && url.trim().length > 5) {
+        document.getElementById('npcPreviewImg').src = url.trim();
+    }
+}
+</script>
+{% endblock %}

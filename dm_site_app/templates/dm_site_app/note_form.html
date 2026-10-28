@@ -1,0 +1,221 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}
+    {% if is_edit %}DnD Atarax - Upravit poznámku: {{ note.title }}{% else %}DnD Atarax - Nová poznámka{% endif %}
+{% endblock %}
+
+{% block dm_content %}
+<div class="dm-toolbar-header">
+    <div class="atarax-header-title-group">
+        <h1>
+            <span>{% if is_edit %}✏️{% else %}📝{% endif %}</span>
+            {% if is_edit %}Upravit poznámku: {{ note.title }}{% else %}Nová poznámka ke kampani{% endif %}
+        </h1>
+        <p class="atarax-header-subtitle">
+            Přehledný editor pro přípravu sezení, tajemství a záznamy.
+        </p>
+    </div>
+    <div>
+        <a href="{% if is_edit %}{% url 'dm_site_app:notes' %}?selected={{ note.id }}{% else %}{% url 'dm_site_app:notes' %}{% endif %}" class="dm-btn-secondary">
+            <span>←</span> Zpět na poznámky
+        </a>
+    </div>
+</div>
+
+<div class="dm-form-card" style="max-width: 960px;">
+    <form method="post" id="noteForm" onsubmit="syncEditorContent()">
+        {% csrf_token %}
+
+        <!-- Název a kategorie -->
+        <div class="dm-form-row">
+            <div class="dm-form-group" style="flex: 2;">
+                <label for="id_title">Název poznámky <span style="color: #ef4444;">*</span></label>
+                <input type="text" id="id_title" name="title" class="dm-form-control" value="{{ note.title|default:'' }}" required placeholder="Např. Plán sezení 12, Původ kultu Hadího oka, Ceny v Phandalinu..." style="font-size: 1.15rem; font-weight: 700;">
+            </div>
+
+            <div class="dm-form-group" style="flex: 1;">
+                <label for="id_category">Kategorie / Značka</label>
+                <input type="text" id="id_category" name="category" list="categoryList" class="dm-form-control" value="{{ note.category|default:'Kampaň' }}" placeholder="Kampaň, Zápletky, NPC...">
+                <datalist id="categoryList">
+                    <option value="Kampaň">
+                    <option value="Příprava sezení">
+                    <option value="Zápletky & Tajemství">
+                    <option value="NPC & Frakce">
+                    <option value="Svět & Pravidla">
+                    {% for cat in categories %}
+                        <option value="{{ cat }}">
+                    {% endfor %}
+                </datalist>
+            </div>
+        </div>
+
+        <!-- Status aktuální -->
+        <div style="background: rgba(13, 10, 18, 0.6); border: 1px solid var(--border-card); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px;">
+            <label class="dm-checkbox-label" style="font-size: 0.95rem;">
+                <input type="checkbox" name="is_current" id="id_is_current" {% if note.is_current %}checked{% endif %}>
+                <span>📌 <strong>Označit jako aktuální poznámku</strong> (bude vždy připnuta nahoře pro rychlý přístup)</span>
+            </label>
+        </div>
+
+        <!-- TEXTOVÝ EDITOR S LIŠTOU A KLÁVESOVÝMI ZKRATKAMI -->
+        <div class="dm-form-group">
+            <label>Obsah poznámky</label>
+            <span class="form-hint" style="margin-bottom: 8px; display: block;">
+                Při psaní můžete používat klávesové zkratky: 
+                <kbd style="background: #110e18; border: 1px solid var(--border-card); border-radius: 3px; padding: 2px 6px; color: #fef08a;">Ctrl+B</kbd> pro <strong>tučné písmo</strong> a 
+                <kbd style="background: #110e18; border: 1px solid var(--border-card); border-radius: 3px; padding: 2px 6px; color: #fef08a;">Ctrl+U</kbd> pro <u>podtržené písmo</u>.
+            </span>
+
+            <!-- Nástrojová lišta -->
+            <div class="dm-editor-toolbar" role="toolbar" aria-label="Nástroje formátování textu">
+                <button type="button" class="dm-editor-btn" onclick="execCmd('bold')" title="Ztučnit text (Ctrl+B)">
+                    <strong>B</strong>
+                </button>
+                <button type="button" class="dm-editor-btn" onclick="execCmd('underline')" title="Podtrhnout text (Ctrl+U)">
+                    <u>U</u>
+                </button>
+                <button type="button" class="dm-editor-btn" onclick="execCmd('italic')" title="Kurzíva (Ctrl+I)">
+                    <em>I</em>
+                </button>
+
+                <div class="dm-editor-divider"></div>
+
+                <button type="button" class="dm-editor-btn" onclick="execCmd('insertUnorderedList')" title="Odrážkový seznam (Odrážky)">
+                    <span>• Seznam</span>
+                </button>
+                <button type="button" class="dm-editor-btn" onclick="execCmd('insertOrderedList')" title="Číslovaný seznam">
+                    <span>1. Číslování</span>
+                </button>
+
+                <div class="dm-editor-divider"></div>
+
+                <button type="button" class="dm-editor-btn" onclick="formatBlock('h2')" title="Hlavní nadpis (H2)">
+                    <span>H2</span>
+                </button>
+                <button type="button" class="dm-editor-btn" onclick="formatBlock('h3')" title="Podnadpis (H3)">
+                    <span>H3</span>
+                </button>
+                <button type="button" class="dm-editor-btn" onclick="formatBlock('p')" title="Běžný odstavec">
+                    <span>Text</span>
+                </button>
+                <button type="button" class="dm-editor-btn" onclick="formatBlock('blockquote')" title="Vložit citaci / rámeček">
+                    <span>❝ Citace</span>
+                </button>
+
+                <div class="dm-editor-divider"></div>
+
+                <button type="button" class="dm-editor-btn" onclick="execCmd('removeFormat')" title="Vymazat formátování">
+                    <span>🧹 Vyčistit</span>
+                </button>
+
+                <div class="dm-editor-shortcuts-hint">
+                    <span>Klávesové zkratky: <kbd>Ctrl+B</kbd> Tučně | <kbd>Ctrl+U</kbd> Podtrženě | <kbd>Ctrl+I</kbd> Kurzíva</span>
+                </div>
+            </div>
+
+            <!-- Interaktivní editační plocha -->
+            <div id="noteEditorContent" 
+                 class="dm-editor-contenteditable" 
+                 contenteditable="true" 
+                 role="textbox" 
+                 aria-multiline="true" 
+                 placeholder="Sem pište poznámky ke kampani...">{% if note %}{{ note.content|safe }}{% endif %}</div>
+
+            <!-- Skrytý input pro odeslání do Django -->
+            <textarea name="content" id="hiddenContent" style="display: none;"></textarea>
+        </div>
+
+        <div class="dm-form-actions">
+            <a href="{% if is_edit %}{% url 'dm_site_app:notes' %}?selected={{ note.id }}{% else %}{% url 'dm_site_app:notes' %}{% endif %}" class="dm-btn-secondary">
+                Zrušit
+            </a>
+            <button type="submit" class="dm-btn-gold">
+                <span>💾</span> {% if is_edit %}Uložit změny poznámky{% else %}Vytvořit poznámku{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+const editor = document.getElementById('noteEditorContent');
+const hiddenInput = document.getElementById('hiddenContent');
+
+// Spuštění formátovacího příkazu
+function execCmd(command, value = null) {
+    editor.focus();
+    document.execCommand(command, false, value);
+    syncEditorContent();
+}
+
+// Formátování bloku (H2, H3, p, blockquote)
+function formatBlock(tag) {
+    editor.focus();
+    document.execCommand('formatBlock', false, tag);
+    syncEditorContent();
+}
+
+// Zpracování klávesových zkratek přímo při psaní v editoru
+editor.addEventListener('keydown', function(e) {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const modifier = isMac ? e.metaKey : e.ctrlKey;
+
+    if (modifier) {
+        // Ctrl+B: Ztučnění
+        if (e.key === 'b' || e.key === 'B') {
+            e.preventDefault();
+            document.execCommand('bold', false, null);
+            syncEditorContent();
+        }
+        // Ctrl+U: Podtržení (prohlížeče standardně otevírají zdrojový kód, zabráníme tomu a podtrhneme text)
+        else if (e.key === 'u' || e.key === 'U') {
+            e.preventDefault();
+            document.execCommand('underline', false, null);
+            syncEditorContent();
+        }
+        // Ctrl+I: Kurzíva
+        else if (e.key === 'i' || e.key === 'I') {
+            e.preventDefault();
+            document.execCommand('italic', false, null);
+            syncEditorContent();
+        }
+        // Ctrl+S: Rychlé uložení
+        else if (e.key === 's' || e.key === 'S') {
+            e.preventDefault();
+            document.getElementById('noteForm').submit();
+        }
+    }
+    // Tabulátor v odrážkách
+    else if (e.key === 'Tab') {
+        const selection = window.getSelection();
+        if (selection.rangeCount > 0) {
+            const node = selection.anchorNode;
+            const li = node.nodeType === 3 ? node.parentElement.closest('li') : node.closest('li');
+            if (li) {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    document.execCommand('outdent', false, null);
+                } else {
+                    document.execCommand('indent', false, null);
+                }
+            }
+        }
+    }
+});
+
+// Automatická synchronizace obsahu
+function syncEditorContent() {
+    hiddenInput.value = editor.innerHTML;
+}
+
+editor.addEventListener('input', syncEditorContent);
+editor.addEventListener('blur', syncEditorContent);
+
+// Výchozí prázdný řádek při založení
+window.addEventListener('DOMContentLoaded', function() {
+    if (!editor.innerHTML.trim()) {
+        editor.innerHTML = '<p><br></p>';
+    }
+    syncEditorContent();
+});
+</script>
+{% endblock %}

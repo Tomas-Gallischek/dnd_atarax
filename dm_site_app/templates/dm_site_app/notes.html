@@ -3,21 +3,146 @@
 {% block title %}DnD Atarax - DM Poznámky{% endblock %}
 
 {% block dm_content %}
-<div class="atarax-page-header">
+<div class="dm-toolbar-header">
     <div class="atarax-header-title-group">
         <h1><span>📝</span> Poznámky Pána Jeskyně</h1>
-        <p class="atarax-header-subtitle">Deník pro soukromé koncepty, zápletky, tajemství a přípravu sezení.</p>
+        <p class="atarax-header-subtitle">Soukromé přípravy sezení, zápisy z kampaně, zápletky a tajné informace.</p>
+    </div>
+    <div>
+        <a href="{% url 'dm_site_app:note_create' %}" class="dm-btn-gold">
+            <span>➕</span> Nová poznámka
+        </a>
     </div>
 </div>
 
-<div class="atarax-card">
-    <div class="atarax-card-header">
-        <h2 class="atarax-card-title">
-            <span>📜</span> Pracovní poznámky
-        </h2>
-    </div>
-    <p class="atarax-empty-desc">
-        Zde se budou ukládat a spravovat poznámky Pána jeskyně k jednotlivým herním sezením a tajemstvím světa.
-    </p>
+{% if notes or search_query or selected_category %}
+<div class="dm-notes-layout">
+    <!-- LEVÝ SLOUPEC: Seznam poznámek -->
+    <aside class="dm-notes-sidebar">
+        <!-- Rychlé filtry a hledání -->
+        <form method="get" action="{% url 'dm_site_app:notes' %}" style="display: flex; flex-direction: column; gap: 8px;">
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Hledat v poznámkách..." class="dm-search-input" style="width: 100%; box-sizing: border-box;">
+            
+            {% if categories %}
+                <select name="category" class="dm-select-input" onchange="this.form.submit()" style="width: 100%;">
+                    <option value="">-- Všechny kategorie --</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>
+                            🏷️ {{ cat }}
+                        </option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+
+            {% if search_query or selected_category %}
+                <a href="{% url 'dm_site_app:notes' %}" class="dm-btn-secondary" style="font-size: 0.8rem; justify-content: center;">
+                    Zrušit filtr
+                </a>
+            {% endif %}
+        </form>
+
+        <!-- Seznam karet poznámek -->
+        <div class="dm-notes-list">
+            {% for n in notes %}
+                <a href="{% url 'dm_site_app:notes' %}?selected={{ n.id }}{% if search_query %}&q={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}" 
+                   class="dm-note-item {% if active_note and active_note.id == n.id %}active{% endif %} {% if n.is_current %}is-current{% endif %}">
+                    
+                    <div class="dm-note-item-header">
+                        <h3 class="dm-note-item-title">{{ n.title }}</h3>
+                        {% if n.is_current %}
+                            <span class="dm-note-pin-badge">
+                                📌 Aktuální
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="dm-note-item-meta">
+                        <span class="dm-note-category-tag">{{ n.category|default:"Kampaň" }}</span>
+                        <span>{{ n.updated_at|date:"j. n. Y" }}</span>
+                    </div>
+                </a>
+            {% empty %}
+                <p class="no-sources-muted" style="text-align: center; padding: 20px 0;">
+                    Žádné poznámky neodpovídají zadanému filtru.
+                </p>
+            {% endfor %}
+        </div>
+    </aside>
+
+    <!-- PRAVÝ SLOUPEC: Praktická čtečka aktivní poznámky -->
+    <main class="dm-notes-main">
+        {% if active_note %}
+            <div class="dm-note-reader-header">
+                <div class="dm-note-reader-title-group">
+                    <div class="dm-note-reader-meta">
+                        <span class="dm-note-category-tag" style="font-size: 0.85rem; padding: 3px 8px;">
+                            🏷️ {{ active_note.category|default:"Kampaň" }}
+                        </span>
+                        <span>Aktualizováno: <strong>{{ active_note.updated_at|date:"j. n. Y H:i" }}</strong></span>
+                        {% if active_note.is_current %}
+                            <span class="dm-note-pin-badge" style="font-size: 0.82rem; padding: 3px 8px;">
+                                📌 Aktuální poznámka (připnuta nahoře)
+                            </span>
+                        {% endif %}
+                    </div>
+                    <h1>{{ active_note.title }}</h1>
+                </div>
+
+                <div class="dm-note-reader-actions">
+                    <!-- Rychlé přepnutí aktuální -->
+                    <a href="{% url 'dm_site_app:note_toggle_current' active_note.id %}" class="dm-btn-secondary" title="Přepnout připnutí nahoře">
+                        {% if active_note.is_current %}
+                            <span>📌</span> Odepnout z vrcholu
+                        {% else %}
+                            <span>📌</span> Označit jako aktuální
+                        {% endif %}
+                    </a>
+
+                    <!-- Úprava -->
+                    <a href="{% url 'dm_site_app:note_edit' active_note.id %}" class="dm-btn-gold">
+                        <span>✏️</span> Upravit
+                    </a>
+
+                    <!-- Smazání -->
+                    <form method="post" action="{% url 'dm_site_app:note_delete' active_note.id %}" onsubmit="return confirm('Opravdu chcete smazat poznámku {{ active_note.title }}?');" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="dm-btn-danger" title="Smazat poznámku">
+                            <span>🗑️</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Samotný obsah optimalizovaný pro příjemné čtení a odrážky -->
+            <article class="dm-note-reader-body">
+                {{ active_note.content|safe }}
+            </article>
+        {% else %}
+            <div class="atarax-empty-state" style="padding: 60px 20px;">
+                <div class="atarax-empty-icon">📝</div>
+                <h3 class="atarax-empty-title">Vyberte poznámku ze seznamu vlevo</h3>
+                <p class="atarax-empty-desc">Kliknutím na poznámku zobrazíte její kompletní přehled, nebo vytvořte novou.</p>
+                <div style="margin-top: 16px;">
+                    <a href="{% url 'dm_site_app:note_create' %}" class="dm-btn-gold">
+                        <span>➕</span> Vytvořit novou poznámku
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </main>
 </div>
+{% else %}
+<div class="atarax-empty-state" style="padding: 60px 20px; max-width: 600px; margin: 0 auto;">
+    <div class="atarax-empty-icon">📜</div>
+    <h3 class="atarax-empty-title">Zatím žádné poznámky</h3>
+    <p class="atarax-empty-desc">
+        Vytvořte si svou první soukromou poznámku k herní kampani. Můžete využívat formátování, tučné písmo i odrážky pro přehledný zápis.
+    </p>
+    <div style="margin-top: 20px;">
+        <a href="{% url 'dm_site_app:note_create' %}" class="dm-btn-gold">
+            <span>➕</span> Vytvořit první poznámku
+        </a>
+    </div>
+</div>
+{% endif %}
 {% endblock %}

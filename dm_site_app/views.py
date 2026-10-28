@@ -1,11 +1,15 @@
 import json
 import random
+import uuid
 from functools import wraps
 from django.http import JsonResponse
 from django.utils import functional
+from django.utils.text import slugify
+from django.urls import reverse
+from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Locations, Npc, Monsters_All_db, Monsters_Active, Items_All_db, Items_Active, Kronika
+from .models import Locations, Npc, Monsters_All_db, Monsters_Active, Items_All_db, Items_Active, Kronika, DmNote
 from player_site_app.models import Player, Char_info, Logs
 from player_site_app.achivements import zbohatlik_ach, smrtici_stroj_ach
 from dnd_atarax.terminal import (
@@ -51,12 +55,28 @@ def tools(request):
         'current_page': 'tools',
     })
 
+# ==========================================
+# 3. NPC MANAGEMENT
+# ==========================================
+
 @dm_required
 def npc(request):
-    """3. Seznam NPC"""
-    all_npcs = Npc.objects.all()
+    """Přehled všech NPC s vyhledáváním a filtrací podle lokace."""
+    q = request.GET.get('q', '').strip()
+    loc_id = request.GET.get('location', '').strip()
+
+    qs = Npc.objects.select_related('location').all()
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    if loc_id:
+        qs = qs.filter(location_id=loc_id)
+
+    all_locations = Locations.objects.all().order_by('name')
     context = {
-        'npcs': all_npcs,
+        'npcs': qs,
+        'locations': all_locations,
+        'selected_location': loc_id,
+        'search_query': q,
         'current_page': 'npc',
     }
     return render(request, 'dm_site_app/npc.html', context)
@@ -65,21 +85,482 @@ def npc(request):
 npcs = npc
 
 @dm_required
-def locations(request):
-    """4. Mapy a lokace"""
-    all_locations = Locations.objects.all()
-    context = {
+def npc_detail(request, npc_id):
+    """Detail konkrétního NPC se všemi informacemi a možnostmi správy."""
+    npc_obj = get_object_or_404(Npc.objects.select_related('location'), id=npc_id)
+    return render(request, 'dm_site_app/npc_detail.html', {
+        'npc_obj': npc_obj,
+        'current_page': 'npc',
+    })
+
+@dm_required
+def npc_create(request):
+    """Vytvoření nového NPC."""
+    all_locations = Locations.objects.all().order_by('name')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        location_id = request.POST.get('location') or None
+        gender = request.POST.get('gender') or None
+        description = request.POST.get('description', '').strip()
+        image_url = request.POST.get('image_url', '').strip() or None
+        uploaded_image = request.FILES.get('image')
+
+        try:
+            loot_gold = int(request.POST.get('loot_gold', 0) or 0)
+        except (ValueError, TypeError):
+            loot_gold = 0
+
+        try:
+            loot_silver = int(request.POST.get('loot_silver', 0) or 0)
+        except (ValueError, TypeError):
+            loot_silver = 0
+
+        loot_able = request.POST.get('loot_able') in ('on', 'true', '1')
+        is_dead = request.POST.get('is_dead') in ('on', 'true', '1')
+        in_fight = request.POST.get('in_fight') in ('on', 'true', '1')
+
+        if not name:
+            messages.error(request, "Jméno NPC je povinné.")
+            return render(request, 'dm_site_app/npc_form.html', {
+                'locations': all_locations,
+                'is_edit': False,
+                'current_page': 'npc',
+            })
+
+        loc_instance = None
+        if location_id:
+            loc_instance = Locations.objects.filter(id=location_id).first()
+
+        npc_obj = Npc.objects.create(
+            name=name,
+            location=loc_instance,
+            gender=gender,
+            description=description,
+            image=uploaded_image,
+            image_url=image_url,
+            loot_gold=loot_gold,
+            loot_silver=loot_silver,
+            loot_able=loot_able,
+            is_dead=is_dead,
+            in_fight=in_fight
+        )
+
+        log_dm("Vytvořeno nové NPC", f"'{name}' (ID: {npc_obj.id})")
+        messages.success(request, f"Nové NPC '{name}' bylo úspěšně vytvořeno.")
+        return redirect('dm_site_app:npc_detail', npc_id=npc_obj.id)
+
+    return render(request, 'dm_site_app/npc_form.html', {
         'locations': all_locations,
+        'is_edit': False,
+        'current_page': 'npc',
+    })
+
+@dm_required
+def npc_edit(request, npc_id):
+    """Úprava existujícího NPC včetně nahrání/změny obrázku."""
+    npc_obj = get_object_or_404(Npc, id=npc_id)
+    all_locations = Locations.objects.all().order_by('name')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        location_id = request.POST.get('location') or None
+        gender = request.POST.get('gender') or None
+        description = request.POST.get('description', '').strip()
+        image_url = request.POST.get('image_url', '').strip() or None
+        uploaded_image = request.FILES.get('image')
+        remove_image = request.POST.get('remove_image') in ('on', 'true', '1')
+
+        try:
+            loot_gold = int(request.POST.get('loot_gold', 0) or 0)
+        except (ValueError, TypeError):
+            loot_gold = 0
+
+        try:
+            loot_silver = int(request.POST.get('loot_silver', 0) or 0)
+        except (ValueError, TypeError):
+            loot_silver = 0
+
+        loot_able = request.POST.get('loot_able') in ('on', 'true', '1')
+        is_dead = request.POST.get('is_dead') in ('on', 'true', '1')
+        in_fight = request.POST.get('in_fight') in ('on', 'true', '1')
+
+        if not name:
+            messages.error(request, "Jméno NPC je povinné.")
+            return render(request, 'dm_site_app/npc_form.html', {
+                'npc_obj': npc_obj,
+                'locations': all_locations,
+                'is_edit': True,
+                'current_page': 'npc',
+            })
+
+        loc_instance = None
+        if location_id:
+            loc_instance = Locations.objects.filter(id=location_id).first()
+
+        npc_obj.name = name
+        npc_obj.location = loc_instance
+        npc_obj.gender = gender
+        npc_obj.description = description
+        npc_obj.loot_gold = loot_gold
+        npc_obj.loot_silver = loot_silver
+        npc_obj.loot_able = loot_able
+        npc_obj.is_dead = is_dead
+        npc_obj.in_fight = in_fight
+
+        if remove_image:
+            if npc_obj.image:
+                npc_obj.image.delete(save=False)
+            npc_obj.image = None
+            npc_obj.image_url = None
+        elif uploaded_image:
+            if npc_obj.image:
+                npc_obj.image.delete(save=False)
+            npc_obj.image = uploaded_image
+            npc_obj.image_url = None
+        elif image_url:
+            npc_obj.image_url = image_url
+
+        npc_obj.save()
+        log_dm("Upraveno NPC", f"'{name}' (ID: {npc_obj.id})")
+        messages.success(request, f"Záznam NPC '{name}' byl úspěšně upraven.")
+        return redirect('dm_site_app:npc_detail', npc_id=npc_obj.id)
+
+    return render(request, 'dm_site_app/npc_form.html', {
+        'npc_obj': npc_obj,
+        'locations': all_locations,
+        'is_edit': True,
+        'current_page': 'npc',
+    })
+
+@dm_required
+def npc_delete(request, npc_id):
+    """Smazání NPC."""
+    npc_obj = get_object_or_404(Npc, id=npc_id)
+    if request.method == 'POST':
+        name = npc_obj.name or "Neznámé NPC"
+        if npc_obj.image:
+            npc_obj.image.delete(save=False)
+        npc_obj.delete()
+        log_dm("Smazáno NPC", f"'{name}' (ID: {npc_id})")
+        messages.success(request, f"NPC '{name}' bylo smazáno.")
+        return redirect('dm_site_app:npc')
+    return redirect('dm_site_app:npc_detail', npc_id=npc_id)
+
+
+# ==========================================
+# 4. LOCATIONS MANAGEMENT
+# ==========================================
+
+@dm_required
+def locations(request):
+    """Přehled všech herních lokací s vyhledáváním a filtrováním dle typu."""
+    q = request.GET.get('q', '').strip()
+    loc_type = request.GET.get('type', '').strip()
+
+    qs = Locations.objects.select_related('layer_up', 'layer_down').prefetch_related('npcs').all()
+    if q:
+        qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+    if loc_type:
+        qs = qs.filter(type=loc_type)
+
+    context = {
+        'locations': qs,
+        'type_choices': Locations.type_choices,
+        'selected_type': loc_type,
+        'search_query': q,
         'current_page': 'locations',
     }
     return render(request, 'dm_site_app/locations.html', context)
 
 @dm_required
-def notes(request):
-    """5. Poznámky DM"""
-    return render(request, 'dm_site_app/notes.html', {
+def location_detail(request, loc_id):
+    """Detail lokace s mapou, hierarchií a seznamem NPC v ní."""
+    location_obj = get_object_or_404(
+        Locations.objects.select_related('layer_up', 'layer_down').prefetch_related('npcs', 'locations_below', 'locations_above'),
+        id=loc_id
+    )
+    return render(request, 'dm_site_app/location_detail.html', {
+        'location_obj': location_obj,
+        'current_page': 'locations',
+    })
+
+@dm_required
+def location_create(request):
+    """Vytvoření nové herní lokace."""
+    all_locations = Locations.objects.all().order_by('name')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        loc_type = request.POST.get('type') or None
+        description = request.POST.get('description', '').strip()
+        layer_up_id = request.POST.get('layer_up') or None
+        layer_down_id = request.POST.get('layer_down') or None
+        image_url = request.POST.get('image_url', '').strip() or None
+        uploaded_image = request.FILES.get('image')
+
+        if not name:
+            messages.error(request, "Název lokace je povinný.")
+            return render(request, 'dm_site_app/location_form.html', {
+                'locations': all_locations,
+                'type_choices': Locations.type_choices,
+                'is_edit': False,
+                'current_page': 'locations',
+            })
+
+        layer_up_obj = Locations.objects.filter(id=layer_up_id).first() if layer_up_id else None
+        layer_down_obj = Locations.objects.filter(id=layer_down_id).first() if layer_down_id else None
+
+        loc_obj = Locations.objects.create(
+            name=name,
+            type=loc_type,
+            description=description,
+            layer_up=layer_up_obj,
+            layer_down=layer_down_obj,
+            image=uploaded_image,
+            image_url=image_url
+        )
+
+        log_dm("Vytvořena nová lokace", f"'{name}' (ID: {loc_obj.id})")
+        messages.success(request, f"Lokace '{name}' byla úspěšně vytvořena.")
+        return redirect('dm_site_app:location_detail', loc_id=loc_obj.id)
+
+    return render(request, 'dm_site_app/location_form.html', {
+        'locations': all_locations,
+        'type_choices': Locations.type_choices,
+        'is_edit': False,
+        'current_page': 'locations',
+    })
+
+@dm_required
+def location_edit(request, loc_id):
+    """Úprava existující herní lokace včetně mapy."""
+    location_obj = get_object_or_404(Locations, id=loc_id)
+    all_locations = Locations.objects.exclude(id=loc_id).order_by('name')
+
+    if request.method == 'POST':
+        name = request.POST.get('name', '').strip()
+        loc_type = request.POST.get('type') or None
+        description = request.POST.get('description', '').strip()
+        layer_up_id = request.POST.get('layer_up') or None
+        layer_down_id = request.POST.get('layer_down') or None
+        image_url = request.POST.get('image_url', '').strip() or None
+        uploaded_image = request.FILES.get('image')
+        remove_image = request.POST.get('remove_image') in ('on', 'true', '1')
+
+        if not name:
+            messages.error(request, "Název lokace je povinný.")
+            return render(request, 'dm_site_app/location_form.html', {
+                'location_obj': location_obj,
+                'locations': all_locations,
+                'type_choices': Locations.type_choices,
+                'is_edit': True,
+                'current_page': 'locations',
+            })
+
+        layer_up_obj = Locations.objects.filter(id=layer_up_id).first() if layer_up_id else None
+        layer_down_obj = Locations.objects.filter(id=layer_down_id).first() if layer_down_id else None
+
+        location_obj.name = name
+        location_obj.type = loc_type
+        location_obj.description = description
+        location_obj.layer_up = layer_up_obj
+        location_obj.layer_down = layer_down_obj
+
+        if remove_image:
+            if location_obj.image:
+                location_obj.image.delete(save=False)
+            location_obj.image = None
+            location_obj.image_url = None
+        elif uploaded_image:
+            if location_obj.image:
+                location_obj.image.delete(save=False)
+            location_obj.image = uploaded_image
+            location_obj.image_url = None
+        elif image_url:
+            location_obj.image_url = image_url
+
+        location_obj.save()
+        log_dm("Upravena lokace", f"'{name}' (ID: {location_obj.id})")
+        messages.success(request, f"Lokace '{name}' byla úspěšně upravena.")
+        return redirect('dm_site_app:location_detail', loc_id=location_obj.id)
+
+    return render(request, 'dm_site_app/location_form.html', {
+        'location_obj': location_obj,
+        'locations': all_locations,
+        'type_choices': Locations.type_choices,
+        'is_edit': True,
+        'current_page': 'locations',
+    })
+
+@dm_required
+def location_delete(request, loc_id):
+    """Smazání herní lokace."""
+    location_obj = get_object_or_404(Locations, id=loc_id)
+    if request.method == 'POST':
+        name = location_obj.name
+        if location_obj.image:
+            location_obj.image.delete(save=False)
+        location_obj.delete()
+        log_dm("Smazána lokace", f"'{name}' (ID: {loc_id})")
+        messages.success(request, f"Lokace '{name}' byla smazána.")
+        return redirect('dm_site_app:locations')
+    return redirect('dm_site_app:location_detail', loc_id=loc_id)
+
+
+# ==========================================
+# 5. DM NOTES (POZNÁMKY PÁNA JESKYNĚ)
+# ==========================================
+
+@dm_required
+def notes(request, note_id=None):
+    """Přehled a čtečka poznámek DM. Aktuální poznámky jsou vždy na vrcholu."""
+    q = request.GET.get('q', '').strip()
+    cat = request.GET.get('category', '').strip()
+    selected_id = note_id or request.GET.get('selected')
+
+    qs = DmNote.objects.order_by('-is_current', '-updated_at')
+    if q:
+        qs = qs.filter(Q(title__icontains=q) | Q(content__icontains=q))
+    if cat:
+        qs = qs.filter(category=cat)
+
+    categories = (
+        DmNote.objects.exclude(category__isnull=True)
+        .exclude(category='')
+        .values_list('category', flat=True)
+        .distinct()
+        .order_by('category')
+    )
+
+    active_note = None
+    if selected_id:
+        active_note = DmNote.objects.filter(id=selected_id).first()
+    if not active_note and qs.exists():
+        active_note = qs.first()
+
+    context = {
+        'notes': qs,
+        'active_note': active_note,
+        'categories': categories,
+        'selected_category': cat,
+        'search_query': q,
+        'current_page': 'notes',
+    }
+    return render(request, 'dm_site_app/notes.html', context)
+
+@dm_required
+def note_create(request):
+    """Vytvoření nové poznámky s WYSIWYG editorem a klávesovými zkratkami."""
+    existing_categories = (
+        DmNote.objects.exclude(category__isnull=True)
+        .exclude(category='')
+        .values_list('category', flat=True)
+        .distinct()
+        .order_by('category')
+    )
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        category = request.POST.get('category', '').strip() or 'Kampaň'
+        is_current = request.POST.get('is_current') in ('on', 'true', '1')
+
+        if not title:
+            messages.error(request, "Název poznámky je povinný.")
+            return render(request, 'dm_site_app/note_form.html', {
+                'categories': existing_categories,
+                'is_edit': False,
+                'current_page': 'notes',
+            })
+
+        note = DmNote.objects.create(
+            title=title,
+            content=content,
+            category=category,
+            is_current=is_current
+        )
+
+        log_dm("Vytvořena poznámka DM", f"'{title}' [{category}] (Aktuální: {is_current})")
+        messages.success(request, f"Poznámka '{title}' byla vytvořena.")
+        return redirect(f"{reverse('dm_site_app:notes')}?selected={note.id}")
+
+    return render(request, 'dm_site_app/note_form.html', {
+        'categories': existing_categories,
+        'is_edit': False,
         'current_page': 'notes',
     })
+
+@dm_required
+def note_edit(request, note_id):
+    """Úprava existující poznámky."""
+    note = get_object_or_404(DmNote, id=note_id)
+    existing_categories = (
+        DmNote.objects.exclude(category__isnull=True)
+        .exclude(category='')
+        .values_list('category', flat=True)
+        .distinct()
+        .order_by('category')
+    )
+
+    if request.method == 'POST':
+        title = request.POST.get('title', '').strip()
+        content = request.POST.get('content', '').strip()
+        category = request.POST.get('category', '').strip() or 'Kampaň'
+        is_current = request.POST.get('is_current') in ('on', 'true', '1')
+
+        if not title:
+            messages.error(request, "Název poznámky je povinný.")
+            return render(request, 'dm_site_app/note_form.html', {
+                'note': note,
+                'categories': existing_categories,
+                'is_edit': True,
+                'current_page': 'notes',
+            })
+
+        note.title = title
+        note.content = content
+        note.category = category
+        note.is_current = is_current
+        note.save()
+
+        log_dm("Upravena poznámka DM", f"'{title}' [{category}]")
+        messages.success(request, f"Poznámka '{title}' byla uložena.")
+        return redirect(f"{reverse('dm_site_app:notes')}?selected={note.id}")
+
+    return render(request, 'dm_site_app/note_form.html', {
+        'note': note,
+        'categories': existing_categories,
+        'is_edit': True,
+        'current_page': 'notes',
+    })
+
+@dm_required
+def note_toggle_current(request, note_id):
+    """Přepnutí statusu 'aktuální' (připnutí na vrchol)."""
+    note = get_object_or_404(DmNote, id=note_id)
+    note.is_current = not note.is_current
+    note.save()
+
+    stav = "označena jako aktuální (připnuta nahoře)" if note.is_current else "odebrána z aktuálních"
+    messages.info(request, f"Poznámka '{note.title}' je nyní {stav}.")
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+        return JsonResponse({'success': True, 'is_current': note.is_current})
+
+    return redirect(f"{reverse('dm_site_app:notes')}?selected={note.id}")
+
+@dm_required
+def note_delete(request, note_id):
+    """Smazání poznámky."""
+    note = get_object_or_404(DmNote, id=note_id)
+    if request.method == 'POST':
+        title = note.title
+        note.delete()
+        log_dm("Smazána poznámka DM", f"'{title}' (ID: {note_id})")
+        messages.success(request, f"Poznámka '{title}' byla smazána.")
+        return redirect('dm_site_app:notes')
+    return redirect(f"{reverse('dm_site_app:notes')}?selected={note.id}")
 
 @dm_required
 def lore(request):
@@ -609,4 +1090,143 @@ def assign_loot_items(request):
         messages.warning(request, "Nebyly nalezeny žádné platné předměty k připsání.")
 
     return redirect('dm_site_app:loot_management')
+
+
+@dm_required
+def create_custom_item(request):
+    """
+    Umožňuje DM vytvořit zcela nový předmět do herního kompendia (Items_All_db)
+    a rovnou jej v zadaném množství připsat do inventáře vybrané postavy (Items_Active).
+    """
+    all_chars = Char_info.objects.all().select_related('player').order_by('name')
+    categories = sorted(list(set(Items_All_db.objects.values_list('category', flat=True).exclude(category__isnull=True).exclude(category=''))))
+
+    if request.method == 'POST':
+        name_cz = request.POST.get('name_cz', '').strip()
+        character_id = request.POST.get('character_id', '').strip()
+
+        if not name_cz:
+            messages.error(request, "Vyplňte prosím název předmětu.")
+            return render(request, 'dm_site_app/create_custom_item.html', {
+                'all_chars': all_chars,
+                'categories': categories,
+                'current_page': 'loot_management',
+            })
+
+        character = None
+        if character_id:
+            try:
+                character = Char_info.objects.filter(id=int(character_id)).first()
+            except (ValueError, TypeError):
+                character = None
+
+        # Množství (počet kusů)
+        try:
+            quantity = max(1, min(100, int(request.POST.get('quantity', 1) or 1)))
+        except (ValueError, TypeError):
+            quantity = 1
+
+        # Kategorie
+        category = request.POST.get('category', '').strip() or 'Ostatní'
+        if category == '__custom__':
+            custom_cat = request.POST.get('custom_category', '').strip()
+            category = custom_cat if custom_cat else 'Ostatní'
+
+        # Ceny a váha
+        try:
+            cost_gold = max(0, int(request.POST.get('cost_gold', 0) or 0))
+        except (ValueError, TypeError):
+            cost_gold = 0
+
+        try:
+            cost_silver = max(0, int(request.POST.get('cost_silver', 0) or 0))
+        except (ValueError, TypeError):
+            cost_silver = 0
+
+        try:
+            weight = max(0.0, float(request.POST.get('weight', 0.0) or 0.0))
+        except (ValueError, TypeError):
+            weight = 0.0
+
+        description = request.POST.get('description', '').strip()
+        name_en = request.POST.get('name_en', '').strip() or name_cz
+        damage = request.POST.get('damage', '').strip() or None
+
+        armor_class_raw = request.POST.get('armor_class', '').strip()
+        armor_class = None
+        if armor_class_raw:
+            try:
+                armor_class = int(armor_class_raw)
+            except (ValueError, TypeError):
+                armor_class = None
+
+        properties = request.POST.get('properties', '').strip() or None
+
+        # Generování unikátního api_index pro Items_All_db
+        base_slug = slugify(name_cz)
+        if not base_slug:
+            base_slug = 'custom-item'
+        api_index = f"custom-{base_slug[:60]}"
+        if Items_All_db.objects.filter(api_index=api_index).exists():
+            api_index = f"{api_index[:75]}-{uuid.uuid4().hex[:6]}"
+
+        # 1. Uložení šablony předmětu do Items_All_db (Kompendium)
+        item_template = Items_All_db.objects.create(
+            api_index=api_index,
+            name_cz=name_cz,
+            name_en=name_en,
+            category=category,
+            cost_gold=cost_gold,
+            cost_silver=cost_silver,
+            weight=weight,
+            damage=damage,
+            armor_class=armor_class,
+            properties=properties,
+            description=description,
+        )
+
+        # 2. Vytvoření instancí v Items_Active pro vybraného hráče
+        if character:
+            for _ in range(quantity):
+                Items_Active.objects.create(
+                    char_own=character,
+                    api_index=item_template.api_index,
+                    name_cz=item_template.name_cz,
+                    name_en=item_template.name_en,
+                    category=item_template.category,
+                    cost_gold=item_template.cost_gold,
+                    cost_silver=item_template.cost_silver,
+                    weight=item_template.weight,
+                    damage=item_template.damage,
+                    armor_class=item_template.armor_class,
+                    properties=item_template.properties,
+                    description=item_template.description,
+                )
+
+            log_msg = f"DM vytvořil a připsal předmět '{name_cz}' ({quantity}x) postavě {character.name}"
+            log = Logs(
+                player=character.player,
+                character=character,
+                message=log_msg,
+                value=float(quantity)
+            )
+            log.save()
+            log_success("Vlastní item vytvořen", log_msg)
+            messages.success(request, f"Předmět '{name_cz}' ({quantity} ks) byl úspěšně vytvořen v databázi a připsán postavě {character.name}!")
+        else:
+            log_msg = f"DM vytvořil nový předmět '{name_cz}' do herního kompendia"
+            log_info(log_msg)
+            messages.success(request, f"Předmět '{name_cz}' byl úspěšně vytvořen v herním kompendiu!")
+
+        return redirect('dm_site_app:loot_management')
+
+    # GET požadavek
+    selected_char_id = request.GET.get('char_id')
+    context = {
+        'all_chars': all_chars,
+        'categories': categories,
+        'selected_char_id': int(selected_char_id) if selected_char_id and selected_char_id.isdigit() else None,
+        'current_page': 'loot_management',
+    }
+    return render(request, 'dm_site_app/create_custom_item.html', context)
 

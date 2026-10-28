@@ -7,10 +7,28 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('dashboard/', views.index, name='index_dashboard'),
     path('tools/', views.tools, name='tools'),
+    # 3. NPC
     path('npc/', views.npc, name='npc'),
     path('npcs/', views.npc, name='npcs'),
+    path('npc/create/', views.npc_create, name='npc_create'),
+    path('npc/<int:npc_id>/', views.npc_detail, name='npc_detail'),
+    path('npc/<int:npc_id>/edit/', views.npc_edit, name='npc_edit'),
+    path('npc/<int:npc_id>/delete/', views.npc_delete, name='npc_delete'),
+
+    # 4. Lokace
     path('locations/', views.locations, name='locations'),
+    path('locations/create/', views.location_create, name='location_create'),
+    path('locations/<int:loc_id>/', views.location_detail, name='location_detail'),
+    path('locations/<int:loc_id>/edit/', views.location_edit, name='location_edit'),
+    path('locations/<int:loc_id>/delete/', views.location_delete, name='location_delete'),
+
+    # 5. Poznámky
     path('notes/', views.notes, name='notes'),
+    path('notes/create/', views.note_create, name='note_create'),
+    path('notes/<int:note_id>/', views.notes, name='note_detail'),
+    path('notes/<int:note_id>/edit/', views.note_edit, name='note_edit'),
+    path('notes/<int:note_id>/toggle_current/', views.note_toggle_current, name='note_toggle_current'),
+    path('notes/<int:note_id>/delete/', views.note_delete, name='note_delete'),
     path('lore/', views.lore, name='lore'),
     path('kronika_edit/', views.kronika_edit, name='kronika_edit'),
     path('golds-management/', views.golds_management, name='golds-management'),
@@ -27,4 +45,6 @@ urlpatterns = [
     path('loot_management/', views.loot_management, name='loot_management'),
     path('plus_loot_gold/', views.plus_loot_gold, name='plus_loot_gold'),
     path('assign_loot_items/', views.assign_loot_items, name='assign_loot_items'),
+    path('create_custom_item/', views.create_custom_item, name='create_custom_item'),
 ]
+

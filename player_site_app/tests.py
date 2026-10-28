@@ -248,7 +248,7 @@ class PlayerAuthAndCharacterTests(TestCase):
         idx7 = content.find(reverse('player_site_app:kronika'))
         # 8. prehled_postav
         idx8 = content.find(reverse('player_site_app:prehled_postav'))
-        # 9. stream
+        # 9. stream (volitelné pokud bylo odebráno z menu)
         idx9 = content.find(reverse('player_site_app:stream'))
         # 10. dungeon_shop (oddělený čárou hr)
         idx10 = content.find(reverse('player_site_app:dungeon_shop'))
@@ -257,15 +257,17 @@ class PlayerAuthAndCharacterTests(TestCase):
 
         self.assertTrue(idx1 != -1 and idx2 != -1 and idx3 != -1 and idx4 != -1)
         self.assertTrue(idx5 != -1 and idx6 != -1 and idx7 != -1 and idx8 != -1)
-        self.assertTrue(idx9 != -1 and idx10 != -1 and idx_logout != -1)
+        self.assertTrue(idx10 != -1 and idx_logout != -1)
 
         # Ověření přesného pořadí:
-        self.assertTrue(idx1 < idx2 < idx3 < idx4 < idx5 < idx6 < idx7 < idx8 < idx9 < idx10 < idx_logout)
-
-        # Ověření oddělovače (hr) před Dungeon Shopem
         hr_idx = content.find('<hr class="player-nav-divider">')
         self.assertTrue(hr_idx != -1)
-        self.assertTrue(idx9 < hr_idx < idx10)
+        if idx9 != -1:
+            self.assertTrue(idx1 < idx2 < idx3 < idx4 < idx5 < idx6 < idx7 < idx8 < idx9 < idx10 < idx_logout)
+            self.assertTrue(idx9 < hr_idx < idx10)
+        else:
+            self.assertTrue(idx1 < idx2 < idx3 < idx4 < idx5 < idx6 < idx7 < idx8 < idx10 < idx_logout)
+            self.assertTrue(idx8 < hr_idx < idx10)
 
     def test_dm_site_does_not_contain_player_nav(self):
         """Aplikace dm_site_app nesmí obsahovat hráčské menu."""

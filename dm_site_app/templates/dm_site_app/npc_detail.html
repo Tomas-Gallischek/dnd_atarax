@@ -1,0 +1,112 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}DnD Atarax - {{ npc_obj.name|default:"NPC Detail" }}{% endblock %}
+
+{% block dm_content %}
+<div class="dm-toolbar-header">
+    <div class="atarax-header-title-group">
+        <a href="{% url 'dm_site_app:npc' %}" style="color: var(--text-muted); font-size: 0.9rem; text-decoration: none; display: inline-block; margin-bottom: 6px;">
+            ← Zpět na seznam NPC
+        </a>
+        <h1><span>👤</span> {{ npc_obj.name|default:"Neznámé NPC" }}</h1>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="{% url 'dm_site_app:npc_edit' npc_obj.id %}" class="dm-btn-gold">
+            <span>✏️</span> Upravit NPC
+        </a>
+        <form method="post" action="{% url 'dm_site_app:npc_delete' npc_obj.id %}" onsubmit="return confirm('Opravdu chcete smazat NPC {{ npc_obj.name }}?');" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="dm-btn-danger">
+                <span>🗑️</span> Smazat
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="dm-detail-container">
+    <div class="dm-detail-top-row">
+        <img src="{{ npc_obj.display_image_url }}" alt="{{ npc_obj.name }}" class="dm-detail-portrait-lg">
+        
+        <div class="dm-detail-meta-group">
+            <h2 class="dm-detail-title">{{ npc_obj.name }}</h2>
+            
+            <div class="dm-entity-badges" style="margin-bottom: 14px;">
+                {% if npc_obj.gender %}
+                    <span class="badge badge-silver" style="font-size: 0.9rem;">{{ npc_obj.get_gender_display|default:npc_obj.gender }}</span>
+                {% endif %}
+
+                {% if npc_obj.location %}
+                    <a href="{% url 'dm_site_app:location_detail' npc_obj.location.id %}" class="badge badge-gold" style="font-size: 0.9rem; text-decoration: none;">
+                        📍 {{ npc_obj.location.name }}
+                    </a>
+                {% else %}
+                    <span class="badge" style="background: rgba(100, 116, 139, 0.2); color: #94a3b8; border: 1px solid #475569;">
+                        Bez stálé lokace
+                    </span>
+                {% endif %}
+
+                {% if npc_obj.is_dead %}
+                    <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #dc2626; font-size: 0.9rem;">
+                        💀 Mrtvý
+                    </span>
+                {% endif %}
+
+                {% if npc_obj.in_fight %}
+                    <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fef08a; border: 1px solid #d97706; font-size: 0.9rem;">
+                        ⚔️ Aktuálně v boji
+                    </span>
+                {% endif %}
+            </div>
+
+            <!-- Stats & Poklad -->
+            <div class="dm-stats-grid">
+                <div class="dm-stat-box">
+                    <div class="dm-stat-label">Zlaté mince (GP)</div>
+                    <div class="dm-stat-val" style="color: #fbbf24;">🪙 {{ npc_obj.loot_gold }} GP</div>
+                </div>
+                <div class="dm-stat-box">
+                    <div class="dm-stat-label">Stříbrné mince (SP)</div>
+                    <div class="dm-stat-val" style="color: #e2e8f0;">🪙 {{ npc_obj.loot_silver }} SP</div>
+                </div>
+                <div class="dm-stat-box">
+                    <div class="dm-stat-label">Stav lootu</div>
+                    <div class="dm-stat-val">
+                        {% if npc_obj.loot_able %}
+                            <span style="color: #4ade80;">Lze sebrat</span>
+                        {% else %}
+                            <span style="color: #94a3b8;">Nelootovatelné</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Popis a tajemství -->
+    <div style="margin-top: 24px;">
+        <h3 style="color: var(--gold-400); font-family: var(--font-cinzel, serif); font-size: 1.25rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+            📜 Popis, chování a informace pro DM
+        </h3>
+        
+        {% if npc_obj.description %}
+            <div style="color: #f1f5f9; font-size: 1.05rem; line-height: 1.8; white-space: pre-line; background: rgba(13, 10, 18, 0.6); padding: 18px 22px; border-radius: var(--radius-sm); border: 1px solid var(--border-card);">
+                {{ npc_obj.description }}
+            </div>
+        {% else %}
+            <p class="no-sources-muted" style="font-style: italic;">K této postavě zatím nebyl zapsán žádný detailní popis.</p>
+        {% endif %}
+    </div>
+
+    {% if npc_obj.location %}
+        <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border-subtle);">
+            <h4 style="color: var(--gold-400); margin: 0 0 10px 0;">📍 Příslušná lokace: {{ npc_obj.location.name }}</h4>
+            <p style="color: var(--text-muted); font-size: 0.92rem; margin: 0 0 12px 0;">
+                Typ: {{ npc_obj.location.get_type_display|default:npc_obj.location.type|default:"Neurčeno" }}
+            </p>
+            <a href="{% url 'dm_site_app:location_detail' npc_obj.location.id %}" class="dm-btn-secondary">
+                <span>🗺️</span> Přejít na detail lokace {{ npc_obj.location.name }}
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

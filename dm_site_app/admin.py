@@ -2,8 +2,16 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import (
     Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active,
-    Items_Active, OverAllSettings, Kronika, Spells_All_db, Spells_Active
+    Items_Active, OverAllSettings, Kronika, Spells_All_db, Spells_Active, DmNote
 )
+
+
+@admin.register(DmNote)
+class DmNoteAdmin(admin.ModelAdmin):
+    list_display = ('title', 'category', 'is_current', 'updated_at', 'created_at')
+    list_filter = ('is_current', 'category')
+    search_fields = ('title', 'content', 'category')
+    list_editable = ('is_current',)
 
 
 @admin.register(Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active)

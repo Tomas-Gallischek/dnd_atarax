@@ -1,0 +1,138 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}DnD Atarax - {{ location_obj.name }}{% endblock %}
+
+{% block dm_content %}
+<div class="dm-toolbar-header">
+    <div class="atarax-header-title-group">
+        <a href="{% url 'dm_site_app:locations' %}" style="color: var(--text-muted); font-size: 0.9rem; text-decoration: none; display: inline-block; margin-bottom: 6px;">
+            ← Zpět na seznam lokací
+        </a>
+        <h1><span>📍</span> {{ location_obj.name }}</h1>
+    </div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+        <a href="{% url 'dm_site_app:location_edit' location_obj.id %}" class="dm-btn-gold">
+            <span>✏️</span> Upravit lokaci
+        </a>
+        <form method="post" action="{% url 'dm_site_app:location_delete' location_obj.id %}" onsubmit="return confirm('Opravdu chcete smazat lokaci {{ location_obj.name }}?');" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="dm-btn-danger">
+                <span>🗑️</span> Smazat
+            </button>
+        </form>
+    </div>
+</div>
+
+<div class="dm-detail-container">
+    <!-- Horní lišta s mapou -->
+    <div style="margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+                <span class="badge badge-gold" style="font-size: 0.92rem;">
+                    {{ location_obj.get_type_display|default:location_obj.type|default:"Herní lokace" }}
+                </span>
+                {% if location_obj.layer_up %}
+                    <span style="color: var(--text-muted); font-size: 0.9rem; margin-left: 10px;">
+                        Součást lokace: 
+                        <a href="{% url 'dm_site_app:location_detail' location_obj.layer_up.id %}" style="color: var(--gold-400); font-weight: 600; text-decoration: none;">
+                            📍 {{ location_obj.layer_up.name }}
+                        </a>
+                    </span>
+                {% endif %}
+            </div>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                🔍 Kliknutím na mapu ji zvětšíte
+            </span>
+        </div>
+
+        <img src="{{ location_obj.display_image_url }}" alt="Mapa {{ location_obj.name }}" class="dm-detail-map-banner" onclick="openMapModal(this.src)">
+    </div>
+
+    <!-- Popis a herní informace -->
+    <div style="margin-top: 24px;">
+        <h3 style="color: var(--gold-400); font-family: var(--font-cinzel, serif); font-size: 1.25rem; margin-bottom: 12px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 6px;">
+            📜 Popis, atmosféra a herní fakta
+        </h3>
+        
+        {% if location_obj.description %}
+            <div style="color: #f1f5f9; font-size: 1.05rem; line-height: 1.8; white-space: pre-line; background: rgba(13, 10, 18, 0.6); padding: 18px 22px; border-radius: var(--radius-sm); border: 1px solid var(--border-card);">
+                {{ location_obj.description }}
+            </div>
+        {% else %}
+            <p class="no-sources-muted" style="font-style: italic;">K této lokaci zatím nebyl zapsán žádný detailní popis.</p>
+        {% endif %}
+    </div>
+
+    <!-- Podřazené lokace (dungeony, budovy atd.) -->
+    {% if location_obj.locations_below.all %}
+        <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-subtle);">
+            <h3 style="color: var(--gold-400); font-family: var(--font-cinzel, serif); font-size: 1.15rem; margin-bottom: 14px;">
+                📂 Vnitřní a podřazené lokace ({{ location_obj.locations_below.count }})
+            </h3>
+            <div class="dm-entity-badges">
+                {% for sub in location_obj.locations_below.all %}
+                    <a href="{% url 'dm_site_app:location_detail' sub.id %}" class="badge" style="background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid #0284c7; padding: 6px 12px; font-size: 0.9rem; text-decoration: none;">
+                        📍 {{ sub.name }} {% if sub.type %}({{ sub.get_type_display|default:sub.type }}){% endif %}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Obyvatelé a NPC v této lokaci -->
+    <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-subtle);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <h3 style="color: var(--gold-400); font-family: var(--font-cinzel, serif); font-size: 1.15rem; margin: 0;">
+                👥 Nehráčské postavy v této lokaci ({{ location_obj.npcs.count }})
+            </h3>
+            <a href="{% url 'dm_site_app:npc_create' %}?location={{ location_obj.id }}" class="dm-btn-secondary" style="font-size: 0.82rem;">
+                <span>➕</span> Přidat NPC sem
+            </a>
+        </div>
+
+        {% if location_obj.npcs.all %}
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px;">
+                {% for npc_item in location_obj.npcs.all %}
+                    <div style="background: rgba(13, 10, 18, 0.7); border: 1px solid var(--border-card); border-radius: var(--radius-sm); padding: 12px; display: flex; align-items: center; gap: 12px;">
+                        <img src="{{ npc_item.display_image_url }}" alt="{{ npc_item.name }}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-400); background: #120e18;">
+                        <div style="flex: 1; min-width: 0;">
+                            <a href="{% url 'dm_site_app:npc_detail' npc_item.id %}" style="color: var(--gold-400); font-weight: 700; text-decoration: none; font-size: 0.95rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                {{ npc_item.name|default:"Neznámé NPC" }}
+                            </a>
+                            <span style="font-size: 0.8rem; color: var(--text-muted);">
+                                {{ npc_item.get_gender_display|default:npc_item.gender|default:"Postava" }}
+                            </span>
+                        </div>
+                        <a href="{% url 'dm_site_app:npc_edit' npc_item.id %}" class="dm-btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">
+                            ✏️
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="no-sources-muted" style="font-style: italic;">V této lokaci zatím nepobývá žádné evidované NPC.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Lightbox Modal pro zvětšení mapy -->
+<div id="dmMapModal" class="dm-map-modal" onclick="closeMapModal()">
+    <span class="dm-map-modal-close">&times;</span>
+    <img id="dmMapModalImg" src="" alt="Zvětšená mapa" class="dm-map-modal-content" onclick="event.stopPropagation()">
+</div>
+
+<script>
+function openMapModal(src) {
+    document.getElementById('dmMapModalImg').src = src;
+    document.getElementById('dmMapModal').classList.add('active');
+}
+function closeMapModal() {
+    document.getElementById('dmMapModal').classList.remove('active');
+}
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeMapModal();
+    }
+});
+</script>
+{% endblock %}

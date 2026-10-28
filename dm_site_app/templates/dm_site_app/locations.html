@@ -3,35 +3,112 @@
 {% block title %}DnD Atarax - Lokace a Mapy{% endblock %}
 
 {% block dm_content %}
-<div class="atarax-page-header">
+<div class="dm-toolbar-header">
     <div class="atarax-header-title-group">
         <h1><span>🗺️</span> Mapy a Lokace</h1>
-        <p class="atarax-header-subtitle">Dungeony, sídla, divočina a významná místa světa Atarax.</p>
+        <p class="atarax-header-subtitle">Dungeony, města, království a tajemná místa herního světa Atarax.</p>
+    </div>
+    <div>
+        <a href="{% url 'dm_site_app:location_create' %}" class="dm-btn-gold">
+            <span>➕</span> Přidat novou lokaci
+        </a>
     </div>
 </div>
 
+<!-- Vyhledávací a filtrační lišta -->
+<form method="get" action="{% url 'dm_site_app:locations' %}" class="dm-filter-bar">
+    <input type="text" name="q" value="{{ search_query }}" placeholder="Hledat lokaci podle názvu či popisu..." class="dm-search-input">
+    
+    <select name="type" class="dm-select-input" onchange="this.form.submit()">
+        <option value="">-- Všechny typy lokací --</option>
+        {% for code, label in type_choices %}
+            <option value="{{ code }}" {% if selected_type == code %}selected{% endif %}>
+                {{ label }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="dm-btn-secondary">Hledat</button>
+    {% if search_query or selected_type %}
+        <a href="{% url 'dm_site_app:locations' %}" class="dm-btn-secondary">Zrušit filtr</a>
+    {% endif %}
+</form>
+
 {% if locations %}
-    <div class="grid-2">
-        {% for location in locations %}
-        <article class="dm-item-card">
-            <div class="dm-item-header">
-                <h2 class="dm-item-title">📍 {{ location.name }}</h2>
-                <span class="badge badge-gold">{{ location.get_type_display|default:location.type }}</span>
+    <div class="dm-entity-grid">
+        {% for loc in locations %}
+        <article class="dm-entity-card">
+            <!-- Map Banner -->
+            <a href="{% url 'dm_site_app:location_detail' loc.id %}" style="display: block; overflow: hidden;">
+                <img src="{{ loc.display_image_url }}" alt="Mapa {{ loc.name }}" class="dm-location-banner" loading="lazy">
+            </a>
+
+            <div class="dm-entity-body">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+                    <h2 class="dm-npc-name" style="font-size: 1.25rem;">
+                        <a href="{% url 'dm_site_app:location_detail' loc.id %}" style="color: inherit; text-decoration: none;">
+                            📍 {{ loc.name }}
+                        </a>
+                    </h2>
+                    <span class="badge badge-gold">{{ loc.get_type_display|default:loc.type|default:"Lokace" }}</span>
+                </div>
+
+                {% if loc.layer_up %}
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">
+                        <span>Vrstva nad:</span> <strong style="color: #cbd5e1;">{{ loc.layer_up.name }}</strong>
+                    </div>
+                {% endif %}
+
+                {% if loc.description %}
+                    <p class="dm-entity-desc-preview">{{ loc.description }}</p>
+                {% else %}
+                    <p class="no-sources-muted">Bez podrobnějšího popisu lokace.</p>
+                {% endif %}
+
+                <div class="dm-entity-badges" style="margin-top: auto; padding-top: 8px;">
+                    {% with npc_count=loc.npcs.count %}
+                        {% if npc_count > 0 %}
+                            <span class="badge badge-silver">👥 {{ npc_count }} NPC</span>
+                        {% endif %}
+                    {% endwith %}
+
+                    {% with sub_count=loc.locations_below.count %}
+                        {% if sub_count > 0 %}
+                            <span class="badge" style="background: rgba(56, 189, 248, 0.15); color: #7dd3fc; border: 1px solid #0284c7;">
+                                📂 {{ sub_count }} podlokací
+                            </span>
+                        {% endif %}
+                    {% endwith %}
+                </div>
             </div>
 
-            {% if location.description %}
-                <p class="dm-item-desc">{{ location.description }}</p>
-            {% else %}
-                <p class="no-sources-muted">Bez podrobnějšího popisu lokace.</p>
-            {% endif %}
+            <div class="dm-entity-footer">
+                <a href="{% url 'dm_site_app:location_detail' loc.id %}" class="dm-btn-secondary" style="font-size: 0.84rem;">
+                    <span>🗺️</span> Zobrazit mapu & detail
+                </a>
+                <a href="{% url 'dm_site_app:location_edit' loc.id %}" class="dm-btn-secondary" style="font-size: 0.84rem;">
+                    <span>✏️</span> Upravit
+                </a>
+            </div>
         </article>
         {% endfor %}
     </div>
 {% else %}
     <div class="atarax-empty-state">
         <div class="atarax-empty-icon">🗺️</div>
-        <h3 class="atarax-empty-title">Žádné lokace nejsou k dispozici</h3>
-        <p class="atarax-empty-desc">V kampani zatím nebyly zapsány žádné herní lokace.</p>
+        <h3 class="atarax-empty-title">Žádné lokace nenalezeny</h3>
+        <p class="atarax-empty-desc">
+            {% if search_query or selected_type %}
+                Pro zadaný filtr nebyly nalezeny žádné herní lokace.
+            {% else %}
+                V kampani zatím nebyly zapsány žádné herní lokace.
+            {% endif %}
+        </p>
+        <div style="margin-top: 16px;">
+            <a href="{% url 'dm_site_app:location_create' %}" class="dm-btn-gold">
+                <span>➕</span> Vytvořit první lokaci
+            </a>
+        </div>
     </div>
 {% endif %}
 {% endblock %}

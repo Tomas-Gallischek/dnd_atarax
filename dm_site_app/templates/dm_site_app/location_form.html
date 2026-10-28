@@ -1,0 +1,148 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}
+    {% if is_edit %}DnD Atarax - Upravit lokaci: {{ location_obj.name }}{% else %}DnD Atarax - Nová lokace{% endif %}
+{% endblock %}
+
+{% block dm_content %}
+<div class="dm-toolbar-header">
+    <div class="atarax-header-title-group">
+        <h1>
+            <span>{% if is_edit %}✏️{% else %}✨{% endif %}</span>
+            {% if is_edit %}Upravit lokaci: {{ location_obj.name }}{% else %}Vytvořit novou herní lokaci{% endif %}
+        </h1>
+        <p class="atarax-header-subtitle">
+            {% if is_edit %}Úprava mapy, hierarchie a popisu existující lokace.{% else %}Zápis nového města, dungeonu, království či pamětihodnosti do světa Atarax.{% endif %}
+        </p>
+    </div>
+    <div>
+        <a href="{% if is_edit %}{% url 'dm_site_app:location_detail' location_obj.id %}{% else %}{% url 'dm_site_app:locations' %}{% endif %}" class="dm-btn-secondary">
+            <span>←</span> Zpět
+        </a>
+    </div>
+</div>
+
+<div class="dm-form-card">
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <div class="dm-form-row">
+            <div class="dm-form-group">
+                <label for="id_name">Název lokace <span style="color: #ef4444;">*</span></label>
+                <input type="text" id="id_name" name="name" class="dm-form-control" value="{{ location_obj.name|default:'' }}" required placeholder="Např. Phandalin, Hrad Cragmaw, Mečové pobřeží">
+                <span class="form-hint">Základní jméno místa na mapě.</span>
+            </div>
+
+            <div class="dm-form-group">
+                <label for="id_type">Typ lokace</label>
+                <select id="id_type" name="type" class="dm-form-control">
+                    <option value="">-- Vyberte typ --</option>
+                    {% for code, label in type_choices %}
+                        <option value="{{ code }}" {% if location_obj.type == code %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <span class="form-hint">Zařazení (Město, Dungeon, Kontinent apod.).</span>
+            </div>
+        </div>
+
+        <div class="dm-form-group">
+            <label for="id_description">Popis lokace a herní informace</label>
+            <textarea id="id_description" name="description" class="dm-form-control" rows="5" placeholder="Vzhled, atmosféra, historie, nebezpečí, obyvatelé, zápletky a tajemství pro DM...">{{ location_obj.description|default:'' }}</textarea>
+        </div>
+
+        <!-- Hierarchie lokací (Vrstva nad / pod) -->
+        <div style="background: rgba(13, 10, 18, 0.6); border: 1px solid var(--border-card); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 12px 0; font-size: 1rem; color: var(--gold-400);">📂 Hierarchie a zařazení</h3>
+            <div class="dm-form-row" style="margin-bottom: 0;">
+                <div class="dm-form-group" style="margin-bottom: 0;">
+                    <label for="id_layer_up">Nadřazená lokace (Vrstva nad)</label>
+                    <select id="id_layer_up" name="layer_up" class="dm-form-control">
+                        <option value="">-- Žádná (Samostatná / Nejvyšší vrstva) --</option>
+                        {% for loc in locations %}
+                            <option value="{{ loc.id }}" {% if location_obj.layer_up and location_obj.layer_up.id == loc.id %}selected{% endif %}>
+                                📍 {{ loc.name }} {% if loc.type %}({{ loc.get_type_display|default:loc.type }}){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <span class="form-hint">Např. Království, ve kterém se město nachází.</span>
+                </div>
+
+                <div class="dm-form-group" style="margin-bottom: 0;">
+                    <label for="id_layer_down">Podřazená lokace (Vrstva pod)</label>
+                    <select id="id_layer_down" name="layer_down" class="dm-form-control">
+                        <option value="">-- Žádná --</option>
+                        {% for loc in locations %}
+                            <option value="{{ loc.id }}" {% if location_obj.layer_down and location_obj.layer_down.id == loc.id %}selected{% endif %}>
+                                📍 {{ loc.name }} {% if loc.type %}({{ loc.get_type_display|default:loc.type }}){% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <span class="form-hint">Specifické podzemí nebo vnitřní budova.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mapa / Obrázek lokace -->
+        <div class="dm-form-group">
+            <label>Obrázek / Mapa lokace</label>
+            <span class="form-hint">Nahrajte mapu lokace, plán dungeonu nebo ilustraci místa (PNG, JPG, WEBP), případně zadejte externí webovou URL. Pokud mapu nenahrajete, použije se výchozí fantasy mapa.</span>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 8px;">
+                <div>
+                    <label style="font-size: 0.84rem; color: var(--text-muted);">1. Nahrát soubor mapy z počítače:</label>
+                    <input type="file" id="id_loc_image_file" name="image" accept="image/*" class="dm-form-control" onchange="previewLocFile(this)">
+                </div>
+                <div>
+                    <label style="font-size: 0.84rem; color: var(--text-muted);">2. Nebo externí URL mapy:</label>
+                    <input type="url" id="id_loc_image_url" name="image_url" class="dm-form-control" value="{{ location_obj.image_url|default:'' }}" placeholder="https://example.com/mapa.webp" oninput="previewLocUrl(this.value)">
+                </div>
+            </div>
+
+            {% if is_edit and location_obj.has_custom_image %}
+                <div style="margin-top: 10px;">
+                    <label class="dm-checkbox-label" style="font-size: 0.88rem; color: #fca5a5;">
+                        <input type="checkbox" name="remove_image" value="1">
+                        Smazat stávající mapu a vrátit výchozí zástupný obrázek
+                    </label>
+                </div>
+            {% endif %}
+
+            <div class="dm-image-preview-box" style="margin-top: 14px;">
+                <img id="locPreviewImg" src="{% if is_edit %}{{ location_obj.display_image_url }}{% else %}/static/img/default_location.svg{% endif %}" alt="Náhled mapy" class="dm-image-preview-thumb" style="width: 120px; height: 80px; border-radius: 6px;">
+                <div style="font-size: 0.85rem; color: var(--text-muted);">
+                    <strong style="color: #f8fafc; display: block;">Aktuální náhled mapy</strong>
+                    Tento vizuál se zobrazí v přehledu a jako detailní mapa při hře.
+                </div>
+            </div>
+        </div>
+
+        <div class="dm-form-actions">
+            <a href="{% if is_edit %}{% url 'dm_site_app:location_detail' location_obj.id %}{% else %}{% url 'dm_site_app:locations' %}{% endif %}" class="dm-btn-secondary">
+                Zrušit
+            </a>
+            <button type="submit" class="dm-btn-gold">
+                <span>💾</span> {% if is_edit %}Uložit změny lokace{% else %}Vytvořit lokaci{% endif %}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function previewLocFile(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('locPreviewImg').src = e.target.result;
+        }
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+function previewLocUrl(url) {
+    if (url && url.trim().length > 5) {
+        document.getElementById('locPreviewImg').src = url.trim();
+    }
+}
+</script>
+{% endblock %}

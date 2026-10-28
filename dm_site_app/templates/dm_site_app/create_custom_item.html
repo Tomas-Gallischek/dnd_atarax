@@ -1,0 +1,500 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}DnD Atarax - Vytvořit vlastní item{% endblock %}
+
+{% load static %}
+
+{% block extra_dm_head %}
+<link rel="stylesheet" href="{% static 'dm_site_app/css/loot_management.css' %}">
+{% endblock %}
+
+{% block dm_content %}
+<div class="custom-item-container">
+
+    <!-- Drobečková navigace -->
+    <div class="custom-item-breadcrumb">
+        <a href="{% url 'dm_site_app:loot_management' %}" class="breadcrumb-back-link">
+            <span>&larr;</span> Zpět do správy lootu a pokladů
+        </a>
+    </div>
+
+    <!-- Horní hlavička stránky -->
+    <header class="loot-header">
+        <div class="loot-title-group">
+            <h1><span>✨</span> Vytvořit vlastní item</h1>
+            <p class="loot-subtitle">
+                Založí nový předmět do herního kompendia (databáze) a volitelně jej rovnou připíše do inventáře hráče.
+            </p>
+        </div>
+    </header>
+
+    {% if messages %}
+    <div class="messages-container mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Hlavní rozložení: Formulář vlevo, živý náhled vpravo -->
+    <form method="post" action="{% url 'dm_site_app:create_custom_item' %}" id="customItemForm">
+        {% csrf_token %}
+
+        <div class="custom-item-layout">
+
+            <!-- LEVÝ SLOUPEC: FORMULÁŘOVÁ POLE -->
+            <div class="custom-item-form-column">
+
+                <!-- 1. KARTA: ZÁKLADNÍ ÚDAJE (Běžně stačí jen tyto) -->
+                <div class="custom-item-card">
+                    <div class="custom-item-card-header">
+                        <h2 class="custom-item-card-title">
+                            <span>📦</span> Základní informace o předmětu
+                        </h2>
+                        <span class="badge-category badge-category-npc">Povinné je pouze jméno</span>
+                    </div>
+
+                    <div class="custom-item-card-body">
+
+                        <!-- Komu předmět připsat -->
+                        <div class="form-group-custom">
+                            <label for="charSelect" class="form-label-custom">
+                                <span>👤 Vlastník předmětu (Postava hráče)</span>
+                                <span class="form-label-hint">Komu se item vloží do inventáře</span>
+                            </label>
+                            <select name="character_id" id="charSelect" class="form-control" onchange="updateLivePreview()">
+                                <option value="">-- Pouze uložit do kompendia (nepřiřazovat nikomu) --</option>
+                                {% for char in all_chars %}
+                                    <option value="{{ char.id }}" 
+                                            data-name="{{ char.name }}"
+                                            data-player="{{ char.player.nickname|default:char.player.user.username }}"
+                                            {% if selected_char_id == char.id or forloop.first and not selected_char_id %}selected{% endif %}>
+                                        {{ char.name }} (Úr. {{ char.level }} {{ char.character_class|default:'Dobrodruh' }} — Hráč: {{ char.player.nickname|default:char.player.user.username }})
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Název předmětu -->
+                        <div class="form-group-custom">
+                            <label for="nameCzInput" class="form-label-custom">
+                                <span>🏷️ Název předmětu (Česky) <span class="required-mark">*</span></span>
+                                <span class="form-label-hint">Zobrazí se v hráčském inventáři</span>
+                            </label>
+                            <input type="text" 
+                                   name="name_cz" 
+                                   id="nameCzInput" 
+                                   class="form-control" 
+                                   placeholder="Např. Křupavý chléb, Dýka stínů, Lektvar vitality..." 
+                                   maxlength="150" 
+                                   required 
+                                   autofocus 
+                                   oninput="updateLivePreview()">
+                        </div>
+
+                        <!-- Množství a Kategorie -->
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="quantityInput" class="form-label-custom">
+                                    <span>🔢 Množství (Počet kusů)</span>
+                                </label>
+                                <div class="field-with-addon">
+                                    <input type="number" 
+                                           name="quantity" 
+                                           id="quantityInput" 
+                                           class="form-control" 
+                                           value="1" 
+                                           min="1" 
+                                           max="99" 
+                                           required 
+                                           oninput="updateLivePreview()">
+                                    <span class="field-addon-tag field-addon-qty">ks</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="categorySelect" class="form-label-custom">
+                                    <span>📂 Kategorie</span>
+                                </label>
+                                <select name="category" id="categorySelect" class="form-control" onchange="handleCategoryChange(this)">
+                                    <option value="Vybavení" selected>Vybavení (obecné)</option>
+                                    <option value="Jídlo a pití">Jídlo a pití</option>
+                                    <option value="Zbraně">Zbraně</option>
+                                    <option value="Brnění">Brnění</option>
+                                    <option value="Lektvary a jedy">Lektvary a jedy</option>
+                                    <option value="Svitky a knihy">Svitky a knihy</option>
+                                    <option value="Nástroje">Nástroje</option>
+                                    <option value="Cennosti a poklady">Cennosti a poklady</option>
+                                    <option value="Magické předměty">Magické předměty</option>
+                                    <option value="Ostatní">Ostatní</option>
+                                    {% for cat in categories %}
+                                        {% if cat not in 'Vybavení,Jídlo a pití,Zbraně,Brnění,Lektvary a jedy,Svitky a knihy,Nástroje,Cennosti a poklady,Magické předměty,Ostatní' %}
+                                            <option value="{{ cat }}">{{ cat }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <option value="__custom__">➕ Zadat vlastní novou kategorii...</option>
+                                </select>
+                                <input type="text" 
+                                       name="custom_category" 
+                                       id="customCategoryInput" 
+                                       class="form-control" 
+                                       placeholder="Zadejte název nové kategorie..." 
+                                       style="display: none; margin-top: 6px;" 
+                                       oninput="updateLivePreview()">
+                            </div>
+                        </div>
+
+                        <!-- Ceny a Váha -->
+                        <div class="form-grid-3 form-group-custom">
+                            <div>
+                                <label for="costGoldInput" class="form-label-custom">
+                                    <span>💰 Cena (Zlaťáky)</span>
+                                </label>
+                                <div class="field-with-addon">
+                                    <input type="number" 
+                                           name="cost_gold" 
+                                           id="costGoldInput" 
+                                           class="form-control" 
+                                           value="0" 
+                                           min="0" 
+                                           oninput="updateLivePreview()">
+                                    <span class="field-addon-tag field-addon-gold">zl</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="costSilverInput" class="form-label-custom">
+                                    <span>🪙 Cena (Stříbrňáky)</span>
+                                </label>
+                                <div class="field-with-addon">
+                                    <input type="number" 
+                                           name="cost_silver" 
+                                           id="costSilverInput" 
+                                           class="form-control" 
+                                           value="0" 
+                                           min="0" 
+                                           oninput="updateLivePreview()">
+                                    <span class="field-addon-tag field-addon-silver">st</span>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="weightInput" class="form-label-custom">
+                                    <span>⚖️ Váha (libry)</span>
+                                </label>
+                                <div class="field-with-addon">
+                                    <input type="number" 
+                                           step="0.1" 
+                                           name="weight" 
+                                           id="weightInput" 
+                                           class="form-control" 
+                                           value="0.0" 
+                                           min="0" 
+                                           oninput="updateLivePreview()">
+                                    <span class="field-addon-tag field-addon-weight">lb</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Popis předmětu -->
+                        <div class="form-group-custom">
+                            <label for="descInput" class="form-label-custom">
+                                <span>📝 Popis předmětu</span>
+                                <span class="form-label-hint">Příběhový text, účinek nebo vzhled</span>
+                            </label>
+                            <textarea name="description" 
+                                      id="descInput" 
+                                      class="form-control" 
+                                      rows="3" 
+                                      placeholder="Popište, jak předmět vypadá, co dělá nebo k čemu slouží... (např. 'Čerstvě upečený chléb od místního pekaře. Zasytí na celý den.')" 
+                                      oninput="updateLivePreview()"></textarea>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 2. KARTA: BOJOVÉ A DOPLŇUJÍCÍ STATISTIKY (Volitelné) -->
+                <div class="custom-item-card">
+                    <div class="custom-item-card-header">
+                        <h2 class="custom-item-card-title">
+                            <span>⚔️</span> Bojové a doplňující statistiky
+                        </h2>
+                        <span class="badge-optional">Volitelné &bull; Pouze pro zbraně a zbroj</span>
+                    </div>
+
+                    <div class="custom-item-card-body">
+                        <p class="form-label-hint mb-3">
+                            Tato pole můžete nechat prázdná, pokud vytváříte běžné vybavení, jídlo, cennost nebo surovinu.
+                        </p>
+
+                        <!-- Poškození a AC -->
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="damageInput" class="form-label-custom">
+                                    <span>💥 Poškození (Damage)</span>
+                                    <span class="form-label-hint">Např. 1d6 sečné, 2d4 bodné</span>
+                                </label>
+                                <input type="text" 
+                                       name="damage" 
+                                       id="damageInput" 
+                                       class="form-control" 
+                                       placeholder="Např. 1d8 sečné" 
+                                       maxlength="100" 
+                                       oninput="updateLivePreview()">
+                            </div>
+
+                            <div>
+                                <label for="acInput" class="form-label-custom">
+                                    <span>🛡️ Obranné číslo (AC)</span>
+                                    <span class="form-label-hint">Např. 2 pro štít, 14 pro zbroj</span>
+                                </label>
+                                <input type="number" 
+                                       name="armor_class" 
+                                       id="acInput" 
+                                       class="form-control" 
+                                       placeholder="Např. 2" 
+                                       min="0" 
+                                       oninput="updateLivePreview()">
+                            </div>
+                        </div>
+
+                        <!-- Vlastnosti zbraně a Anglický název -->
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="propertiesInput" class="form-label-custom">
+                                    <span>✨ Vlastnosti zbraně / předmětu</span>
+                                    <span class="form-label-hint">Např. Lehká, vrhací, obouruční</span>
+                                </label>
+                                <input type="text" 
+                                       name="properties" 
+                                       id="propertiesInput" 
+                                       class="form-control" 
+                                       placeholder="Např. Lehká, vrhací, magická" 
+                                       maxlength="255" 
+                                       oninput="updateLivePreview()">
+                            </div>
+
+                            <div>
+                                <label for="nameEnInput" class="form-label-custom">
+                                    <span>🌐 Anglický název</span>
+                                    <span class="form-label-hint">Doplní se automaticky z českého</span>
+                                </label>
+                                <input type="text" 
+                                       name="name_en" 
+                                       id="nameEnInput" 
+                                       class="form-control" 
+                                       placeholder="Doplní se automaticky..." 
+                                       maxlength="150" 
+                                       oninput="updateLivePreview()">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Tlačítka pro odeslání -->
+                <div class="custom-item-form-actions">
+                    <button type="submit" class="btn-submit-custom-item">
+                        <span>✨</span> Vytvořit a připsat item
+                    </button>
+                    <a href="{% url 'dm_site_app:loot_management' %}" class="btn-cancel-custom-item">
+                        Zrušit
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- PRAVÝ SLOUPEC: ŽIVÝ NÁHLED PŘEDMĚTU -->
+            <div class="custom-item-preview-column">
+                <div class="custom-item-preview-sticky">
+                    <div class="preview-card-outer">
+                        <div class="preview-badge-live">
+                            Živý náhled předmětu
+                        </div>
+
+                        <div class="preview-card-header">
+                            <h3 class="preview-item-title" id="previewTitle">Název předmětu</h3>
+                            <div class="preview-item-submeta">
+                                <span class="preview-cat-pill" id="previewCategory">Vybavení</span>
+                                <span class="preview-name-en" id="previewNameEn"></span>
+                            </div>
+                        </div>
+
+                        <!-- Statistiky: cena, váha, množství -->
+                        <div class="preview-stats-row">
+                            <div class="preview-stat-chip" id="previewPriceChip">
+                                <span>💰</span> <span id="previewPriceText">0 zl</span>
+                            </div>
+                            <div class="preview-stat-chip" id="previewWeightChip">
+                                <span>⚖️</span> <span id="previewWeightText">0.0 lb</span>
+                            </div>
+                            <div class="preview-stat-chip" id="previewQtyChip">
+                                <span>📦</span> <span id="previewQtyText">1x</span>
+                            </div>
+                        </div>
+
+                        <!-- Bojový blok (Damage / AC) -->
+                        <div class="preview-combat-box" id="previewCombatBox" style="display: none;">
+                            <div class="preview-combat-row" id="previewDmgRow" style="display: none;">
+                                <span class="preview-combat-label">⚔️ Poškození:</span>
+                                <span class="preview-combat-value" id="previewDmgVal"></span>
+                            </div>
+                            <div class="preview-combat-row" id="previewAcRow" style="display: none;">
+                                <span class="preview-combat-label">🛡️ Třída zbroje:</span>
+                                <span class="preview-combat-value" id="previewAcVal"></span>
+                            </div>
+                        </div>
+
+                        <!-- Vlastnosti předmětu -->
+                        <div class="preview-props-box" id="previewPropsBox" style="display: none;">
+                            <strong>Vlastnosti:</strong> <span id="previewPropsText"></span>
+                        </div>
+
+                        <!-- Popis -->
+                        <div class="preview-desc-box" id="previewDescBox">
+                            <span class="preview-desc-empty" id="previewDescEmpty">Bez popisu. Popis zadaný vlevo se zobrazí zde.</span>
+                            <span id="previewDescText" style="display: none;"></span>
+                        </div>
+
+                        <!-- Informace o vlastníkovi -->
+                        <div class="preview-owner-box">
+                            <span>Příjemce:</span>
+                            <strong class="preview-owner-name" id="previewOwnerName">-- Žádný (pouze kompendium) --</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<script>
+    function handleCategoryChange(select) {
+        const customInput = document.getElementById('customCategoryInput');
+        if (select.value === '__custom__') {
+            customInput.style.display = 'block';
+            customInput.focus();
+        } else {
+            customInput.style.display = 'none';
+        }
+        updateLivePreview();
+    }
+
+    function updateLivePreview() {
+        const nameCz = document.getElementById('nameCzInput').value.trim();
+        const nameEn = document.getElementById('nameEnInput').value.trim();
+        const categorySelect = document.getElementById('categorySelect');
+        const customCategory = document.getElementById('customCategoryInput').value.trim();
+        const qty = document.getElementById('quantityInput').value.trim() || '1';
+        const gold = parseInt(document.getElementById('costGoldInput').value, 10) || 0;
+        const silver = parseInt(document.getElementById('costSilverInput').value, 10) || 0;
+        const weight = parseFloat(document.getElementById('weightInput').value) || 0.0;
+        const desc = document.getElementById('descInput').value.trim();
+        const damage = document.getElementById('damageInput').value.trim();
+        const ac = document.getElementById('acInput').value.trim();
+        const properties = document.getElementById('propertiesInput').value.trim();
+        const charSelect = document.getElementById('charSelect');
+
+        // Název
+        const previewTitle = document.getElementById('previewTitle');
+        previewTitle.textContent = nameCz ? nameCz : 'Název předmětu';
+
+        // Anglický název
+        const previewNameEn = document.getElementById('previewNameEn');
+        if (nameEn && nameEn !== nameCz) {
+            previewNameEn.textContent = '(' + nameEn + ')';
+            previewNameEn.style.display = 'inline';
+        } else {
+            previewNameEn.style.display = 'none';
+        }
+
+        // Kategorie
+        const previewCategory = document.getElementById('previewCategory');
+        let catText = categorySelect.value;
+        if (catText === '__custom__') {
+            catText = customCategory || 'Vlastní kategorie';
+        }
+        previewCategory.textContent = catText;
+
+        // Cena
+        let priceStr = '';
+        if (gold > 0 && silver > 0) {
+            priceStr = gold + ' zl ' + silver + ' st';
+        } else if (gold > 0) {
+            priceStr = gold + ' zl';
+        } else if (silver > 0) {
+            priceStr = silver + ' st';
+        } else {
+            priceStr = '0 zl';
+        }
+        document.getElementById('previewPriceText').textContent = priceStr;
+
+        // Váha a počet
+        document.getElementById('previewWeightText').textContent = weight.toFixed(1) + ' lb';
+        document.getElementById('previewQtyText').textContent = qty + 'x';
+
+        // Bojové statistiky
+        const combatBox = document.getElementById('previewCombatBox');
+        const dmgRow = document.getElementById('previewDmgRow');
+        const acRow = document.getElementById('previewAcRow');
+        let hasCombat = false;
+
+        if (damage) {
+            hasCombat = true;
+            dmgRow.style.display = 'flex';
+            document.getElementById('previewDmgVal').textContent = damage;
+        } else {
+            dmgRow.style.display = 'none';
+        }
+
+        if (ac) {
+            hasCombat = true;
+            acRow.style.display = 'flex';
+            document.getElementById('previewAcVal').textContent = ac;
+        } else {
+            acRow.style.display = 'none';
+        }
+
+        combatBox.style.display = hasCombat ? 'block' : 'none';
+
+        // Vlastnosti
+        const propsBox = document.getElementById('previewPropsBox');
+        if (properties) {
+            propsBox.style.display = 'block';
+            document.getElementById('previewPropsText').textContent = properties;
+        } else {
+            propsBox.style.display = 'none';
+        }
+
+        // Popis
+        const descEmpty = document.getElementById('previewDescEmpty');
+        const descText = document.getElementById('previewDescText');
+        if (desc) {
+            descEmpty.style.display = 'none';
+            descText.textContent = desc;
+            descText.style.display = 'inline';
+        } else {
+            descEmpty.style.display = 'inline';
+            descText.style.display = 'none';
+        }
+
+        // Příjemce / vlastník
+        const previewOwner = document.getElementById('previewOwnerName');
+        const selectedOpt = charSelect.options[charSelect.selectedIndex];
+        if (selectedOpt && selectedOpt.value) {
+            const charName = selectedOpt.getAttribute('data-name') || selectedOpt.text;
+            previewOwner.textContent = charName;
+        } else {
+            previewOwner.textContent = '-- Žádný (pouze do kompendia) --';
+        }
+    }
+
+    // Spustit ihned po načtení stránky
+    document.addEventListener('DOMContentLoaded', function() {
+        updateLivePreview();
+    });
+</script>
+{% endblock %}

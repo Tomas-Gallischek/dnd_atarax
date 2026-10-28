@@ -15,6 +15,8 @@ class Locations(models.Model):
     type = models.CharField(max_length=100,choices=type_choices, null=True, blank=True)
     layer_up = models.ForeignKey('self',on_delete=models.SET_NULL,null=True,blank=True,related_name='locations_below',verbose_name='Vrstva nad')
     layer_down = models.ForeignKey('self',on_delete=models.SET_NULL,null=True,blank=True,related_name='locations_above',verbose_name='Vrstva pod')
+    image = models.FileField(upload_to='locations/', blank=True, null=True, verbose_name="Mapa / Obrázek lokace")
+    image_url = models.CharField(max_length=500, blank=True, null=True, verbose_name="Externí URL mapy")
 
     class Meta:
         verbose_name = "Lokace"
@@ -22,6 +24,21 @@ class Locations(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def display_image_url(self):
+        if self.image:
+            try:
+                return self.image.url
+            except Exception:
+                pass
+        if self.image_url and self.image_url.strip():
+            return self.image_url.strip()
+        return '/static/img/default_location.svg'
+
+    @property
+    def has_custom_image(self):
+        return bool((self.image and self.image.name) or (self.image_url and self.image_url.strip()))
 
 class Npc(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True, verbose_name="Jméno")
@@ -32,6 +49,8 @@ class Npc(models.Model):
         ('female', 'Žena'),
         ('other', 'Jiné'),
     ], verbose_name="Pohlaví")
+    image = models.FileField(upload_to='npcs/', blank=True, null=True, verbose_name="Obrázek NPC")
+    image_url = models.CharField(max_length=500, blank=True, null=True, verbose_name="Externí URL obrázku")
 
     loot_gold = models.IntegerField(default=0, verbose_name="Zlaté mince (GP)", blank=True, null=True)
     loot_silver = models.IntegerField(default=0, verbose_name="Stříbrné mince (SP)", blank=True, null=True)
@@ -46,6 +65,38 @@ class Npc(models.Model):
 
     def __str__(self):
         return self.name or "Neznámé NPC"
+
+    @property
+    def display_image_url(self):
+        if self.image:
+            try:
+                return self.image.url
+            except Exception:
+                pass
+        if self.image_url and self.image_url.strip():
+            return self.image_url.strip()
+        return '/static/img/default_npc.svg'
+
+    @property
+    def has_custom_image(self):
+        return bool((self.image and self.image.name) or (self.image_url and self.image_url.strip()))
+
+
+class DmNote(models.Model):
+    title = models.CharField(max_length=200, verbose_name="Název poznámky")
+    content = models.TextField(verbose_name="Obsah poznámky")
+    category = models.CharField(max_length=100, blank=True, null=True, default="Kampaň", verbose_name="Kategorie / Značka")
+    is_current = models.BooleanField(default=False, verbose_name="Aktuální (připnuto nahoře)")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Datum vytvoření")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Datum úpravy")
+
+    class Meta:
+        verbose_name = "Poznámka DM"
+        verbose_name_plural = "Poznámky DM"
+        ordering = ['-is_current', '-updated_at']
+
+    def __str__(self):
+        return self.title
 
 
 class Items_All_db(models.Model):
@@ -220,7 +271,7 @@ class Monsters_All_db(models.Model):
 
 class Monsters_Active(models.Model):
     # Identifikace
-    api_index = models.CharField(max_length=100, unique=True, verbose_name="API Index", blank=True, null=True)
+    api_index = models.CharField(max_length=100, verbose_name="API Index", blank=True, null=True)
     name_cz = models.CharField(max_length=150, verbose_name="Český název", blank=True, null=True)
     name_en = models.CharField(max_length=150, verbose_name="Anglický název", blank=True, null=True)
 

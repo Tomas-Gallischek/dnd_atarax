@@ -3,42 +3,105 @@
 {% block title %}DnD Atarax - Přehled NPC{% endblock %}
 
 {% block dm_content %}
-<div class="atarax-page-header">
+<div class="dm-toolbar-header">
     <div class="atarax-header-title-group">
         <h1><span>👥</span> Nehráčské postavy (NPC)</h1>
-        <p class="atarax-header-subtitle">Katalog vedlejších postav, obyvatel měst a spojenců či nepřátel v herním světě.</p>
+        <p class="atarax-header-subtitle">Katalog vedlejších postav, obyvatel měst, spojenců i nepřátel světa Atarax.</p>
+    </div>
+    <div>
+        <a href="{% url 'dm_site_app:npc_create' %}" class="dm-btn-gold">
+            <span>➕</span> Přidat nové NPC
+        </a>
     </div>
 </div>
 
+<!-- Vyhledávací a filtrační lišta -->
+<form method="get" action="{% url 'dm_site_app:npc' %}" class="dm-filter-bar">
+    <input type="text" name="q" value="{{ search_query }}" placeholder="Hledat NPC podle jména či popisu..." class="dm-search-input">
+    
+    <select name="location" class="dm-select-input" onchange="this.form.submit()">
+        <option value="">-- Všechny lokace --</option>
+        {% for loc in locations %}
+            <option value="{{ loc.id }}" {% if selected_location == loc.id|stringformat:"s" %}selected{% endif %}>
+                📍 {{ loc.name }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <button type="submit" class="dm-btn-secondary">Hledat</button>
+    {% if search_query or selected_location %}
+        <a href="{% url 'dm_site_app:npc' %}" class="dm-btn-secondary">Zrušit filtr</a>
+    {% endif %}
+</form>
+
 {% if npcs %}
-    <div class="grid-2">
+    <div class="dm-entity-grid">
         {% for npc_item in npcs %}
-        <article class="dm-item-card">
-            <div class="dm-item-header">
-                <h2 class="dm-item-title">{{ npc_item.name }}</h2>
-                <div>
-                    {% if npc_item.gender %}
-                        <span class="badge badge-silver">{{ npc_item.get_gender_display }}</span>
+        <article class="dm-entity-card">
+            <div class="dm-npc-card-header">
+                <img src="{{ npc_item.display_image_url }}" alt="{{ npc_item.name|default:'NPC' }}" class="dm-npc-avatar" loading="lazy">
+                <div class="dm-npc-header-text">
+                    <h2 class="dm-npc-name">{{ npc_item.name|default:"Neznámé NPC" }}</h2>
+                    <div class="dm-entity-badges">
+                        {% if npc_item.gender %}
+                            <span class="badge badge-silver">{{ npc_item.get_gender_display|default:npc_item.gender }}</span>
+                        {% endif %}
+                        {% if npc_item.location %}
+                            <a href="{% url 'dm_site_app:location_detail' npc_item.location.id %}" class="badge badge-gold" style="text-decoration: none;">
+                                📍 {{ npc_item.location.name }}
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="dm-entity-body">
+                {% if npc_item.description %}
+                    <p class="dm-entity-desc-preview">{{ npc_item.description }}</p>
+                {% else %}
+                    <p class="no-sources-muted">Bez doplňujícího popisu.</p>
+                {% endif %}
+
+                <div class="dm-entity-badges" style="margin-top: auto; padding-top: 8px;">
+                    {% if npc_item.is_dead %}
+                        <span class="badge" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid #dc2626;">💀 Mrtvý</span>
                     {% endif %}
-                    {% if npc_item.location %}
-                        <span class="badge badge-gold">📍 {{ npc_item.location.name }}</span>
+                    {% if npc_item.in_fight %}
+                        <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fef08a; border: 1px solid #d97706;">⚔️ V boji</span>
+                    {% endif %}
+                    {% if npc_item.loot_able %}
+                        <span class="badge badge-gold">💰 {{ npc_item.loot_gold }} GP / {{ npc_item.loot_silver }} SP</span>
                     {% endif %}
                 </div>
             </div>
 
-            {% if npc_item.description %}
-                <p class="dm-item-desc">{{ npc_item.description }}</p>
-            {% else %}
-                <p class="no-sources-muted">Bez doplňujícího popisu.</p>
-            {% endif %}
+            <div class="dm-entity-footer">
+                <a href="{% url 'dm_site_app:npc_detail' npc_item.id %}" class="dm-btn-secondary" style="font-size: 0.84rem;">
+                    <span>👁️</span> Detail NPC
+                </a>
+                <a href="{% url 'dm_site_app:npc_edit' npc_item.id %}" class="dm-btn-secondary" style="font-size: 0.84rem;">
+                    <span>✏️</span> Upravit
+                </a>
+            </div>
         </article>
         {% endfor %}
     </div>
 {% else %}
     <div class="atarax-empty-state">
-        <div class="atarax-empty-icon">👤</div>
+        <div class="atarax-empty-icon">👥</div>
         <h3 class="atarax-empty-title">Žádná NPC nenalezena</h3>
-        <p class="atarax-empty-desc">Zatím nebyla vytvořena žádná nehráčská postava v databázi.</p>
+        <p class="atarax-empty-desc">
+            {% if search_query or selected_location %}
+                Pro zadaný filtr nebyly nalezeny žádné nehráčské postavy.
+            {% else %}
+                Zatím nebyla vytvořena žádná nehráčská postava v databázi.
+            {% endif %}
+        </p>
+        <div style="margin-top: 16px;">
+            <a href="{% url 'dm_site_app:npc_create' %}" class="dm-btn-gold">
+                <span>➕</span> Vytvořit první NPC
+            </a>
+        </div>
     </div>
 {% endif %}
 {% endblock %}

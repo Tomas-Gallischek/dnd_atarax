@@ -17,6 +17,11 @@
             <h1><span>💰</span> Loot & Poklady</h1>
             <p class="loot-subtitle">Přidělování zlaťáků z padlých monster a NPC, katalog kompendia a přidělování výbavy postavám.</p>
         </div>
+        <div class="loot-header-actions">
+            <a href="{% url 'dm_site_app:create_custom_item' %}" class="btn-create-custom-item" title="Vytvořit nový vlastní předmět do kompendia a připsat jej hráči">
+                <span>✨</span> Vytvořit vlastní item
+            </a>
+        </div>
     </header>
 
     <!-- 1. SEKCE: PŘIDĚLOVÁNÍ MINCÍ Z MONSTER A NPC -->
@@ -155,6 +160,9 @@
                 <span>🎒</span> Itemy
             </h2>
             <div class="toolbar-actions">
+                <a href="{% url 'dm_site_app:create_custom_item' %}" class="btn-subtle btn-subtle-gold" title="Vytvořit zcela nový předmět do databáze a připsat jej hráči">
+                    ✨ Nový item
+                </a>
                 <button type="button" id="btnSelectAllVisible" class="btn-subtle" title="Označí všechny předměty, které jsou právě viditelné v tabulce">
                     ✓ Vybrat zobrazené
                 </button>
