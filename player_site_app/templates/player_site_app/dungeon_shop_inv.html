@@ -99,6 +99,7 @@
                                 {% csrf_token %}
                                 <input type="hidden" name="item_id" value="{{ entry.item.id }}">
                                 <input type="hidden" name="player_id" value="{{ player.id }}">
+                                <input type="hidden" name="char_id" value="{{ character.id }}">
                                 <span class="inv-treasure-count">
                                     📦 <strong>{{ entry.count }} ks</strong>
                                 </span>
@@ -143,6 +144,7 @@
                                     {% csrf_token %}
                                     <input type="hidden" name="item_id" value="{{ entry.item.id }}">
                                     <input type="hidden" name="player_id" value="{{ player.id }}">
+                                    <input type="hidden" name="char_id" value="{{ character.id }}">
                                     <button type="button" class="btn-reforge-item"
                                             data-item-id="{{ entry.item.id }}"
                                             data-item-name="{{ entry.item.name }}"

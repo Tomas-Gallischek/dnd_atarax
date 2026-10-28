@@ -49,5 +49,13 @@ urlpatterns = [
     path('player_inventory/', views.player_inventory_management, name='player_inventory_management'),
     path('player_inventory/delete/<int:item_id>/', views.dm_delete_player_item, name='dm_delete_player_item'),
     path('player_inventory/bulk_delete/', views.dm_bulk_delete_player_items, name='dm_bulk_delete_player_items'),
+
+    # 7. Správa Úspěchů (Achievements)
+    path('achievements/', views.achievements_management, name='achievements_management'),
+    path('achievements/assign/', views.dm_assign_achievement, name='dm_assign_achievement'),
+    path('achievements/update/<int:ach_player_id>/', views.dm_update_achievement_value, name='dm_update_achievement_value'),
+    path('achievements/delete/<int:ach_player_id>/', views.dm_delete_player_achievement, name='dm_delete_player_achievement'),
+    path('achievements/template/create/', views.dm_create_achievement_template, name='dm_create_achievement_template'),
+    path('achievements/template/<int:template_id>/edit/', views.dm_edit_achievement_template, name='dm_edit_achievement_template'),
 ]
 

@@ -1,3 +1,4 @@
+from player_site_app.achivements import esencionik_ach, gambler_ach
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib.auth import login, logout
@@ -1664,6 +1665,27 @@ def use_treasure(request):
                 won_border = get_border_from_treasure(player.id, item_id, rarity, request=request)
                 treasure_owner_record.delete()
 
+                # Započtení úspěchu 'Gambler' (+1 otevřená truhla)
+                char_id = request.POST.get('char_id')
+                target_char_id = None
+                if char_id:
+                    try:
+                        target_char_id = int(char_id)
+                    except (ValueError, TypeError):
+                        pass
+                if not target_char_id:
+                    _, active_char = get_player_and_character(request)
+                    if active_char:
+                        target_char_id = active_char.id
+                    elif player.characters.exists():
+                        target_char_id = player.characters.first().id
+
+                if target_char_id:
+                    try:
+                        gambler_ach(target_char_id, 1)
+                    except Exception:
+                        pass
+
                 if won_border:
                     if is_ajax:
                         return JsonResponse({
@@ -1709,6 +1731,7 @@ def reforge_tresure(request):
     if request.method == "POST":
         item_id = request.POST.get('item_id')
         player_id = request.POST.get('player_id')
+        char_id = request.POST.get('char_id')
         is_ajax = (
             request.headers.get('x-requested-with') == 'XMLHttpRequest' or
             'application/json' in request.headers.get('Accept', '') or
@@ -1772,6 +1795,25 @@ def reforge_tresure(request):
                 player.temna_esence = 0
             player.temna_esence += value
             player.save()
+
+            target_char_id = None
+            if char_id:
+                try:
+                    target_char_id = int(char_id)
+                except (ValueError, TypeError):
+                    pass
+            if not target_char_id:
+                _, active_char = get_player_and_character(request)
+                if active_char:
+                    target_char_id = active_char.id
+                elif player.characters.exists():
+                    target_char_id = player.characters.first().id
+
+            if target_char_id:
+                try:
+                    esencionik_ach(target_char_id, int(value))
+                except Exception:
+                    pass
 
             # Odstranění POUZE vlastněného záznamu hráče (nikoliv položky v obchodě)
             item_name = item.name

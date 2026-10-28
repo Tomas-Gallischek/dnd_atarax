@@ -10,7 +10,7 @@ from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Locations, Npc, Monsters_All_db, Monsters_Active, Items_All_db, Items_Active, Kronika, DmNote
-from player_site_app.models import Player, Char_info, Logs
+from player_site_app.models import Player, Char_info, Logs, Achivements_database, Achivements_players
 from player_site_app.achivements import zbohatlik_ach, smrtici_stroj_ach
 from dnd_atarax.terminal import (
     log_dm, log_arena, log_hp, log_mob, log_player,
@@ -1370,4 +1370,289 @@ def dm_bulk_delete_player_items(request):
     if char_id:
         redirect_url += f'?char_id={char_id}'
     return redirect(redirect_url)
+
+
+# ==========================================
+# 7. SPRÁVA ÚSPĚCHŮ (ACHIEVEMENTS MANAGEMENT)
+# ==========================================
+
+@dm_required
+def achievements_management(request):
+    """
+    Správa herních úspěchů (Achievements) v DM sekci.
+    Umožňuje:
+    - Prohlížet a filtrovat přiřazené úspěchy hráčů a postav
+    - Přiřadit jakýkoliv úspěch jakékoliv postavě s vlastní počáteční hodnotou
+    - Upravovat hodnoty získaných úspěchů
+    - Mazat záznamy úspěchů
+    - Spravovat šablony úspěchů (vytvářet nové, editovat milníky a ikony)
+    """
+    char_id = request.GET.get('char_id')
+    player_id = request.GET.get('player_id')
+    query = request.GET.get('q', '').strip()
+    active_tab = request.GET.get('tab', 'players')
+
+    all_characters = Char_info.objects.select_related('player', 'player__user').order_by('name')
+    all_players = Player.objects.select_related('user').order_by('nickname', 'user__username')
+    all_templates = Achivements_database.objects.all().order_by('name')
+
+    selected_char = None
+    if char_id:
+        selected_char = Char_info.objects.filter(id=char_id).select_related('player').first()
+
+    selected_player = None
+    if player_id:
+        selected_player = Player.objects.filter(id=player_id).first()
+
+    player_achievements_qs = Achivements_players.objects.select_related(
+        'player', 'player__user', 'char', 'Achivement'
+    ).order_by('-current_value')
+
+    if selected_char:
+        player_achievements_qs = player_achievements_qs.filter(char=selected_char)
+    elif selected_player:
+        player_achievements_qs = player_achievements_qs.filter(player=selected_player)
+
+    if query:
+        player_achievements_qs = player_achievements_qs.filter(
+            Q(char__name__icontains=query) |
+            Q(player__nickname__icontains=query) |
+            Q(player__user__username__icontains=query) |
+            Q(Achivement__name__icontains=query) |
+            Q(Achivement__description__icontains=query)
+        )
+
+    return render(request, 'dm_site_app/achievements_management.html', {
+        'current_page': 'achievements_management',
+        'active_tab': active_tab,
+        'all_characters': all_characters,
+        'all_players': all_players,
+        'all_templates': all_templates,
+        'selected_char': selected_char,
+        'selected_player': selected_player,
+        'player_achievements': player_achievements_qs,
+        'query': query,
+    })
+
+
+@dm_required
+def dm_assign_achievement(request):
+    """Přiřadí vybraný úspěch postavě nebo upraví jeho hodnotu."""
+    if request.method != 'POST':
+        return redirect('dm_site_app:achievements_management')
+
+    char_id = request.POST.get('character_id')
+    template_id = request.POST.get('template_id')
+    raw_value = (request.POST.get('current_value') or '0').replace(',', '.').strip()
+    action_mode = request.POST.get('mode', 'set')
+
+    try:
+        current_val = float(raw_value)
+    except (ValueError, TypeError):
+        current_val = 0.0
+
+    character = get_object_or_404(Char_info, id=char_id)
+    template = get_object_or_404(Achivements_database, id=template_id)
+    player = character.player
+
+    existing = Achivements_players.objects.filter(char=character, Achivement=template).first()
+    if existing:
+        old_val = existing.current_value
+        if action_mode == 'add':
+            existing.current_value += current_val
+        else:
+            existing.current_value = current_val
+        existing.save()
+        log_msg = f"DM upravil úspěch '{template.name}' postavě {character.name}: {old_val} -> {existing.current_value} (úroveň: {existing.get_current_status_display() or 'Nesplněno'})"
+        messages.success(request, f"Úspěch „{template.name}“ postavy {character.name} byl upraven na hodnotu {existing.current_value}.")
+    else:
+        existing = Achivements_players.objects.create(
+            player=player,
+            char=character,
+            Achivement=template,
+            current_value=current_val
+        )
+        existing.save()
+        log_msg = f"DM přiřadil nový úspěch '{template.name}' postavě {character.name} s hodnotou {current_val} (úroveň: {existing.get_current_status_display() or 'Nesplněno'})"
+        messages.success(request, f"Úspěch „{template.name}“ byl úspěšně přiřazen postavě {character.name} s hodnotou {current_val}.")
+
+    if player:
+        Logs.objects.create(
+            player=player,
+            character=character,
+            message=log_msg,
+            value=existing.current_value
+        )
+    log_dm(log_msg)
+
+    redirect_url = reverse('dm_site_app:achievements_management')
+    if char_id:
+        redirect_url += f"?char_id={char_id}"
+    return redirect(redirect_url)
+
+
+@dm_required
+def dm_update_achievement_value(request, ach_player_id):
+    """Rychlá úprava hodnoty již získaného úspěchu postavy."""
+    if request.method != 'POST':
+        return redirect('dm_site_app:achievements_management')
+
+    ach_player = get_object_or_404(Achivements_players, id=ach_player_id)
+    raw_value = (request.POST.get('current_value') or '').replace(',', '.').strip()
+    delta_str = (request.POST.get('delta') or '').replace(',', '.').strip()
+
+    old_val = ach_player.current_value
+    if delta_str:
+        try:
+            delta = float(delta_str)
+            ach_player.current_value += delta
+        except (ValueError, TypeError):
+            pass
+    elif raw_value != '':
+        try:
+            ach_player.current_value = float(raw_value)
+        except (ValueError, TypeError):
+            pass
+
+    ach_player.save()
+    char_name = ach_player.char.name if ach_player.char else "Neznámá"
+    ach_name = ach_player.Achivement.name if ach_player.Achivement else "Neznámý"
+
+    log_msg = f"DM změnil hodnotu úspěchu '{ach_name}' postavy {char_name}: {old_val} -> {ach_player.current_value} (status: {ach_player.get_current_status_display() or 'Nesplněno'})"
+    if ach_player.player and ach_player.char:
+        Logs.objects.create(
+            player=ach_player.player,
+            character=ach_player.char,
+            message=log_msg,
+            value=ach_player.current_value
+        )
+    log_dm(log_msg)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+        return JsonResponse({
+            'status': 'ok',
+            'id': ach_player.id,
+            'current_value': ach_player.current_value,
+            'current_status': ach_player.current_status,
+            'current_status_display': ach_player.get_current_status_display() or 'Nesplněno',
+            'message': f"Hodnota úspěchu byla změněna na {ach_player.current_value}."
+        })
+
+    messages.success(request, f"Hodnota úspěchu „{ach_name}“ byla úspěšně změněna na {ach_player.current_value}.")
+    char_id = ach_player.char_id
+    redirect_url = reverse('dm_site_app:achievements_management')
+    if char_id:
+        redirect_url += f"?char_id={char_id}"
+    return redirect(redirect_url)
+
+
+@dm_required
+def dm_delete_player_achievement(request, ach_player_id):
+    """Smaže záznam úspěchu dané postavy."""
+    if request.method != 'POST':
+        return redirect('dm_site_app:achievements_management')
+
+    ach_player = get_object_or_404(Achivements_players, id=ach_player_id)
+    char_id = ach_player.char_id
+    char_name = ach_player.char.name if ach_player.char else "Neznámá"
+    ach_name = ach_player.Achivement.name if ach_player.Achivement else "Neznámý"
+
+    log_msg = f"DM smazal úspěch '{ach_name}' z profilu postavy {char_name}."
+    if ach_player.player and ach_player.char:
+        Logs.objects.create(
+            player=ach_player.player,
+            character=ach_player.char,
+            message=log_msg,
+            value=ach_player.current_value
+        )
+    ach_player.delete()
+    log_dm(log_msg)
+
+    messages.success(request, f"Úspěch „{ach_name}“ byl odebrán postavě {char_name}.")
+    redirect_url = reverse('dm_site_app:achievements_management')
+    if char_id:
+        redirect_url += f"?char_id={char_id}"
+    return redirect(redirect_url)
+
+
+@dm_required
+def dm_create_achievement_template(request):
+    """Vytvoří novou šablonu úspěchu v Achivements_database."""
+    if request.method != 'POST':
+        return redirect('dm_site_app:achievements_management')
+
+    name = request.POST.get('name', '').strip()
+    description = request.POST.get('description', '').strip()
+    if not name:
+        messages.error(request, "Název úspěchu je povinný!")
+        return redirect(reverse('dm_site_app:achievements_management') + "?tab=templates")
+
+    def parse_float(key, default=1.0):
+        val = (request.POST.get(key) or '').replace(',', '.').strip()
+        try:
+            return float(val) if val else default
+        except ValueError:
+            return default
+
+    new_template = Achivements_database(
+        name=name,
+        description=description,
+        bronze_value=parse_float('bronze_value', 1.0),
+        silver_value=parse_float('silver_value', 1.0),
+        gold_value=parse_float('gold_value', 1.0),
+        platinum_value=parse_float('platinum_value', 1.0),
+        emerald_value=parse_float('emerald_value', 1.0),
+        diamond_value=parse_float('diamond_value', 1.0),
+    )
+    if 'image' in request.FILES:
+        new_template.image = request.FILES['image']
+    new_template.save()
+
+    log_dm(f"DM vytvořil novou šablonu úspěchu '{name}' (ID: {new_template.id})")
+    messages.success(request, f"Nová šablona úspěchu „{name}“ byla úspěšně vytvořena!")
+    return redirect(reverse('dm_site_app:achievements_management') + "?tab=templates")
+
+
+@dm_required
+def dm_edit_achievement_template(request, template_id):
+    """Upraví existující šablonu úspěchu."""
+    if request.method != 'POST':
+        return redirect('dm_site_app:achievements_management')
+
+    template = get_object_or_404(Achivements_database, id=template_id)
+    name = request.POST.get('name', '').strip()
+    description = request.POST.get('description', '').strip()
+
+    if not name:
+        messages.error(request, "Název úspěchu nesmí být prázdný!")
+        return redirect(reverse('dm_site_app:achievements_management') + "?tab=templates")
+
+    def parse_float(key, default):
+        val = (request.POST.get(key) or '').replace(',', '.').strip()
+        try:
+            return float(val) if val else default
+        except ValueError:
+            return default
+
+    template.name = name
+    template.description = description
+    template.bronze_value = parse_float('bronze_value', template.bronze_value or 1.0)
+    template.silver_value = parse_float('silver_value', template.silver_value or 1.0)
+    template.gold_value = parse_float('gold_value', template.gold_value or 1.0)
+    template.platinum_value = parse_float('platinum_value', template.platinum_value or 1.0)
+    template.emerald_value = parse_float('emerald_value', template.emerald_value or 1.0)
+    template.diamond_value = parse_float('diamond_value', template.diamond_value or 1.0)
+
+    if 'image' in request.FILES:
+        template.image = request.FILES['image']
+    template.save()
+
+    # Přepočet všech existujících hráčských instancí tohoto úspěchu
+    for p_ach in template.achivements.all():
+        p_ach.save()
+
+    log_dm(f"DM upravil šablonu úspěchu '{name}' (ID: {template.id})")
+    messages.success(request, f"Šablona úspěchu „{name}“ byla úspěšně aktualizována!")
+    return redirect(reverse('dm_site_app:achievements_management') + "?tab=templates")
+
 

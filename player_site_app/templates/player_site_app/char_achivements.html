@@ -39,16 +39,18 @@
     {% for ach in achivements %}
     <article class="achievement-card">
         <div class="atarax-card-header">
-            <div>
-                <h2 class="atarax-card-title">
-                    <span>🎖️</span> {{ ach.Achivement.name|default:ach.achivement.name|default:"Neznámý úspěch" }}
-                    {% if ach.Achivement.img_ozn and ach.Achivement.img_ozn != "PRÁZDNO" %}
-                        <span class="badge badge-silver">{{ ach.Achivement.img_ozn }}</span>
-                    {% endif %}
-                </h2>
-                {% if ach.Achivement.description %}
-                    <p class="dm-item-desc">{{ ach.Achivement.description }}</p>
-                {% endif %}
+            <div class="achievement-header-info">
+                <div class="achievement-title-with-icon">
+                    <img src="{{ ach.Achivement.display_icon_url }}" alt="{{ ach.Achivement.name }}" class="achievement-icon-thumb">
+                    <div>
+                        <h2 class="atarax-card-title">
+                            {{ ach.Achivement.name|default:ach.achivement.name|default:"Neznámý úspěch" }}
+                        </h2>
+                        {% if ach.Achivement.description %}
+                            <p class="dm-item-desc">{{ ach.Achivement.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
 
             <!-- Status badge -->

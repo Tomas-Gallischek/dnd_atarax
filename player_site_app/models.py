@@ -347,7 +347,7 @@ class Char_info(models.Model):
 
 # DATABÁZE EXISTUJÍCÍCH ACHIVEMENTŮ
 class Achivements_database(models.Model):
-    img_ozn = models.CharField(max_length=50, verbose_name="Označení ikonky", default = "PRÁZDNO", null = True, blank = True)
+    image = models.FileField(upload_to='achievements/', blank=True, null=True, verbose_name="Ikona úspěchu")
     name = models.CharField(max_length=50, verbose_name="Jméno úspěchu")
     description = models.CharField(max_length=200, verbose_name="Popis úspěchu")
 
@@ -364,6 +364,38 @@ class Achivements_database(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def display_icon_url(self):
+        """Vrátí URL nahraného obrázku nebo výchozí předpřipravenou SVG ikonu."""
+        if self.image:
+            try:
+                return self.image.url
+            except Exception:
+                pass
+        slug_map = {
+            'cesta hrdiny': 'cesta_hrdiny.svg',
+            'esencionik': 'esencionik.svg',
+            'gambler': 'gambler.svg',
+            'sladke mameni': 'sladke_mameni.svg',
+            'sladké mámení': 'sladke_mameni.svg',
+            'smolar': 'smolar.svg',
+            'smolař': 'smolar.svg',
+            'smrtici stroj': 'smrtici_stroj.svg',
+            'smrtící stroj': 'smrtici_stroj.svg',
+            'stvoritel': 'stvoritel.svg',
+            'stvořitel': 'stvoritel.svg',
+            'vsechno je jednou poprve': 'vsechno_je_jednou_poprve.svg',
+            'všechno je jednou poprvé': 'vsechno_je_jednou_poprve.svg',
+            'zbohatlik': 'zbohatlik.svg',
+            'zbohatlík': 'zbohatlik.svg',
+            'stistko': 'stistko.svg',
+            'štístko': 'stistko.svg',
+        }
+        clean_name = self.name.strip().lower() if self.name else ""
+        if clean_name in slug_map:
+            return f'/static/img/achievements/{slug_map[clean_name]}'
+        return '/static/img/achievements/default.svg'
 
 
 # Databáze existujících achivementů
@@ -492,6 +524,28 @@ class Achivements_players(models.Model):
                 self.player.temna_esence = 0
             self.player.temna_esence += essence_added
             self.player.save()
+
+            # Zamezení zacyklení: propsání temné esence do achievementu "Esencionik"
+            # provádíme pouze tehdy, pokud aktuální achievement NENÍ "Esencionik".
+            ach_name = self.Achivement.name.strip().lower() if self.Achivement and self.Achivement.name else ""
+            if ach_name != "esencionik":
+                target_char = self.char
+                if not target_char and self.player:
+                    target_char = self.player.characters.first()
+                if target_char:
+                    try:
+                        esencionik_db = Achivements_database.objects.filter(name__iexact="Esencionik").first()
+                        if esencionik_db:
+                            es_ach, _ = Achivements_players.objects.get_or_create(
+                                player=self.player,
+                                char=target_char,
+                                Achivement=esencionik_db,
+                                defaults={'current_value': 0}
+                            )
+                            es_ach.current_value += essence_added
+                            es_ach.save()
+                    except Exception:
+                        pass
 
 
     def save(self, *args, **kwargs):

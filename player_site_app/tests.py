@@ -3,7 +3,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from dm_site_app.models import OverAllSettings, Items_Active
-from .models import Player, Char_info, Esence_Items_Shop, Esence_Items_Owners, Logs
+from .models import Player, Char_info, Esence_Items_Shop, Esence_Items_Owners, Logs, Achivements_database, Achivements_players
 
 
 class PlayerAuthAndCharacterTests(TestCase):
@@ -1288,6 +1288,114 @@ class PlayerInventoryItemRemovalTests(TestCase):
         self.assertContains(response, 'Akce')
         self.assertContains(response, 'btn-item-drop')
         self.assertContains(response, reverse('player_site_app:remove_inv_item', kwargs={'item_id': self.item1.id}))
+
+    def test_esencionik_achievement_essence_propagation_no_cycle(self):
+        """Při zvýšení hodnosti v jiném úspěchu se temná esence připíše do Esencionika bez zacyklení."""
+        u_ese = User.objects.create_user(username='u_ese', password='password123')
+        player = Player.objects.create(user=u_ese, nickname='GeraltEse', temna_esence=0)
+        char = Char_info.objects.create(player=player, name='GeraltEseChar', level=1)
+
+        tmpl_zbohatlik, _ = Achivements_database.objects.get_or_create(
+            name='Zbohatlík',
+            defaults={
+                'bronze_value': 10,
+                'silver_value': 50,
+                'gold_value': 100,
+                'platinum_value': 500,
+                'emerald_value': 1000,
+                'diamond_value': 2000,
+            }
+        )
+        tmpl_esencionik, _ = Achivements_database.objects.get_or_create(
+            name='Esencionik',
+            defaults={
+                'bronze_value': 25,
+                'silver_value': 50,
+                'gold_value': 100,
+                'platinum_value': 250,
+                'emerald_value': 500,
+                'diamond_value': 1000,
+            }
+        )
+
+        # Zvýšíme Zbohatlíka na 100 (dosáhne bronze + silver + gold: odměny 25 + 50 + 100 = 175)
+        ach_zbohatlik = Achivements_players.objects.create(
+            player=player,
+            char=char,
+            Achivement=tmpl_zbohatlik,
+            current_value=100
+        )
+        ach_zbohatlik.save()
+
+        player.refresh_from_db()
+        # Odměna ze Zbohatlíka (175) se propíše do Esencionika, čímž Esencionik dosáhne Gold (175 >= 100),
+        # a Esencionik sám přidá hráči dalších 175 temné esence (25 + 50 + 100 = 175)!
+        # Celková esence hráče: 175 + 175 = 350.
+        es_ach = Achivements_players.objects.filter(char=char, Achivement=tmpl_esencionik).first()
+        self.assertIsNotNone(es_ach)
+        self.assertEqual(es_ach.current_value, 175.0)
+        self.assertEqual(es_ach.current_status, 'gold')
+        self.assertEqual(player.temna_esence, 350)
+
+    def test_gambler_achievement_on_chest_open(self):
+        """Při otevření truhly v dungeon shopu se započte +1 do úspěchu Gambler."""
+        u_gam = User.objects.create_user(username='u_gam', password='password123')
+        player = Player.objects.create(user=u_gam, nickname='GeraltGambler', temna_esence=50)
+        char = Char_info.objects.create(player=player, name='GeraltGamblerChar', level=1)
+
+        tmpl_gambler, _ = Achivements_database.objects.get_or_create(
+            name='Gambler',
+            defaults={
+                'bronze_value': 10,
+                'silver_value': 20,
+                'gold_value': 40,
+                'platinum_value': 80,
+                'emerald_value': 200,
+                'diamond_value': 500,
+            }
+        )
+
+        chest_item = Esence_Items_Shop.objects.create(
+            name='Truhla osudu',
+            category='treasures',
+            rarity='basic',
+            cost=10
+        )
+        # Vytvoříme i rámeček, aby get_border_from_treasure měl co vylosovat
+        Esence_Items_Shop.objects.create(
+            name='Běžný rámeček z truhly',
+            category='borders',
+            rarity='basic',
+            cost=5
+        )
+        owner_record = Esence_Items_Owners.objects.create(player=player, item=chest_item)
+
+        self.client.login(username='u_gam', password='password123')
+        # Nastavíme request session aktivní postavu
+        session = self.client.session
+        session['active_character_id'] = char.id
+        session.save()
+
+        res = self.client.post(reverse('player_site_app:use_treasure'), {
+            'item_id': chest_item.id,
+            'player_id': player.id,
+            'char_id': char.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        self.assertEqual(res.status_code, 200)
+        gambler_record = Achivements_players.objects.filter(char=char, Achivement=tmpl_gambler).first()
+        self.assertIsNotNone(gambler_record)
+        self.assertEqual(gambler_record.current_value, 1.0)
+
+    def test_achievement_display_icon_url_fallback(self):
+        """Ověření URL ikony úspěchu: vrácení SVG ze static nebo nahraného obrázku."""
+        tmpl = Achivements_database.objects.create(name='Cesta hrdiny', description='Zkouška')
+        self.assertEqual(tmpl.display_icon_url, '/static/img/achievements/cesta_hrdiny.svg')
+
+        tmpl_custom = Achivements_database.objects.create(name='Zcela Nový Úspěch')
+        self.assertEqual(tmpl_custom.display_icon_url, '/static/img/achievements/default.svg')
+
 
 
 

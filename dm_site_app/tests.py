@@ -506,4 +506,106 @@ class DMPlayerInventoryManagementTests(TestCase):
         # Ověření hromadného logu
         self.assertTrue(Logs.objects.filter(character=self.character, message__contains='DM hromadně odebral').exists())
 
+    def test_dm_achievements_management_access(self):
+        """DM má přístup k /dm/achievements/, běžný uživatel je odmítnut."""
+        self.client.force_login(self.player_user)
+        res_non_dm = self.client.get(reverse('dm_site_app:achievements_management'))
+        self.assertEqual(res_non_dm.status_code, 302)
+
+        self.client.force_login(self.dm_user)
+        res_dm = self.client.get(reverse('dm_site_app:achievements_management'))
+        self.assertEqual(res_dm.status_code, 200)
+        self.assertContains(res_dm, 'Správa Úspěchů')
+
+    def test_dm_assign_and_update_achievement(self):
+        """DM může přiřadit libovolný úspěch jakékoliv postavě a upravit jeho hodnotu."""
+        from player_site_app.models import Achivements_database, Achivements_players
+        self.client.force_login(self.dm_user)
+
+        tmpl = Achivements_database.objects.create(
+            name='Testovací úspěch',
+            description='Popis testu',
+            bronze_value=5,
+            silver_value=10,
+            gold_value=20,
+        )
+
+        # 1. Přiřazení úspěchu postavě
+        assign_url = reverse('dm_site_app:dm_assign_achievement')
+        res_assign = self.client.post(assign_url, {
+            'character_id': self.character.id,
+            'template_id': tmpl.id,
+            'current_value': '7',
+            'mode': 'set'
+        })
+        self.assertEqual(res_assign.status_code, 302)
+
+        p_ach = Achivements_players.objects.filter(char=self.character, Achivement=tmpl).first()
+        self.assertIsNotNone(p_ach)
+        self.assertEqual(p_ach.current_value, 7.0)
+        self.assertEqual(p_ach.current_status, 'bronze')
+
+        # 2. Úprava hodnoty úspěchu (přičtení +5 -> celkem 12, dosáhne silver)
+        update_url = reverse('dm_site_app:dm_update_achievement_value', args=[p_ach.id])
+        res_update = self.client.post(update_url, {
+            'delta': '5'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_update.status_code, 200)
+        json_data = res_update.json()
+        self.assertEqual(json_data['status'], 'ok')
+        self.assertEqual(json_data['current_value'], 12.0)
+        self.assertEqual(json_data['current_status'], 'silver')
+
+        p_ach.refresh_from_db()
+        self.assertEqual(p_ach.current_value, 12.0)
+        self.assertEqual(p_ach.current_status, 'silver')
+
+        # 3. Smazání úspěchu
+        del_url = reverse('dm_site_app:dm_delete_player_achievement', args=[p_ach.id])
+        res_del = self.client.post(del_url)
+        self.assertEqual(res_del.status_code, 302)
+        self.assertFalse(Achivements_players.objects.filter(id=p_ach.id).exists())
+
+    def test_dm_create_and_edit_achievement_template(self):
+        """DM může vytvořit a upravit šablonu úspěchu."""
+        from player_site_app.models import Achivements_database
+        self.client.force_login(self.dm_user)
+
+        # 1. Vytvoření šablony
+        create_url = reverse('dm_site_app:dm_create_achievement_template')
+        res_create = self.client.post(create_url, {
+            'name': 'Lovec monster',
+            'description': 'Skol 10 monster',
+            'bronze_value': '1',
+            'silver_value': '5',
+            'gold_value': '10',
+            'platinum_value': '20',
+            'emerald_value': '50',
+            'diamond_value': '100',
+        })
+        self.assertEqual(res_create.status_code, 302)
+
+        tmpl = Achivements_database.objects.filter(name='Lovec monster').first()
+        self.assertIsNotNone(tmpl)
+        self.assertEqual(tmpl.gold_value, 10.0)
+
+        # 2. Úprava šablony
+        edit_url = reverse('dm_site_app:dm_edit_achievement_template', args=[tmpl.id])
+        res_edit = self.client.post(edit_url, {
+            'name': 'Lovec monster Elita',
+            'description': 'Skol 50 monster',
+            'bronze_value': '5',
+            'silver_value': '15',
+            'gold_value': '30',
+            'platinum_value': '60',
+            'emerald_value': '120',
+            'diamond_value': '250',
+        })
+        self.assertEqual(res_edit.status_code, 302)
+
+        tmpl.refresh_from_db()
+        self.assertEqual(tmpl.name, 'Lovec monster Elita')
+        self.assertEqual(tmpl.gold_value, 30.0)
+
+
 

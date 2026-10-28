@@ -162,8 +162,8 @@ class CharInfoAdmin(admin.ModelAdmin):
 @admin.register(Achivements_database)
 class AchivementsDatabaseAdmin(admin.ModelAdmin):
     list_display = (
+        'icon_preview',
         'name',
-        'img_ozn',
         'description',
         'bronze_value',
         'silver_value',
@@ -172,13 +172,13 @@ class AchivementsDatabaseAdmin(admin.ModelAdmin):
         'emerald_value',
         'diamond_value',
     )
-    search_fields = ('name', 'description', 'img_ozn')
+    search_fields = ('name', 'description')
     ordering = ('name',)
     inlines = [AchivementsPlayersForDatabaseInline]
     fieldsets = (
         ('Základní informace o achivementu', {
             'fields': (
-                ('name', 'img_ozn'),
+                ('name', 'image'),
                 'description',
             ),
         }),
@@ -189,6 +189,13 @@ class AchivementsDatabaseAdmin(admin.ModelAdmin):
             ),
         }),
     )
+
+    def icon_preview(self, obj):
+        url = obj.display_icon_url
+        if url:
+            return format_html('<img src="{}" style="width: 32px; height: 32px; object-fit: contain; border-radius: 4px;" alt="ikona" />', url)
+        return "-"
+    icon_preview.short_description = "Ikona"
 
 
 @admin.register(Achivements_players)

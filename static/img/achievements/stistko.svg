@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="stBg" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#064e3b"/>
+      <stop offset="60%" stop-color="#022c22"/>
+      <stop offset="100%" stop-color="#01140e"/>
+    </radialGradient>
+    <linearGradient id="stGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </linearGradient>
+    <filter id="stGlow">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feComposite in="SourceGraphic" in2="b" operator="over"/>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="58" fill="url(#stBg)" stroke="url(#stGold)" stroke-width="4"/>
+  <!-- Sunburst rays -->
+  <g stroke="#fde047" stroke-width="1.5" opacity="0.4" filter="url(#stGlow)">
+    <line x1="64" y1="12" x2="64" y2="24"/>
+    <line x1="64" y1="104" x2="64" y2="116"/>
+    <line x1="12" y1="64" x2="24" y2="64"/>
+    <line x1="104" y1="64" x2="116" y2="64"/>
+    <line x1="27" y1="27" x2="36" y2="36"/>
+    <line x1="92" y1="92" x2="101" y2="101"/>
+    <line x1="27" y1="101" x2="36" y2="92"/>
+    <line x1="92" y1="36" x2="101" y2="27"/>
+  </g>
+  <!-- D20 Shape -->
+  <polygon points="64,22 102,40 102,88 64,106 26,88 26,40" fill="#14532d" stroke="url(#stGold)" stroke-width="3"/>
+  <polygon points="64,38 90,82 38,82" fill="url(#stGold)" stroke="#fef08a" stroke-width="2"/>
+  <!-- "20" numeral -->
+  <text x="64" y="74" font-family="'Cinzel', Georgia, serif" font-size="30" font-weight="900" fill="#022c22" text-anchor="middle" filter="url(#stGlow)">20</text>
+  <!-- Clover leaves at bottom -->
+  <g transform="translate(64, 100) scale(0.7)" fill="#4ade80" filter="url(#stGlow)">
+    <circle cx="-5" cy="-5" r="5"/>
+    <circle cx="5" cy="-5" r="5"/>
+    <circle cx="-5" cy="5" r="5"/>
+    <circle cx="5" cy="5" r="5"/>
+  </g>
+</svg>

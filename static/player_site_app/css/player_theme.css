@@ -1709,6 +1709,32 @@
     padding: 10px 12px;
 }
 
+/* Achievement Icon Thumbnails */
+.achievement-title-with-icon {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.achievement-icon-thumb {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    object-fit: contain;
+    border-radius: var(--radius-md, 8px);
+    background: radial-gradient(circle, #2d2438 0%, #15101f 100%);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    padding: 3px;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.achievement-card:hover .achievement-icon-thumb {
+    transform: scale(1.06);
+    border-color: #fbbf24;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+}
+
 .pin-input-group {
     position: relative;
     width: 100%;

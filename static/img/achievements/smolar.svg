@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="smBg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#3b1111"/>
+      <stop offset="100%" stop-color="#140505"/>
+    </radialGradient>
+    <linearGradient id="smRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f87171"/>
+      <stop offset="50%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#7f1d1d"/>
+    </linearGradient>
+    <filter id="smGlow">
+      <feGaussianBlur stdDeviation="3.5" result="b"/>
+      <feComposite in="SourceGraphic" in2="b" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#smBg)" stroke="url(#smRed)" stroke-width="3.5"/>
+  <!-- D20 shape -->
+  <polygon points="64,18 104,38 104,90 64,110 24,90 24,38" fill="#1c1917" stroke="#dc2626" stroke-width="2.5"/>
+  <line x1="64" y1="18" x2="64" y2="110" stroke="#7f1d1d" stroke-width="1.5" stroke-dasharray="3,3"/>
+  <polygon points="64,36 92,84 36,84" fill="#292524" stroke="#ef4444" stroke-width="2"/>
+  <!-- Crack line -->
+  <path d="M42 32 L56 50 L52 64 L68 76 L62 98" fill="none" stroke="#ef4444" stroke-width="2.5" filter="url(#smGlow)"/>
+  <!-- Big red "1" -->
+  <text x="64" y="75" font-family="'Cinzel', Georgia, serif" font-size="34" font-weight="900" fill="#f87171" text-anchor="middle" filter="url(#smGlow)">1</text>
+  <!-- Skull tiny icon at bottom -->
+  <circle cx="64" cy="98" r="4" fill="#f87171"/>
+  <circle cx="62" cy="97" r="1" fill="#1c1917"/>
+  <circle cx="66" cy="97" r="1" fill="#1c1917"/>
+</svg>
