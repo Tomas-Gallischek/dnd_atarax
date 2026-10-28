@@ -46,11 +46,14 @@
     top: calc(100% + 8px);
     left: 0;
     width: 280px;
+    max-height: calc(100dvh - 80px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     background: #15121b;
     border: 1px solid var(--border-card);
     border-radius: var(--radius-md);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
-    overflow: hidden;
     animation: dmNavFadeIn 0.16s ease-out;
 }
 
@@ -1207,5 +1210,46 @@ textarea.dm-form-control {
         width: 100%;
         position: static;
         max-height: 400px;
+    }
+
+    .dm-hub-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 12px;
+    }
+}
+
+@media (max-width: 600px) {
+    .dm-hub-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .atarax-page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .atarax-header-actions {
+        width: 100%;
+    }
+
+    .atarax-header-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .combat-mob-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .combat-mob-row form {
+        width: 100%;
+    }
+
+    .combat-mob-row .btn {
+        width: 100%;
+        justify-content: center;
     }
 }

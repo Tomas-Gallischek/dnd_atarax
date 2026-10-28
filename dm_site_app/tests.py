@@ -55,8 +55,12 @@ class DMSiteAuthAndNavigationTests(TestCase):
     def test_staff_user_can_access_all_dm_pages(self):
         """Přihlášený uživatel s admin právy (is_staff=True) má přístup na všechny DM stránky."""
         self.client.force_login(self.dm_user)
+        # index přesměrovává na sjednocené tools
+        res_index = self.client.get(reverse('dm_site_app:index'))
+        self.assertEqual(res_index.status_code, 302)
+        self.assertEqual(res_index.url, reverse('dm_site_app:tools'))
+
         pages_and_templates = [
-            (reverse('dm_site_app:index'), 'dm_site_app/index_dashboard.html'),
             (reverse('dm_site_app:tools'), 'dm_site_app/tools.html'),
             (reverse('dm_site_app:npc'), 'dm_site_app/npc.html'),
             (reverse('dm_site_app:locations'), 'dm_site_app/locations.html'),
@@ -64,6 +68,8 @@ class DMSiteAuthAndNavigationTests(TestCase):
             (reverse('dm_site_app:lore'), 'dm_site_app/lore.html'),
             (reverse('dm_site_app:golds-management'), 'dm_site_app/golds_management.html'),
             (reverse('dm_site_app:player_inventory_management'), 'dm_site_app/player_inventory_management.html'),
+            (reverse('dm_site_app:monster_gen_page'), 'dm_site_app/monster_gen_page.html'),
+            (reverse('dm_site_app:create_custom_monster'), 'dm_site_app/create_custom_monster.html'),
         ]
         for url, template in pages_and_templates:
             response = self.client.get(url)
@@ -73,9 +79,9 @@ class DMSiteAuthAndNavigationTests(TestCase):
             self.assertTemplateUsed(response, 'base.html')
 
     def test_dm_dropdown_menu_elements_and_order(self):
-        """Rozbalovací nabídka obsahuje všech 6 podstránek v přesném pořadí, odkaz na přehled postav a odhlášení."""
+        """Rozbalovací nabídka obsahuje sjednocené nástroje, NPC, lokace, poznámky, kroniku, arénu, přehled postav a odhlášení."""
         self.client.force_login(self.dm_user)
-        response = self.client.get(reverse('dm_site_app:index'))
+        response = self.client.get(reverse('dm_site_app:tools'))
         self.assertEqual(response.status_code, 200)
 
         # Kontrola přítomnosti DM navigace
@@ -86,36 +92,35 @@ class DMSiteAuthAndNavigationTests(TestCase):
         content = response.content.decode('utf-8')
 
         # Hledání indexů jednotlivých odkazů v HTML
-        idx_index = content.find(f'href="{reverse("dm_site_app:index")}"')
         idx_tools = content.find(f'href="{reverse("dm_site_app:tools")}"')
         idx_npc = content.find(f'href="{reverse("dm_site_app:npc")}"')
         idx_locations = content.find(f'href="{reverse("dm_site_app:locations")}"')
         idx_notes = content.find(f'href="{reverse("dm_site_app:notes")}"')
-        idx_lore = content.find(f'href="{reverse("dm_site_app:lore")}"')
+        idx_kronika = content.find(f'href="{reverse("dm_site_app:kronika_edit")}"')
+        idx_pvp = content.find(f'href="{reverse("dm_site_app:pvp_pre")}"')
         idx_player = content.find(f'href="{reverse("player_site_app:prehled_postav")}"')
         idx_logout = content.find(f'href="{reverse("player_site_app:logout")}"')
 
         # Všechny odkazy musí v menu existovat
-        self.assertTrue(idx_index != -1, "Odkaz na index_dashboard chybí")
         self.assertTrue(idx_tools != -1, "Odkaz na tools chybí")
         self.assertTrue(idx_npc != -1, "Odkaz na npc chybí")
         self.assertTrue(idx_locations != -1, "Odkaz na locations chybí")
         self.assertTrue(idx_notes != -1, "Odkaz na notes chybí")
-        self.assertTrue(idx_lore != -1, "Odkaz na lore chybí")
+        self.assertTrue(idx_kronika != -1, "Odkaz na kronika_edit chybí")
+        self.assertTrue(idx_pvp != -1, "Odkaz na pvp_pre chybí")
         self.assertTrue(idx_player != -1, "Odkaz na player přehled postav chybí")
         self.assertTrue(idx_logout != -1, "Odkaz na odhlášení chybí")
 
-        # Ověření zachování přesného pořadí požadovaného uživatelem:
-        # 1. index_dashboard -> 2. tools -> 3. npc -> 4. locations -> 5. notes -> 6. lore -> prehled_postav -> logout
+        # Ověření přesného pořadí odkazů v sjednoceném menu:
         self.assertTrue(
-            idx_index < idx_tools < idx_npc < idx_locations < idx_notes < idx_lore < idx_player < idx_logout,
+            idx_tools < idx_npc < idx_locations < idx_notes < idx_kronika < idx_pvp < idx_player < idx_logout,
             "Pořadí odkazů v rozbalovací nabídce neodpovídá zadání!"
         )
 
     def test_dm_site_does_not_contain_player_navigation(self):
         """V DM sekci se nesmí zobrazovat hráčská navigace."""
         self.client.force_login(self.dm_user)
-        response = self.client.get(reverse('dm_site_app:index'))
+        response = self.client.get(reverse('dm_site_app:tools'))
         self.assertNotContains(response, 'id="playerNavContainer"')
         self.assertNotContains(response, 'id="playerNavToggleBtn"')
 
@@ -606,6 +611,122 @@ class DMPlayerInventoryManagementTests(TestCase):
         tmpl.refresh_from_db()
         self.assertEqual(tmpl.name, 'Lovec monster Elita')
         self.assertEqual(tmpl.gold_value, 30.0)
+
+    def test_create_custom_monster_success(self):
+        """DM může vytvořit vlastní monstrum do bestiáře a volitelně ho aktivovat do hry."""
+        from dm_site_app.models import Monsters_All_db, Monsters_Active
+        self.client.force_login(self.dm_user)
+
+        url = reverse('dm_site_app:create_custom_monster')
+        get_res = self.client.get(url)
+        self.assertEqual(get_res.status_code, 200)
+        self.assertTemplateUsed(get_res, 'dm_site_app/create_custom_monster.html')
+
+        post_data = {
+            'name_cz': 'Stínový vlkodlak',
+            'name_en': 'Shadow Werewolf',
+            'size': 'Střední',
+            'type': 'Monstrosita',
+            'subtype': 'tvaroměnec',
+            'alignment': 'chaoticky zlý',
+            'armor_class': '14',
+            'armor_desc': 'přirozená zbroj',
+            'hit_points': '65',
+            'hit_dice': '8d8 + 16',
+            'speed': '12 m (40 ft)',
+            'strength': '16',
+            'dexterity': '14',
+            'constitution': '14',
+            'intelligence': '10',
+            'wisdom': '12',
+            'charisma': '8',
+            'strength_save': '5',
+            'dexterity_save': '4',
+            'skills': 'Nenápadnost +4, Vnímání +5',
+            'senses': 'Vidění ve tmě 18 m, Pasivní vnímání 15',
+            'languages': 'Obecná řeč',
+            'challenge_rating': '4',
+            'cr_fraction': '4',
+            'xp': '1100',
+            'actions': 'Kousnutí: útok na blízko +5, zásah: 2d8+3 bodné poškození.',
+            'description': 'Tvor zrozený ze stínů a měsíčního svitu.',
+            'image_url': 'https://example.com/shadow_wolf.png',
+            'auto_activate': 'on',
+            'loot_gold': '12',
+            'loot_silver': '30',
+        }
+
+        post_res = self.client.post(url, post_data)
+        self.assertEqual(post_res.status_code, 302)
+        self.assertEqual(post_res.url, reverse('dm_site_app:monster_gen_page'))
+
+        # Ověření v Monsters_All_db
+        db_mob = Monsters_All_db.objects.filter(name_cz='Stínový vlkodlak').first()
+        self.assertIsNotNone(db_mob)
+        self.assertEqual(db_mob.size, 'Střední')
+        self.assertEqual(db_mob.armor_class, 14)
+        self.assertEqual(db_mob.hit_points, 65)
+        self.assertEqual(db_mob.strength, 16)
+        self.assertEqual(db_mob.challenge_rating, 4.0)
+
+        # Ověření v Monsters_Active
+        active_mob = Monsters_Active.objects.filter(name_cz='Stínový vlkodlak').first()
+        self.assertIsNotNone(active_mob)
+        self.assertEqual(active_mob.current_hp, 65)
+        self.assertEqual(active_mob.loot_gold, 12)
+        self.assertEqual(active_mob.loot_silver, 30)
+
+    def test_api_update_hp_batch_and_steps(self):
+        """API api_update_hp dokáže dávkově aktualizovat HP monster i hráčů po ublížení či léčení."""
+        import json
+        from dm_site_app.models import Monsters_Active
+        self.client.force_login(self.dm_user)
+
+        # Příprava monstra a hráče
+        active_mob = Monsters_Active.objects.create(
+            name_cz='Skřet válečník',
+            hit_points=30,
+            current_hp=30,
+            in_fight=True
+        )
+        self.character.in_fight = True
+        self.character.hit_points_max = 45
+        self.character.hit_points_current = 45
+        self.character.save()
+
+        # Dávková aktualizace HP (např. skřet dostal -12 dmg -> 18 HP, hráč vyléčen o +5 -> 50, oříznuto na max nebo uloženo)
+        payload = {
+            'updates': [
+                {
+                    'entity_type': 'mob',
+                    'entity_id': active_mob.id,
+                    'current_hp': 18
+                },
+                {
+                    'entity_type': 'player',
+                    'entity_id': self.character.id,
+                    'current_hp': 40
+                }
+            ]
+        }
+
+        api_url = reverse('dm_site_app:api_update_hp')
+        res = self.client.post(
+            api_url,
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        self.assertEqual(res.status_code, 200)
+        res_data = res.json()
+        self.assertTrue(res_data['success'])
+        self.assertEqual(len(res_data['saved']), 2)
+
+        # Kontrola v DB
+        active_mob.refresh_from_db()
+        self.assertEqual(active_mob.current_hp, 18)
+
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.hit_points_current, 40)
 
 
 

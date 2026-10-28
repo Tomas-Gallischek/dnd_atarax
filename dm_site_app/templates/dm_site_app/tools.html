@@ -11,11 +11,19 @@
 </div>
 
 <div class="dm-hub-grid">
-    <a href="{% url 'dm_site_app:golds-management' %}" class="dm-hub-card">
-        <span class="dm-hub-icon">🪙</span>
+    <a href="{% url 'dm_site_app:pvp_arena' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">⚔️</span>
         <div class="dm-hub-content">
-            <h3>Správa zlaťáků</h3>
-            <p>Rychlé připisování a odebírání mincí z měšců jednotlivých postav</p>
+            <h3>Bojová Aréna</h3>
+            <p>Sledování kol, řízení střetů a správa životů v reálném čase</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:pvp_pre' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">🛡️</span>
+        <div class="dm-hub-content">
+            <h3>Příprava na souboj</h3>
+            <p>Výběr aktivních monster a hrdinů vstupujících do arény</p>
         </div>
     </a>
 
@@ -23,7 +31,7 @@
         <span class="dm-hub-icon">👾</span>
         <div class="dm-hub-content">
             <h3>Generátor monster</h3>
-            <p>Náhodná generace dle CR i výběr konkrétních bestií do střetu</p>
+            <p>Náhodná generace dle CR, výběr z bestiáře a tvorba vlastních monster</p>
         </div>
     </a>
 
@@ -31,7 +39,15 @@
         <span class="dm-hub-icon">💰</span>
         <div class="dm-hub-content">
             <h3>Správa lootů</h3>
-            <p>Zlaťáky z monster a katalog předmětů pro hráče</p>
+            <p>Zlaťáky z monster a katalog vybavení a tvorba předmětů</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:golds-management' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">🪙</span>
+        <div class="dm-hub-content">
+            <h3>Správa zlaťáků</h3>
+            <p>Rychlé připisování a odebírání mincí z měšců jednotlivých postav</p>
         </div>
     </a>
 
@@ -43,11 +59,11 @@
         </div>
     </a>
 
-    <a href="{% url 'dm_site_app:pvp_pre' %}" class="dm-hub-card">
-        <span class="dm-hub-icon">⚔️</span>
+    <a href="{% url 'dm_site_app:achievements_management' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">🏆</span>
         <div class="dm-hub-content">
-            <h3>Příprava na souboj</h3>
-            <p>Výběr aktivních monster a hrdinů vstupujících do arény</p>
+            <h3>Správa Úspěchů</h3>
+            <p>Přiřazování úspěchů postavám, editace hodnot a šablon úspěchů</p>
         </div>
     </a>
 
@@ -59,11 +75,27 @@
         </div>
     </a>
 
-    <a href="{% url 'dm_site_app:achievements_management' %}" class="dm-hub-card">
-        <span class="dm-hub-icon">🏆</span>
+    <a href="{% url 'dm_site_app:npc' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">👤</span>
         <div class="dm-hub-content">
-            <h3>Správa Úspěchů</h3>
-            <p>Přiřazování úspěchů postavám, editace hodnot a správa šablon úspěchů</p>
+            <h3>Přehled NPC</h3>
+            <p>Katalog vedlejších postav, jejich role a vazby na lokace</p>
+        </div>
+    </a>
+
+    <a href="{% url 'dm_site_app:locations' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">🗺️</span>
+        <div class="dm-hub-content">
+            <h3>Mapy & Lokace</h3>
+            <p>Správa dungeonů, měst, pevností a herních oblastí</p>
+        </div>
+    </a>
+
+    <a href="{% url 'player_site_app:prehled_postav' %}" class="dm-hub-card">
+        <span class="dm-hub-icon">👥</span>
+        <div class="dm-hub-content">
+            <h3>Hráčská sekce</h3>
+            <p>Nahlédnout do přehledu postav a inventářů hráčů</p>
         </div>
     </a>
 </div>

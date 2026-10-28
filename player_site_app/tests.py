@@ -289,39 +289,37 @@ class PlayerAuthAndCharacterTests(TestCase):
         idx4 = content.find(reverse('player_site_app:char_roleplay'))
         # 5. char_achivements
         idx5 = content.find(reverse('player_site_app:char_achivements'))
-        # 6. char_stats_detail
-        idx6 = content.find(reverse('player_site_app:char_stats_detail'))
-        # 7. kronika
-        idx7 = content.find(reverse('player_site_app:kronika'))
-        # 8. prehled_postav
-        idx8 = content.find(reverse('player_site_app:prehled_postav'))
-        # 9. stream (volitelné pokud bylo odebráno z menu)
-        idx9 = content.find(reverse('player_site_app:stream'))
-        # 10. dungeon_shop (oddělený čárou hr)
-        idx10 = content.find(reverse('player_site_app:dungeon_shop'))
-        # 11. logout (pod dungeon shopem)
+        # 6. kronika (předchozí 6. char_stats_detail byl uživatelem odebrán)
+        idx6 = content.find(reverse('player_site_app:kronika'))
+        # 7. prehled_postav
+        idx7 = content.find(reverse('player_site_app:prehled_postav'))
+        # 8. stream (volitelné pokud bylo odebráno z menu)
+        idx8 = content.find(reverse('player_site_app:stream'))
+        # 9. dungeon_shop (oddělený čárou hr)
+        idx9 = content.find(reverse('player_site_app:dungeon_shop'))
+        # 10. logout (pod dungeon shopem)
         idx_logout = content.find(reverse('player_site_app:logout'))
 
         self.assertTrue(idx1 != -1 and idx2 != -1 and idx3 != -1 and idx4 != -1)
-        self.assertTrue(idx5 != -1 and idx6 != -1 and idx7 != -1 and idx8 != -1)
-        self.assertTrue(idx10 != -1 and idx_logout != -1)
+        self.assertTrue(idx5 != -1 and idx6 != -1 and idx7 != -1)
+        self.assertTrue(idx9 != -1 and idx_logout != -1)
 
         # Ověření přesného pořadí:
         hr_idx = content.find('<hr class="player-nav-divider">')
         self.assertTrue(hr_idx != -1)
-        if idx9 != -1:
-            self.assertTrue(idx1 < idx2 < idx3 < idx4 < idx5 < idx6 < idx7 < idx8 < idx9 < idx10 < idx_logout)
-            self.assertTrue(idx9 < hr_idx < idx10)
+        if idx8 != -1:
+            self.assertTrue(idx1 < idx2 < idx3 < idx4 < idx5 < idx6 < idx7 < idx8 < idx9 < idx_logout)
+            self.assertTrue(idx8 < hr_idx < idx9)
         else:
-            self.assertTrue(idx1 < idx2 < idx3 < idx4 < idx5 < idx6 < idx7 < idx8 < idx10 < idx_logout)
-            self.assertTrue(idx8 < hr_idx < idx10)
+            self.assertTrue(idx1 < idx2 < idx3 < idx4 < idx5 < idx6 < idx7 < idx9 < idx_logout)
+            self.assertTrue(idx7 < hr_idx < idx9)
 
     def test_dm_site_does_not_contain_player_nav(self):
         """Aplikace dm_site_app nesmí obsahovat hráčské menu."""
         self.user1.is_staff = True
         self.user1.save()
         self.client.force_login(self.user1)
-        response = self.client.get(reverse('dm_site_app:index'))
+        response = self.client.get(reverse('dm_site_app:tools'))
         self.assertEqual(response.status_code, 200)
         self.assertNotContains(response, 'id="playerNavContainer"')
         self.assertNotContains(response, 'id="playerNavToggleBtn"')
@@ -688,35 +686,35 @@ class PlayerReforgeAndEquipTests(TestCase):
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertTrue(data['success'])
-        self.assertEqual(data['value'], 5)
-        self.assertEqual(data['new_essence'], 15)
+        self.assertEqual(data['value'], 1)
+        self.assertEqual(data['new_essence'], 11)
 
         self.player.refresh_from_db()
-        self.assertEqual(self.player.temna_esence, 15)
+        self.assertEqual(self.player.temna_esence, 11)
         self.assertFalse(Esence_Items_Owners.objects.filter(id=owner_record.id).exists())
         self.assertTrue(Esence_Items_Shop.objects.filter(id=self.border_basic.id).exists())
 
     def test_reforge_rarities_essence_values(self):
-        """Ověření hodnot esence pro vzácnou, epickou a legendární raritu (25, 50, 100)."""
+        """Ověření hodnot esence pro vzácnou, epickou a legendární raritu (5, 10, 20)."""
         Esence_Items_Owners.objects.create(player=self.player, item=self.border_rare)
         Esence_Items_Owners.objects.create(player=self.player, item=self.border_epic)
         Esence_Items_Owners.objects.create(player=self.player, item=self.border_legendary)
         self.client.login(username='tester', password='heslo123')
 
-        # Rare -> +25 (10 + 25 = 35)
+        # Rare -> +5 (10 + 5 = 15)
         self.client.post(reverse('player_site_app:reforge_tresure'), {'item_id': self.border_rare.id})
         self.player.refresh_from_db()
-        self.assertEqual(self.player.temna_esence, 35)
+        self.assertEqual(self.player.temna_esence, 15)
 
-        # Epic -> +50 (35 + 50 = 85)
+        # Epic -> +10 (15 + 10 = 25)
         self.client.post(reverse('player_site_app:reforge_tresure'), {'item_id': self.border_epic.id})
         self.player.refresh_from_db()
-        self.assertEqual(self.player.temna_esence, 85)
+        self.assertEqual(self.player.temna_esence, 25)
 
-        # Legendary -> +100 (85 + 100 = 185)
+        # Legendary -> +20 (25 + 20 = 45)
         self.client.post(reverse('player_site_app:reforge_tresure'), {'item_id': self.border_legendary.id})
         self.player.refresh_from_db()
-        self.assertEqual(self.player.temna_esence, 185)
+        self.assertEqual(self.player.temna_esence, 45)
 
     def test_cannot_reforge_treasure_chest(self):
         """Truhlu nelze rozebírat, pouze otevřít."""
@@ -1504,11 +1502,11 @@ class DungeonShopIconsTests(TestCase):
         self.assertEqual(res.status_code, 200)
         data = res.json()
         self.assertTrue(data['success'])
-        self.assertEqual(data['value'], 25)
+        self.assertEqual(data['value'], 5)
 
         self.player.refresh_from_db()
         self.char.refresh_from_db()
-        self.assertEqual(self.player.temna_esence, initial_essence + 25)
+        self.assertEqual(self.player.temna_esence, initial_essence + 5)
         self.assertIsNone(self.player.active_icon)
         self.assertIsNone(self.char.active_icon)
         self.assertFalse(Esence_Items_Owners.objects.filter(id=self.owned_icon.id).exists())

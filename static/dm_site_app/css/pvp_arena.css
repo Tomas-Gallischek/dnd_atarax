@@ -613,7 +613,8 @@
 /* Health Action Buttons */
 .health-buttons {
     display: flex;
-    gap: 6px;
+    gap: 4px;
+    margin-bottom: 6px;
 }
 
 .btn-hp {
@@ -621,15 +622,20 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 7px 4px;
+    gap: 3px;
+    padding: 6px 3px;
     border-radius: 6px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     font-weight: 800;
     cursor: pointer;
     border: 1px solid transparent;
     transition: all 0.15s ease;
     user-select: none;
+}
+
+.btn-hp-step {
+    font-size: 0.82rem;
+    opacity: 0.92;
 }
 
 .btn-hp-minus {
@@ -665,6 +671,100 @@
 
 .btn-hp-plus:active {
     transform: scale(0.94);
+    background: #047857;
+}
+
+/* Custom HP Input & Controls */
+.health-custom-wrap {
+    margin-top: 4px;
+}
+
+.health-custom-group {
+    display: flex;
+    gap: 4px;
+    align-items: stretch;
+}
+
+.hp-custom-input {
+    width: 60px;
+    min-width: 48px;
+    flex: 1;
+    background: #0d0a13;
+    border: 1px solid var(--border-card, #372f47);
+    border-radius: 6px;
+    color: #f8fafc;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 6px 4px;
+    outline: none;
+    transition: all 0.2s ease;
+    appearance: textfield;
+}
+
+.hp-custom-input::-webkit-outer-spin-button,
+.hp-custom-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.hp-custom-input:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.25);
+    background: #151020;
+}
+
+.btn-custom-hp {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 8px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s ease;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.btn-custom-dmg {
+    background: #3b1115;
+    color: #fca5a5;
+    border-color: #7f1d1d;
+    flex: 1.1;
+}
+
+.btn-custom-dmg:hover {
+    background: #5c0f16;
+    color: #ffffff;
+    border-color: #ef4444;
+    box-shadow: 0 0 10px rgba(239, 68, 68, 0.35);
+}
+
+.btn-custom-dmg:active {
+    transform: scale(0.95);
+    background: #7f1d1d;
+}
+
+.btn-custom-heal {
+    background: #0f3022;
+    color: #86efac;
+    border-color: #065f46;
+    flex: 1.1;
+}
+
+.btn-custom-heal:hover {
+    background: #0d4a34;
+    color: #ffffff;
+    border-color: #10b981;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+
+.btn-custom-heal:active {
+    transform: scale(0.95);
     background: #047857;
 }
 
@@ -1324,10 +1424,25 @@
     .arena-topbar {
         flex-direction: column;
         align-items: stretch;
+        gap: 12px;
+    }
+
+    .arena-actions-group {
+        justify-content: stretch;
+    }
+
+    .arena-actions-group .btn-arena-link {
+        flex: 1;
+        justify-content: center;
+        text-align: center;
     }
     
     .cards-grid {
         grid-template-columns: 1fr;
+    }
+
+    .character-card {
+        padding: 12px;
     }
 
     .character-detail-dialog {
@@ -1350,6 +1465,37 @@
 
     .modal-abilities-grid {
         grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .health-buttons {
+        gap: 3px;
+    }
+
+    .btn-hp {
+        font-size: 0.82rem;
+        padding: 7px 2px;
+    }
+
+    .health-custom-group {
+        flex-wrap: wrap;
+    }
+
+    .hp-custom-input {
+        width: 100%;
+        min-width: 100%;
+        margin-bottom: 4px;
+    }
+
+    .btn-custom-hp {
+        flex: 1;
+        padding: 7px 4px;
+    }
+
+    .ability-scores-strip {
+        grid-template-columns: repeat(3, 1fr);
+        display: grid;
     }
 }
 

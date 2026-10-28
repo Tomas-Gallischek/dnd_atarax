@@ -179,11 +179,14 @@
     top: calc(100% + 8px);
     left: 0;
     width: 280px;
+    max-height: calc(100dvh - 80px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     background: #15121b;
     border: 1px solid var(--border-card);
     border-radius: var(--radius-md);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.75);
-    overflow: hidden;
     animation: playerNavFadeIn 0.16s ease-out;
 }
 
@@ -1212,8 +1215,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    overflow: hidden;
+    padding: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
     animation: mimicModalFadeIn 0.3s ease-out forwards;
 }
 
@@ -1244,6 +1249,7 @@
     z-index: 2;
     width: 100%;
     max-width: 480px;
+    margin: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3386,8 +3392,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 1.5rem;
-    overflow: hidden;
+    padding: 16px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
 }
 
 .reforge-modal-dimmer {
@@ -3404,6 +3412,7 @@
     z-index: 10;
     width: 100%;
     max-width: 460px;
+    margin: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -4679,6 +4688,125 @@
     margin-top: 22px;
     padding-top: 18px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ==========================================================================
+   MOBILE & TABLET RESPONSIVE ENHANCEMENTS
+   ========================================================================== */
+
+@media (max-width: 768px), (max-height: 720px) {
+    /* Mimic Chest Opening Animation scaling */
+    .mimic-actor-box {
+        width: min(280px, 86vw);
+        height: min(230px, 34vh);
+        margin-bottom: 0.85rem;
+    }
+
+    .mimic-creature-img {
+        max-height: min(210px, 30vh);
+    }
+
+    .mimic-shadow {
+        width: min(190px, 65vw);
+        height: 20px;
+    }
+
+    .mimic-portal-glow {
+        width: min(320px, 88vw);
+        height: min(320px, 88vw);
+    }
+
+    .loot-sunburst-rays {
+        width: min(340px, 92vw);
+        height: min(340px, 92vw);
+    }
+
+    .mimic-loot-reveal {
+        max-width: 340px;
+        width: 100%;
+    }
+
+    .loot-award-card {
+        padding: 1.15rem 1rem;
+        max-width: 100%;
+    }
+
+    .loot-award-frame {
+        height: 140px;
+        margin-bottom: 0.85rem;
+    }
+
+    .loot-award-img {
+        max-height: 120px;
+    }
+
+    .loot-award-title {
+        font-size: 1.25rem;
+    }
+
+    .btn-save-loot {
+        padding: 11px 18px;
+        font-size: 0.95rem;
+    }
+
+    /* Reforge Modal on tablets / mobile */
+    .reforge-confirm-card {
+        padding: 1.25rem 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .mimic-actor-box {
+        width: 240px;
+        height: 200px;
+    }
+
+    .mimic-creature-img {
+        max-height: 180px;
+    }
+
+    .loot-award-frame {
+        height: 125px;
+    }
+
+    .loot-award-img {
+        max-height: 105px;
+    }
+
+    .mimic-status-title {
+        font-size: 1.15rem;
+    }
+
+    .mimic-status-desc {
+        font-size: 0.88rem;
+    }
+
+    /* Reforge action buttons stack on small mobile screens */
+    .reforge-actions-row {
+        flex-direction: column-reverse;
+        width: 100%;
+        gap: 8px;
+    }
+
+    .btn-reforge-cancel,
+    .btn-reforge-execute {
+        width: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    /* Avatar modal header & preview */
+    .avatar-preview-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+
+    .avatar-preview-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 }
 
 

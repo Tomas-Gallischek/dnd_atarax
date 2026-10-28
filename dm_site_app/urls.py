@@ -37,6 +37,7 @@ urlpatterns = [
     path('random_monster_gen/', views.random_monster_gen, name='random_monster_gen'),
     path('remove_mob/<int:mob_id>/', views.remove_mob, name='remove_mob'),
     path('specific_monster_gen/', views.specific_monster_gen, name='specific_monster_gen'),
+    path('create_custom_monster/', views.create_custom_monster, name='create_custom_monster'),
     path('pvp_pre', views.pvp_pre, name='pvp_pre'),
     path('pvp_arena', views.pvp_arena, name='pvp_arena'),
     path('in_fight_switch', views.in_fight_switch, name='in_fight_switch'),

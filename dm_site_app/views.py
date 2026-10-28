@@ -43,10 +43,8 @@ def dm_required(view_func):
 
 @dm_required
 def index(request):
-    """1. DM Dashboard"""
-    return render(request, 'dm_site_app/index_dashboard.html', {
-        'current_page': 'index_dashboard',
-    })
+    """Sjednocený rozcestník DM - Nástroje"""
+    return redirect('dm_site_app:tools')
 
 @dm_required
 def tools(request):
@@ -719,6 +717,221 @@ def specific_monster_gen(request):
         log_warning("Výběr specifického monstra", "Neplatná metoda (očekáván POST)")
         messages.error(request, "Chyba při vybirani monstra")
         return redirect('dm_site_app:monster_gen_page')
+
+@dm_required
+def create_custom_monster(request):
+    """
+    Umožňuje DM vytvořit zcela novou nestvůru do herního bestiáře (Monsters_All_db)
+    a volitelně ji rovnou nasadit do aktivních monster v probíhající hře (Monsters_Active).
+    """
+    sizes = ["Drobná", "Malá", "Střední", "Velká", "Obrovská", "Gigantická"]
+    monster_types = [
+        "Aberace", "Běs", "Drak", "Elementál", "Fey (Víla)", "Gigant",
+        "Humanoid", "Konstrukt", "Monstrosita", "Nemrtvý", "Netvor",
+        "Rostlina", "Sliz", "Zvíře", "Ostatní"
+    ]
+    alignments = [
+        "Zákonné dobro", "Neutrální dobro", "Chaotické dobro",
+        "Zákonný neutrál", "Čistý neutrál", "Chaotický neutrál",
+        "Zákonné zlo", "Neutrální zlo", "Chaotické zlo",
+        "Bez přesvědčení", "Jakékoliv přesvědčení"
+    ]
+
+    if request.method == 'POST':
+        name_cz = request.POST.get('name_cz', '').strip()
+        name_en = request.POST.get('name_en', '').strip() or name_cz
+
+        if not name_cz:
+            messages.error(request, "Vyplňte prosím český název monstra.")
+            return render(request, 'dm_site_app/create_custom_monster.html', {
+                'sizes': sizes,
+                'monster_types': monster_types,
+                'alignments': alignments,
+                'current_page': 'monster_gen_page',
+            })
+
+        size = request.POST.get('size', 'Střední').strip() or 'Střední'
+        monster_type = request.POST.get('monster_type', 'Monstrosita').strip() or 'Monstrosita'
+        subtype = request.POST.get('subtype', '').strip()
+        alignment = request.POST.get('alignment', 'Bez přesvědčení').strip() or 'Bez přesvědčení'
+
+        # Bojové statistiky
+        try:
+            armor_class = max(1, int(request.POST.get('armor_class', 10) or 10))
+        except (ValueError, TypeError):
+            armor_class = 10
+
+        armor_desc = request.POST.get('armor_desc', '').strip()
+
+        try:
+            hit_points = max(1, int(request.POST.get('hit_points', 15) or 15))
+        except (ValueError, TypeError):
+            hit_points = 15
+
+        hit_dice = request.POST.get('hit_dice', '').strip()
+        speed = request.POST.get('speed', '30 stop').strip() or '30 stop'
+
+        # Vlastnosti
+        def parse_ability(field, default=10):
+            try:
+                return max(1, min(30, int(request.POST.get(field, default) or default)))
+            except (ValueError, TypeError):
+                return default
+
+        strength = parse_ability('strength', 10)
+        dexterity = parse_ability('dexterity', 10)
+        constitution = parse_ability('constitution', 10)
+        intelligence = parse_ability('intelligence', 10)
+        wisdom = parse_ability('wisdom', 10)
+        charisma = parse_ability('charisma', 10)
+
+        saving_throws = request.POST.get('saving_throws', '').strip()
+        skills = request.POST.get('skills', '').strip()
+        damage_vulnerabilities = request.POST.get('damage_vulnerabilities', '').strip()
+        damage_resistances = request.POST.get('damage_resistances', '').strip()
+        damage_immunities = request.POST.get('damage_immunities', '').strip()
+        condition_immunities = request.POST.get('condition_immunities', '').strip()
+        senses = request.POST.get('senses', 'pasivní Vnímání 10').strip()
+        languages = request.POST.get('languages', '—').strip()
+
+        try:
+            challenge_rating = max(0.0, float(request.POST.get('challenge_rating', 1.0) or 1.0))
+        except (ValueError, TypeError):
+            challenge_rating = 1.0
+
+        try:
+            xp = max(0, int(request.POST.get('xp', 0) or 0))
+        except (ValueError, TypeError):
+            xp = 0
+
+        try:
+            proficiency_bonus = max(1, int(request.POST.get('proficiency_bonus', 2) or 2))
+        except (ValueError, TypeError):
+            proficiency_bonus = 2
+
+        special_abilities = request.POST.get('special_abilities', '').strip()
+        actions = request.POST.get('actions', '').strip()
+        legendary_actions = request.POST.get('legendary_actions', '').strip()
+        reactions = request.POST.get('reactions', '').strip()
+        description = request.POST.get('description', '').strip()
+        image_url = request.POST.get('image_url', '').strip()
+
+        # Loot
+        try:
+            loot_gold = max(0, int(request.POST.get('loot_gold', 0) or 0))
+        except (ValueError, TypeError):
+            loot_gold = 0
+
+        try:
+            loot_silver = max(0, int(request.POST.get('loot_silver', 0) or 0))
+        except (ValueError, TypeError):
+            loot_silver = 0
+
+        auto_activate = request.POST.get('auto_activate') in ('1', 'true', 'True', 'on')
+
+        # Generování unikátního api_index
+        slug = slugify(name_cz) or slugify(name_en) or 'custom-mob'
+        api_index = f"custom-{slug[:35]}-{uuid.uuid4().hex[:6]}"
+
+        new_compendium_mob = Monsters_All_db.objects.create(
+            api_index=api_index,
+            name_cz=name_cz,
+            name_en=name_en,
+            size=size,
+            monster_type=monster_type,
+            subtype=subtype,
+            alignment=alignment,
+            armor_class=armor_class,
+            armor_desc=armor_desc,
+            hit_points=hit_points,
+            hit_dice=hit_dice,
+            speed=speed,
+            strength=strength,
+            dexterity=dexterity,
+            constitution=constitution,
+            intelligence=intelligence,
+            wisdom=wisdom,
+            charisma=charisma,
+            saving_throws=saving_throws,
+            skills=skills,
+            damage_vulnerabilities=damage_vulnerabilities,
+            damage_resistances=damage_resistances,
+            damage_immunities=damage_immunities,
+            condition_immunities=condition_immunities,
+            senses=senses,
+            languages=languages,
+            challenge_rating=challenge_rating,
+            xp=xp,
+            proficiency_bonus=proficiency_bonus,
+            special_abilities=special_abilities,
+            actions=actions,
+            legendary_actions=legendary_actions,
+            reactions=reactions,
+            description=description,
+            image_url=image_url,
+            raw_data={},
+            in_fight=False,
+        )
+
+        log_mob("Vytvořeno vlastní monstrum", f"{name_cz} (CR {new_compendium_mob.formatted_cr}) uloženo do kompendia")
+
+        if auto_activate:
+            new_active_mob = Monsters_Active.objects.create(
+                api_index=api_index,
+                name_cz=name_cz,
+                name_en=name_en,
+                size=size,
+                monster_type=monster_type,
+                subtype=subtype,
+                alignment=alignment,
+                armor_class=armor_class,
+                armor_desc=armor_desc,
+                hit_points=hit_points,
+                current_hp=hit_points,
+                hit_dice=hit_dice,
+                speed=speed,
+                strength=strength,
+                dexterity=dexterity,
+                constitution=constitution,
+                intelligence=intelligence,
+                wisdom=wisdom,
+                charisma=charisma,
+                saving_throws=saving_throws,
+                skills=skills,
+                damage_vulnerabilities=damage_vulnerabilities,
+                damage_resistances=damage_resistances,
+                damage_immunities=damage_immunities,
+                condition_immunities=condition_immunities,
+                senses=senses,
+                languages=languages,
+                challenge_rating=challenge_rating,
+                xp=xp,
+                proficiency_bonus=proficiency_bonus,
+                special_abilities=special_abilities,
+                actions=actions,
+                legendary_actions=legendary_actions,
+                reactions=reactions,
+                description=description,
+                image_url=image_url,
+                raw_data={},
+                in_fight=False,
+                is_dead=False,
+                loot_gold=loot_gold,
+                loot_silver=loot_silver,
+                loot_able=(loot_gold > 0 or loot_silver > 0),
+            )
+            messages.success(request, f"Monstrum '{name_cz}' (CR {new_compendium_mob.formatted_cr}) bylo úspěšně vytvořeno a ihned nasazeno do hry!")
+        else:
+            messages.success(request, f"Monstrum '{name_cz}' (CR {new_compendium_mob.formatted_cr}) bylo uloženo do bestiáře.")
+
+        return redirect('dm_site_app:monster_gen_page')
+
+    return render(request, 'dm_site_app/create_custom_monster.html', {
+        'sizes': sizes,
+        'monster_types': monster_types,
+        'alignments': alignments,
+        'current_page': 'monster_gen_page',
+    })
         
 @dm_required
 def pvp_pre(request):

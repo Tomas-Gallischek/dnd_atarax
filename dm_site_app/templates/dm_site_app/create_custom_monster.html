@@ -1,0 +1,630 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}DnD Atarax - Vytvořit vlastní monstrum{% endblock %}
+
+{% load static %}
+
+{% block extra_dm_head %}
+<link rel="stylesheet" href="{% static 'dm_site_app/css/loot_management.css' %}">
+<link rel="stylesheet" href="{% static 'dm_site_app/css/pvp_arena.css' %}">
+<style>
+.monster-abilities-form-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+}
+@media (max-width: 900px) {
+    .monster-abilities-form-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+@media (max-width: 480px) {
+    .monster-abilities-form-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+.ability-score-box {
+    background: #0d0a14;
+    border: 1px solid var(--border-card, #372f47);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: center;
+}
+.ability-score-box label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--amethyst-300, #d8b4fe);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.ability-score-box input {
+    width: 100%;
+    text-align: center;
+    font-size: 1.1rem;
+    font-weight: 800;
+    background: #171222;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    border-radius: 6px;
+    color: #fef08a;
+    padding: 4px;
+    box-sizing: border-box;
+}
+.ability-score-box .mod-tag {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #38bdf8;
+    margin-top: 4px;
+}
+.preview-statblock {
+    background: #120e1c;
+    border: 2px solid var(--gold-400, #f59e0b);
+    border-radius: var(--radius-md, 12px);
+    padding: 1.25rem;
+    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(245, 158, 11, 0.2);
+}
+.statblock-header {
+    border-bottom: 2px solid #78350f;
+    padding-bottom: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+.statblock-title {
+    margin: 0;
+    font-family: var(--font-display, serif);
+    font-size: 1.45rem;
+    color: #fef08a;
+    font-weight: 800;
+}
+.statblock-subtitle {
+    margin: 2px 0 0 0;
+    font-style: italic;
+    color: var(--amethyst-300, #d8b4fe);
+    font-size: 0.85rem;
+}
+.statblock-divider-red {
+    height: 3px;
+    background: linear-gradient(90deg, #991b1b, transparent);
+    margin: 8px 0;
+}
+.statblock-props-row {
+    color: #cbd5e1;
+    font-size: 0.88rem;
+    margin-bottom: 4px;
+}
+.statblock-props-row strong {
+    color: #f8fafc;
+}
+.statblock-section-heading {
+    color: #f59e0b;
+    border-bottom: 1px solid #78350f;
+    font-family: var(--font-display, serif);
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 12px 0 6px 0;
+    padding-bottom: 3px;
+}
+.statblock-text {
+    font-size: 0.85rem;
+    color: #e2e8f0;
+    line-height: 1.45;
+    margin-bottom: 6px;
+    white-space: pre-wrap;
+}
+</style>
+{% endblock %}
+
+{% block dm_content %}
+<div class="custom-item-container">
+
+    <!-- Drobečková navigace -->
+    <div class="custom-item-breadcrumb">
+        <a href="{% url 'dm_site_app:monster_gen_page' %}" class="breadcrumb-back-link">
+            <span>&larr;</span> Zpět do generátoru monster
+        </a>
+    </div>
+
+    <!-- Hlavička stránky -->
+    <header class="loot-header">
+        <div class="loot-title-group">
+            <h1><span>👾</span> Vytvořit vlastní monstrum</h1>
+            <p class="loot-subtitle">
+                Založí novou nestvůru na míru do herního bestiáře (kompendia) se všemi bojovými parametry, akcemi a schopnostmi.
+            </p>
+        </div>
+    </header>
+
+    {% if messages %}
+    <div class="messages-container mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Hlavní rozvržení: Formulář vlevo, živý D&D statblock náhled vpravo -->
+    <form method="post" action="{% url 'dm_site_app:create_custom_monster' %}" id="customMonsterForm">
+        {% csrf_token %}
+
+        <div class="custom-item-layout">
+
+            <!-- LEVÝ SLOUPEC: FORMULÁŘOVÁ DATA -->
+            <div class="custom-item-form-column">
+
+                <!-- 1. KARTA: ZÁKLADNÍ IDENTITA -->
+                <div class="custom-item-card">
+                    <div class="custom-item-card-header">
+                        <h2 class="custom-item-card-title">
+                            <span>📜</span> 1. Základní identita a typ nestvůry
+                        </h2>
+                        <span class="badge-category badge-category-npc">Povinný je český název</span>
+                    </div>
+
+                    <div class="custom-item-card-body">
+                        <!-- Názvy CZ a EN -->
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="nameCzInput" class="form-label-custom">
+                                    <span>🏷️ Český název <span class="required-mark">*</span></span>
+                                </label>
+                                <input type="text" name="name_cz" id="nameCzInput" class="form-control" placeholder="např. Stínový běs, Kostěný golem..." maxlength="150" required autofocus oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="nameEnInput" class="form-label-custom">
+                                    <span>Anglický název (volitelný)</span>
+                                </label>
+                                <input type="text" name="name_en" id="nameEnInput" class="form-control" placeholder="např. Shadow Fiend, Bone Golem..." maxlength="150" oninput="updateMonsterPreview()">
+                            </div>
+                        </div>
+
+                        <!-- Velikost, Typ, Přesvědčení -->
+                        <div class="form-grid-3 form-group-custom">
+                            <div>
+                                <label for="sizeSelect" class="form-label-custom">Velikost</label>
+                                <select name="size" id="sizeSelect" class="form-control" onchange="updateMonsterPreview()">
+                                    {% for s in sizes %}
+                                        <option value="{{ s }}" {% if s == 'Střední' %}selected{% endif %}>{{ s }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="monsterTypeSelect" class="form-label-custom">Typ nestvůry</label>
+                                <select name="monster_type" id="monsterTypeSelect" class="form-control" onchange="updateMonsterPreview()">
+                                    {% for mt in monster_types %}
+                                        <option value="{{ mt }}" {% if mt == 'Monstrosita' %}selected{% endif %}>{{ mt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="alignmentSelect" class="form-label-custom">Přesvědčení</label>
+                                <select name="alignment" id="alignmentSelect" class="form-control" onchange="updateMonsterPreview()">
+                                    {% for a in alignments %}
+                                        <option value="{{ a }}" {% if a == 'Bez přesvědčení' %}selected{% endif %}>{{ a }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Podtyp a URL obrázku -->
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="subtypeInput" class="form-label-custom">Podtyp (volitelné)</label>
+                                <input type="text" name="subtype" id="subtypeInput" class="form-control" placeholder="např. goblinoid, tvaroměnec" maxlength="100" oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="imageUrlInput" class="form-label-custom">URL obrázku (portrét)</label>
+                                <input type="url" name="image_url" id="imageUrlInput" class="form-control" placeholder="https://... nebo /static/img/..." maxlength="255" oninput="updateMonsterPreview()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. KARTA: BOJOVÉ STATISTIKY & ŽIVOTY -->
+                <div class="custom-item-card">
+                    <div class="custom-item-card-header">
+                        <h2 class="custom-item-card-title">
+                            <span>⚔️</span> 2. Bojové statistiky, AC a Životy
+                        </h2>
+                    </div>
+
+                    <div class="custom-item-card-body">
+                        <!-- HP, Kostky životů, AC, Typ zbroje -->
+                        <div class="form-grid-4 form-group-custom">
+                            <div>
+                                <label for="hpInput" class="form-label-custom">Životy (HP) <span class="required-mark">*</span></label>
+                                <input type="number" name="hit_points" id="hpInput" class="form-control" value="22" min="1" max="9999" required oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="hitDiceInput" class="form-label-custom">Kostky životů</label>
+                                <input type="text" name="hit_dice" id="hitDiceInput" class="form-control" placeholder="např. 4d8 + 4" value="4d8 + 4" maxlength="50" oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="acInput" class="form-label-custom">Třída zbroje (AC) <span class="required-mark">*</span></label>
+                                <input type="number" name="armor_class" id="acInput" class="form-control" value="13" min="1" max="40" required oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="armorDescInput" class="form-label-custom">Typ zbroje</label>
+                                <input type="text" name="armor_desc" id="armorDescInput" class="form-control" placeholder="např. přirozená zbroj" value="přirozená zbroj" maxlength="150" oninput="updateMonsterPreview()">
+                            </div>
+                        </div>
+
+                        <!-- Rychlost, CR, XP, Zdatnost -->
+                        <div class="form-grid-4 form-group-custom">
+                            <div>
+                                <label for="speedInput" class="form-label-custom">Rychlost</label>
+                                <input type="text" name="speed" id="speedInput" class="form-control" value="30 stop" maxlength="200" oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="crInput" class="form-label-custom">Nebezpečnost (CR)</label>
+                                <input type="number" name="challenge_rating" id="crInput" class="form-control" value="1.0" step="0.125" min="0" max="30" oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="xpInput" class="form-label-custom">Zkušenosti (XP)</label>
+                                <input type="number" name="xp" id="xpInput" class="form-control" value="200" min="0" oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="profInput" class="form-label-custom">Zdatnostní bonus</label>
+                                <input type="number" name="proficiency_bonus" id="profInput" class="form-control" value="2" min="1" max="10" oninput="updateMonsterPreview()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. KARTA: ZÁKLADNÍ VLASTNOSTI (ABILITY SCORES) -->
+                <div class="custom-item-card">
+                    <div class="custom-item-card-header">
+                        <h2 class="custom-item-card-title">
+                            <span>💪</span> 3. Základní vlastnosti (Ability Scores)
+                        </h2>
+                        <span class="badge-category badge-category-npc">Modifikátory se počítají automaticky</span>
+                    </div>
+
+                    <div class="custom-item-card-body">
+                        <div class="monster-abilities-form-grid">
+                            <div class="ability-score-box">
+                                <label for="strInput">Síla (STR)</label>
+                                <input type="number" name="strength" id="strInput" value="14" min="1" max="30" oninput="updateMonsterPreview()">
+                                <span class="mod-tag" id="strModTag">+2</span>
+                            </div>
+                            <div class="ability-score-box">
+                                <label for="dexInput">Obratnost (DEX)</label>
+                                <input type="number" name="dexterity" id="dexInput" value="12" min="1" max="30" oninput="updateMonsterPreview()">
+                                <span class="mod-tag" id="dexModTag">+1</span>
+                            </div>
+                            <div class="ability-score-box">
+                                <label for="conInput">Odolnost (CON)</label>
+                                <input type="number" name="constitution" id="conInput" value="14" min="1" max="30" oninput="updateMonsterPreview()">
+                                <span class="mod-tag" id="conModTag">+2</span>
+                            </div>
+                            <div class="ability-score-box">
+                                <label for="intInput">Inteligence (INT)</label>
+                                <input type="number" name="intelligence" id="intInput" value="8" min="1" max="30" oninput="updateMonsterPreview()">
+                                <span class="mod-tag" id="intModTag">-1</span>
+                            </div>
+                            <div class="ability-score-box">
+                                <label for="wisInput">Moudrost (WIS)</label>
+                                <input type="number" name="wisdom" id="wisInput" value="10" min="1" max="30" oninput="updateMonsterPreview()">
+                                <span class="mod-tag" id="wisModTag">+0</span>
+                            </div>
+                            <div class="ability-score-box">
+                                <label for="chaInput">Charisma (CHA)</label>
+                                <input type="number" name="charisma" id="chaInput" value="8" min="1" max="30" oninput="updateMonsterPreview()">
+                                <span class="mod-tag" id="chaModTag">-1</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. KARTA: ZÁCHRANY, DOVEDNOSTI, SMYSLY & OBRANY -->
+                <div class="custom-item-card">
+                    <div class="custom-item-card-header">
+                        <h2 class="custom-item-card-title">
+                            <span>🛡️</span> 4. Dovednosti, smysly a obrany
+                        </h2>
+                    </div>
+
+                    <div class="custom-item-card-body">
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="savesInput" class="form-label-custom">Záchranné hody</label>
+                                <input type="text" name="saving_throws" id="savesInput" class="form-control" placeholder="např. ODL +4, SIL +4" oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="skillsInput" class="form-label-custom">Dovednosti</label>
+                                <input type="text" name="skills" id="skillsInput" class="form-control" placeholder="např. Nenápadnost +3, Vnímání +2" oninput="updateMonsterPreview()">
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="sensesInput" class="form-label-custom">Smysly</label>
+                                <input type="text" name="senses" id="sensesInput" class="form-control" value="Vidění ve tmě 60 stop, pasivní Vnímání 10" oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="languagesInput" class="form-label-custom">Jazyky</label>
+                                <input type="text" name="languages" id="languagesInput" class="form-control" value="Společná řeč" oninput="updateMonsterPreview()">
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="damageResInput" class="form-label-custom">Odolnosti vůči poškození</label>
+                                <input type="text" name="damage_resistances" id="damageResInput" class="form-control" placeholder="např. chlad, blesk" oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="damageImmInput" class="form-label-custom">Imunity vůči poškození</label>
+                                <input type="text" name="damage_immunities" id="damageImmInput" class="form-control" placeholder="např. jed" oninput="updateMonsterPreview()">
+                            </div>
+                        </div>
+
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="damageVulnInput" class="form-label-custom">Zranitelnosti</label>
+                                <input type="text" name="damage_vulnerabilities" id="damageVulnInput" class="form-control" placeholder="např. oheň" oninput="updateMonsterPreview()">
+                            </div>
+                            <div>
+                                <label for="conditionImmInput" class="form-label-custom">Stavové imunity</label>
+                                <input type="text" name="condition_immunities" id="conditionImmInput" class="form-control" placeholder="např. Otrávený, Zastrašený" oninput="updateMonsterPreview()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. KARTA: SCHOPNOSTI, AKCE A POPIS -->
+                <div class="custom-item-card">
+                    <div class="custom-item-card-header">
+                        <h2 class="custom-item-card-title">
+                            <span>⚡</span> 5. Schopnosti, Akce a Popis
+                        </h2>
+                    </div>
+
+                    <div class="custom-item-card-body">
+                        <div class="form-group-custom">
+                            <label for="specialAbilitiesInput" class="form-label-custom">Zvláštní schopnosti & Vlastnosti (Traits)</label>
+                            <textarea name="special_abilities" id="specialAbilitiesInput" class="form-control" rows="3" placeholder="např. Slídivý krok: Má výhodu k hodům na Nenápadnost..." oninput="updateMonsterPreview()"></textarea>
+                        </div>
+
+                        <div class="form-group-custom">
+                            <label for="actionsInput" class="form-label-custom">Akce (Útoky a bojové možnosti)</label>
+                            <textarea name="actions" id="actionsInput" class="form-control" rows="3" placeholder="např. Pařáty: Útok na blízko: +4 k zásahu, dosah 5 stop. Zásah: 7 (2k4 + 2) sečného zranění." oninput="updateMonsterPreview()">Pařáty: Útok na blízko: +4 k zásahu, dosah 5 stop. Zásah: 6 (1k8 + 2) sečného zranění.</textarea>
+                        </div>
+
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="reactionsInput" class="form-label-custom">Reakce (volitelné)</label>
+                                <textarea name="reactions" id="reactionsInput" class="form-control" rows="2" placeholder="např. Odrážecí kryt..." oninput="updateMonsterPreview()"></textarea>
+                            </div>
+                            <div>
+                                <label for="legendaryActionsInput" class="form-label-custom">Legendární akce (volitelné)</label>
+                                <textarea name="legendary_actions" id="legendaryActionsInput" class="form-control" rows="2" placeholder="např. Monstrum může provést 3 legendární akce..." oninput="updateMonsterPreview()"></textarea>
+                            </div>
+                        </div>
+
+                        <div class="form-group-custom">
+                            <label for="descInput" class="form-label-custom">Příběhový popis & Lore</label>
+                            <textarea name="description" id="descInput" class="form-control" rows="2" placeholder="Stručný vzhled a chování nestvůry..." oninput="updateMonsterPreview()"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. KARTA: NASAZENÍ DO HRY A LOOT -->
+                <div class="custom-item-card">
+                    <div class="custom-item-card-header">
+                        <h2 class="custom-item-card-title">
+                            <span>💰</span> 6. Nasazení a Mince v měšci
+                        </h2>
+                    </div>
+
+                    <div class="custom-item-card-body">
+                        <div class="form-group-custom">
+                            <label class="form-checkbox-label" style="display: flex; align-items: center; gap: 10px; cursor: pointer; color: #fef08a; font-weight: 700;">
+                                <input type="checkbox" name="auto_activate" value="1" checked style="width: 20px; height: 20px; accent-color: var(--gold-400);">
+                                <span>⚡ Ihned nasadit monstrum do aktivních monster ve hře (připraveno pro boj a arénu)</span>
+                            </label>
+                        </div>
+
+                        <div class="form-grid-2 form-group-custom">
+                            <div>
+                                <label for="lootGoldInput" class="form-label-custom">Zlaté mince (GP) u sebe</label>
+                                <input type="number" name="loot_gold" id="lootGoldInput" class="form-control" value="0" min="0">
+                            </div>
+                            <div>
+                                <label for="lootSilverInput" class="form-label-custom">Stříbrné mince (SP) u sebe</label>
+                                <input type="number" name="loot_silver" id="lootSilverInput" class="form-control" value="0" min="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ODESÍLACÍ TLAČÍTKA -->
+                <div class="custom-item-form-actions">
+                    <button type="submit" class="btn-submit-custom-item">
+                        <span>✨</span> Uložit monstrum do bestiáře
+                    </button>
+                    <a href="{% url 'dm_site_app:monster_gen_page' %}" class="btn-cancel-custom-item">
+                        Zrušit
+                    </a>
+                </div>
+
+            </div>
+
+            <!-- PRAVÝ SLOUPEC: ŽIVÝ D&D STATBLOCK NÁHLED -->
+            <div class="custom-item-preview-column">
+                <div class="custom-item-preview-sticky">
+                    <div class="preview-statblock" id="monsterStatblock">
+                        <div class="statblock-header">
+                            <h3 class="statblock-title" id="prevTitle">Stínový běs</h3>
+                            <p class="statblock-subtitle" id="prevSubtitle">Střední Monstrosita &bull; Bez přesvědčení</p>
+                        </div>
+
+                        <div class="statblock-props-row">
+                            <strong>Třída zbroje:</strong> <span id="prevAc">13 (přirozená zbroj)</span>
+                        </div>
+                        <div class="statblock-props-row">
+                            <strong>Životy:</strong> <span id="prevHp">22 (4d8 + 4)</span>
+                        </div>
+                        <div class="statblock-props-row">
+                            <strong>Rychlost:</strong> <span id="prevSpeed">30 stop</span>
+                        </div>
+
+                        <div class="statblock-divider-red"></div>
+
+                        <!-- 6 Vlastností tabulka -->
+                        <div class="ability-scores-strip" style="margin: 8px 0;">
+                            <div class="ability-chip"><span class="ability-name">SIL</span><span class="ability-score" id="prevStr">14</span><span class="ability-mod" id="prevStrMod">+2</span></div>
+                            <div class="ability-chip"><span class="ability-name">OBR</span><span class="ability-score" id="prevDex">12</span><span class="ability-mod" id="prevDexMod">+1</span></div>
+                            <div class="ability-chip"><span class="ability-name">ODL</span><span class="ability-score" id="prevCon">14</span><span class="ability-mod" id="prevConMod">+2</span></div>
+                            <div class="ability-chip"><span class="ability-name">INT</span><span class="ability-score" id="prevInt">8</span><span class="ability-mod" id="prevIntMod">-1</span></div>
+                            <div class="ability-chip"><span class="ability-name">MDR</span><span class="ability-score" id="prevWis">10</span><span class="ability-mod" id="prevWisMod">+0</span></div>
+                            <div class="ability-chip"><span class="ability-name">CHA</span><span class="ability-score" id="prevCha">8</span><span class="ability-mod" id="prevChaMod">-1</span></div>
+                        </div>
+
+                        <div class="statblock-divider-red"></div>
+
+                        <div class="statblock-props-row" id="prevSavesRow" style="display: none;">
+                            <strong>Záchranné hody:</strong> <span id="prevSaves">—</span>
+                        </div>
+                        <div class="statblock-props-row" id="prevSkillsRow" style="display: none;">
+                            <strong>Dovednosti:</strong> <span id="prevSkills">—</span>
+                        </div>
+                        <div class="statblock-props-row">
+                            <strong>Smysly:</strong> <span id="prevSenses">Vidění ve tmě 60 stop, pasivní Vnímání 10</span>
+                        </div>
+                        <div class="statblock-props-row">
+                            <strong>Jazyky:</strong> <span id="prevLanguages">Společná řeč</span>
+                        </div>
+                        <div class="statblock-props-row">
+                            <strong>Nebezpečnost (CR):</strong> <span id="prevCr">1</span> (<span id="prevXp">200</span> XP) &bull; <strong>Zdatnost:</strong> +<span id="prevProf">2</span>
+                        </div>
+
+                        <!-- Sekce schopností -->
+                        <div id="prevTraitsWrap" style="display: none;">
+                            <h4 class="statblock-section-heading">Zvláštní schopnosti</h4>
+                            <div class="statblock-text" id="prevTraits"></div>
+                        </div>
+
+                        <!-- Sekce akcí -->
+                        <div id="prevActionsWrap">
+                            <h4 class="statblock-section-heading">Akce</h4>
+                            <div class="statblock-text" id="prevActions">Pařáty: Útok na blízko: +4 k zásahu, dosah 5 stop. Zásah: 6 (1k8 + 2) sečného zranění.</div>
+                        </div>
+
+                        <!-- Sekce reakcí -->
+                        <div id="prevReactionsWrap" style="display: none;">
+                            <h4 class="statblock-section-heading">Reakce</h4>
+                            <div class="statblock-text" id="prevReactions"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<script>
+function calcMod(score) {
+    const s = parseInt(score, 10) || 10;
+    const m = Math.floor((s - 10) / 2);
+    return m >= 0 ? `+${m}` : `${m}`;
+}
+
+function updateMonsterPreview() {
+    // 1. Jméno a typ
+    const nameCz = document.getElementById('nameCzInput').value.trim() || 'Nové monstrum';
+    const nameEn = document.getElementById('nameEnInput').value.trim();
+    document.getElementById('prevTitle').textContent = nameEn ? `${nameCz} (${nameEn})` : nameCz;
+
+    const size = document.getElementById('sizeSelect').value;
+    const type = document.getElementById('monsterTypeSelect').value;
+    const subtype = document.getElementById('subtypeInput').value.trim();
+    const align = document.getElementById('alignmentSelect').value;
+    const typePart = subtype ? `${type} (${subtype})` : type;
+    document.getElementById('prevSubtitle').textContent = `${size} ${typePart} • ${align}`;
+
+    // 2. Bojové statistiky
+    const ac = document.getElementById('acInput').value || '10';
+    const acDesc = document.getElementById('armorDescInput').value.trim();
+    document.getElementById('prevAc').textContent = acDesc ? `${ac} (${acDesc})` : ac;
+
+    const hp = document.getElementById('hpInput').value || '10';
+    const hitDice = document.getElementById('hitDiceInput').value.trim();
+    document.getElementById('prevHp').textContent = hitDice ? `${hp} (${hitDice})` : hp;
+
+    document.getElementById('prevSpeed').textContent = document.getElementById('speedInput').value || '30 stop';
+
+    // 3. Vlastnosti
+    const abilities = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+    abilities.forEach(ab => {
+        const input = document.getElementById(`${ab}Input`);
+        const val = input ? input.value : 10;
+        const mod = calcMod(val);
+        const tag = document.getElementById(`${ab}ModTag`);
+        if (tag) tag.textContent = mod;
+        const prevScore = document.getElementById(`prev${ab.charAt(0).toUpperCase() + ab.slice(1)}`);
+        if (prevScore) prevScore.textContent = val;
+        const prevMod = document.getElementById(`prev${ab.charAt(0).toUpperCase() + ab.slice(1)}Mod`);
+        if (prevMod) prevMod.textContent = mod;
+    });
+
+    // 4. Záchrany, smysly, CR
+    const saves = document.getElementById('savesInput').value.trim();
+    const savesRow = document.getElementById('prevSavesRow');
+    if (saves) {
+        document.getElementById('prevSaves').textContent = saves;
+        savesRow.style.display = 'block';
+    } else {
+        savesRow.style.display = 'none';
+    }
+
+    const skills = document.getElementById('skillsInput').value.trim();
+    const skillsRow = document.getElementById('prevSkillsRow');
+    if (skills) {
+        document.getElementById('prevSkills').textContent = skills;
+        skillsRow.style.display = 'block';
+    } else {
+        skillsRow.style.display = 'none';
+    }
+
+    document.getElementById('prevSenses').textContent = document.getElementById('sensesInput').value.trim() || '—';
+    document.getElementById('prevLanguages').textContent = document.getElementById('languagesInput').value.trim() || '—';
+    document.getElementById('prevCr').textContent = document.getElementById('crInput').value || '1';
+    document.getElementById('prevXp').textContent = document.getElementById('xpInput').value || '200';
+    document.getElementById('prevProf').textContent = document.getElementById('profInput').value || '2';
+
+    // 5. Akce a schopnosti
+    const traits = document.getElementById('specialAbilitiesInput').value.trim();
+    const traitsWrap = document.getElementById('prevTraitsWrap');
+    if (traits) {
+        document.getElementById('prevTraits').textContent = traits;
+        traitsWrap.style.display = 'block';
+    } else {
+        traitsWrap.style.display = 'none';
+    }
+
+    const actions = document.getElementById('actionsInput').value.trim();
+    const actionsWrap = document.getElementById('prevActionsWrap');
+    if (actions) {
+        document.getElementById('prevActions').textContent = actions;
+        actionsWrap.style.display = 'block';
+    } else {
+        actionsWrap.style.display = 'none';
+    }
+
+    const reactions = document.getElementById('reactionsInput').value.trim();
+    const reactionsWrap = document.getElementById('prevReactionsWrap');
+    if (reactions) {
+        document.getElementById('prevReactions').textContent = reactions;
+        reactionsWrap.style.display = 'block';
+    } else {
+        reactionsWrap.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    updateMonsterPreview();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+Ještě jsem si vzpoměl na poslední věc. Chtěl bych hráčům přidat záložku "nastavení" (nad talčítkem "odhlásit se") a do nastavení přesuneme některé věci které se týkají úpravy jejich profilů + něco málo ještě přidáme. V nastavení chci mít následující a pokud už to někde máme vytvořené tak to vytvoř tady a tam kde to bylo předtím to odeber (například změna profilového obrázku):
+
+1) Změna profilové ikonky. Stačí mít na výběr jen:
+- Výběr z vlastněných ikonek
+- Možnost nahrát vlastní fotku
+- Možnost resetovat na defaultní ikonku
+
+2) Změna profilového rámečku s možnostmi buď odebrat rámeček úplně a nebo výběr z vlastněných rámečků
+
+3) Změna přihlašovacího PIN kodu (neomezené množství znaků)
+
+4) Změna přihlašovacího jména

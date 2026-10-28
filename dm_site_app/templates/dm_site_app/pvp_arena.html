@@ -158,12 +158,37 @@
                     </div>
 
                     <div class="health-buttons">
-                        <button type="button" class="btn-hp btn-hp-minus" data-action="decrement" aria-label="Ubrat život">
-                            &minus; 1 HP
+                        <button type="button" class="btn-hp btn-hp-minus" data-action="decrement" data-step="1" title="Ubrat 1 HP" aria-label="Ubrat 1 život">
+                            &minus; 1
                         </button>
-                        <button type="button" class="btn-hp btn-hp-plus" data-action="increment" aria-label="Přidat život">
-                            + 1 HP
+                        <button type="button" class="btn-hp btn-hp-minus btn-hp-step" data-action="decrement" data-step="5" title="Ubrat 5 HP" aria-label="Ubrat 5 životů">
+                            &minus; 5
                         </button>
+                        <button type="button" class="btn-hp btn-hp-plus btn-hp-step" data-action="increment" data-step="5" title="Přidat 5 HP" aria-label="Přidat 5 životů">
+                            + 5
+                        </button>
+                        <button type="button" class="btn-hp btn-hp-plus" data-action="increment" data-step="1" title="Přidat 1 HP" aria-label="Přidat 1 život">
+                            + 1
+                        </button>
+                    </div>
+
+                    <div class="health-custom-wrap">
+                        <div class="health-custom-group">
+                            <input type="number" 
+                                   class="hp-custom-input" 
+                                   min="1" 
+                                   max="999" 
+                                   placeholder="Zadat HP..." 
+                                   inputmode="numeric" 
+                                   title="Zadejte číslo a stiskněte Enter pro ubrání HP (DMG)"
+                                   aria-label="Hodnota životů">
+                            <button type="button" class="btn-custom-hp btn-custom-dmg" data-action="custom-dmg" title="Odebrat zadaný počet HP (nebo Enter)">
+                                ⚔️ Ubrat
+                            </button>
+                            <button type="button" class="btn-custom-hp btn-custom-heal" data-action="custom-heal" title="Přidat zadaný počet HP">
+                                💚 Přidat
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -464,12 +489,37 @@
                     </div>
 
                     <div class="health-buttons">
-                        <button type="button" class="btn-hp btn-hp-minus" data-action="decrement" aria-label="Ubrat život">
-                            &minus; 1 HP
+                        <button type="button" class="btn-hp btn-hp-minus" data-action="decrement" data-step="1" title="Ubrat 1 HP" aria-label="Ubrat 1 život">
+                            &minus; 1
                         </button>
-                        <button type="button" class="btn-hp btn-hp-plus" data-action="increment" aria-label="Přidat život">
-                            + 1 HP
+                        <button type="button" class="btn-hp btn-hp-minus btn-hp-step" data-action="decrement" data-step="5" title="Ubrat 5 HP" aria-label="Ubrat 5 životů">
+                            &minus; 5
                         </button>
+                        <button type="button" class="btn-hp btn-hp-plus btn-hp-step" data-action="increment" data-step="5" title="Přidat 5 HP" aria-label="Přidat 5 životů">
+                            + 5
+                        </button>
+                        <button type="button" class="btn-hp btn-hp-plus" data-action="increment" data-step="1" title="Přidat 1 HP" aria-label="Přidat 1 život">
+                            + 1
+                        </button>
+                    </div>
+
+                    <div class="health-custom-wrap">
+                        <div class="health-custom-group">
+                            <input type="number" 
+                                   class="hp-custom-input" 
+                                   min="1" 
+                                   max="999" 
+                                   placeholder="Zadat HP..." 
+                                   inputmode="numeric" 
+                                   title="Zadejte číslo a stiskněte Enter pro ubrání HP (DMG)"
+                                   aria-label="Hodnota životů">
+                            <button type="button" class="btn-custom-hp btn-custom-dmg" data-action="custom-dmg" title="Odebrat zadaný počet HP (nebo Enter)">
+                                ⚔️ Ubrat
+                            </button>
+                            <button type="button" class="btn-custom-hp btn-custom-heal" data-action="custom-heal" title="Přidat zadaný počet HP">
+                                💚 Přidat
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -678,13 +728,9 @@ document.addEventListener("DOMContentLoaded", () => {
         updateCardHpVisuals(card, false);
     });
 
-    // 2. Obsluha kliknutí na tlačítka + a -
-    document.addEventListener("click", (e) => {
-        const btn = e.target.closest(".btn-hp");
-        if (!btn) return;
-
-        const card = btn.closest(".character-card");
-        if (!card) return;
+    // Společná funkce pro úpravu HP o libovolnou hodnotu (kladnou i zápornou)
+    function applyCardHpDelta(card, delta) {
+        if (!card || delta === 0) return;
 
         const entityType = card.dataset.entityType;
         const entityId = card.dataset.entityId;
@@ -692,14 +738,11 @@ document.addEventListener("DOMContentLoaded", () => {
         let currentHp = parseInt(card.dataset.currentHp, 10);
         if (isNaN(currentHp)) currentHp = maxHp;
 
-        const isIncrement = btn.dataset.action === "increment";
-        const delta = isIncrement ? 1 : -1;
-
-        // Pozitivní update: okamžitý výpočet nového HP
+        const isIncrement = delta > 0;
         let newHp = currentHp + delta;
         if (newHp < 0) newHp = 0; // Životy neklesnou pod 0
 
-        // Zápis do datasetu karty pro další kliknutí
+        // Zápis do datasetu karty pro další operace
         card.dataset.currentHp = newHp;
 
         // Okamžitá aktualizace vizuálu na kartě
@@ -722,6 +765,61 @@ document.addEventListener("DOMContentLoaded", () => {
         // Restart debounce časovače pro hromadný zápis
         clearTimeout(batchTimer);
         batchTimer = setTimeout(flushBatchUpdates, DEBOUNCE_DELAY_MS);
+    }
+
+    // 2. Obsluha kliknutí na tlačítka rychlé změny (+-1, +-5) a vlastní DMG/Heal
+    document.addEventListener("click", (e) => {
+        // Rychlá tlačítka (+-1, +-5)
+        const btn = e.target.closest(".btn-hp");
+        if (btn) {
+            const card = btn.closest(".character-card");
+            if (!card) return;
+
+            const step = parseInt(btn.dataset.step, 10) || 1;
+            const isIncrement = btn.dataset.action === "increment";
+            applyCardHpDelta(card, isIncrement ? step : -step);
+            return;
+        }
+
+        // Tlačítka pro zadanou hodnotu z klávesnice (Ubrat / Přidat)
+        const customBtn = e.target.closest(".btn-custom-hp");
+        if (customBtn) {
+            const card = customBtn.closest(".character-card");
+            if (!card) return;
+
+            const input = card.querySelector(".hp-custom-input");
+            if (!input) return;
+
+            const val = parseInt(input.value, 10);
+            if (isNaN(val) || val <= 0) {
+                input.focus();
+                return;
+            }
+
+            const isHeal = customBtn.dataset.action === "custom-heal";
+            applyCardHpDelta(card, isHeal ? val : -val);
+            input.value = "";
+            input.focus();
+            return;
+        }
+    });
+
+    // 3. Klávesová zkratka: Stisk klávesy Enter v poli pro zadání HP
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.target && e.target.classList.contains("hp-custom-input")) {
+            e.preventDefault();
+            const input = e.target;
+            const card = input.closest(".character-card");
+            if (!card) return;
+
+            const val = parseInt(input.value, 10);
+            if (isNaN(val) || val <= 0) return;
+
+            // Shift + Enter přidá životy (Heal), samotný Enter ubere životy (DMG)
+            const isHeal = e.shiftKey;
+            applyCardHpDelta(card, isHeal ? val : -val);
+            input.value = "";
+        }
     });
 
     // 3. Vizuální aktualizace jednoho bojovníka (číslo, bar, třídy stavu)

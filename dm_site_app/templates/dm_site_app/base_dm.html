@@ -22,16 +22,9 @@
         </div>
 
         <ul class="dm-nav-list">
-            <!-- 1. index_dashboard.html -->
+            <!-- 1. tools.html -->
             <li class="dm-nav-item">
-                <a href="{% url 'dm_site_app:index' %}" class="{% if current_page == 'index_dashboard' %}active{% endif %}">
-                    <span>&#128202;</span> Dashboard
-                </a>
-            </li>
-
-            <!-- 2. tools.html -->
-            <li class="dm-nav-item">
-                <a href="{% url 'dm_site_app:tools' %}" class="{% if current_page == 'tools' or current_page == 'golds_management' or current_page == 'achievements_management' %}active{% endif %}">
+                <a href="{% url 'dm_site_app:tools' %}" class="{% if current_page == 'tools' or current_page == 'index_dashboard' or current_page == 'golds_management' or current_page == 'achievements_management' %}active{% endif %}">
                     <span>&#128295;</span> Nástroje
                 </a>
             </li>
@@ -57,13 +50,6 @@
                 </a>
             </li>
 
-
-            <!-- 6. lore.html -->
-            <li class="dm-nav-item">
-                <a href="{% url 'dm_site_app:lore' %}" class="{% if current_page == 'lore' %}active{% endif %}">
-                    <span>&#128214;</span> Lore
-                </a>
-            </li>
 
             <!-- Kronika DM (kronika_edit.html) -->
             <li class="dm-nav-item">
