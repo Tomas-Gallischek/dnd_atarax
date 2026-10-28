@@ -46,5 +46,8 @@ urlpatterns = [
     path('plus_loot_gold/', views.plus_loot_gold, name='plus_loot_gold'),
     path('assign_loot_items/', views.assign_loot_items, name='assign_loot_items'),
     path('create_custom_item/', views.create_custom_item, name='create_custom_item'),
+    path('player_inventory/', views.player_inventory_management, name='player_inventory_management'),
+    path('player_inventory/delete/<int:item_id>/', views.dm_delete_player_item, name='dm_delete_player_item'),
+    path('player_inventory/bulk_delete/', views.dm_bulk_delete_player_items, name='dm_bulk_delete_player_items'),
 ]
 

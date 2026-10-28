@@ -1,7 +1,8 @@
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
-from dm_site_app.models import Locations, Npc
+from dm_site_app.models import Locations, Npc, Items_Active, Items_All_db, DmNote
+from player_site_app.models import Player, Char_info, Logs
 
 
 class DMSiteAuthAndNavigationTests(TestCase):
@@ -26,6 +27,7 @@ class DMSiteAuthAndNavigationTests(TestCase):
             reverse('dm_site_app:notes'),
             reverse('dm_site_app:lore'),
             reverse('dm_site_app:golds-management'),
+            reverse('dm_site_app:player_inventory_management'),
         ]
         for url in urls_to_test:
             response = self.client.get(url)
@@ -43,6 +45,7 @@ class DMSiteAuthAndNavigationTests(TestCase):
             reverse('dm_site_app:notes'),
             reverse('dm_site_app:lore'),
             reverse('dm_site_app:golds-management'),
+            reverse('dm_site_app:player_inventory_management'),
         ]
         for url in urls_to_test:
             response = self.client.get(url)
@@ -60,6 +63,7 @@ class DMSiteAuthAndNavigationTests(TestCase):
             (reverse('dm_site_app:notes'), 'dm_site_app/notes.html'),
             (reverse('dm_site_app:lore'), 'dm_site_app/lore.html'),
             (reverse('dm_site_app:golds-management'), 'dm_site_app/golds_management.html'),
+            (reverse('dm_site_app:player_inventory_management'), 'dm_site_app/player_inventory_management.html'),
         ]
         for url, template in pages_and_templates:
             response = self.client.get(url)
@@ -388,5 +392,118 @@ class DMSiteAuthAndNavigationTests(TestCase):
         del_res = self.client.post(reverse('dm_site_app:note_delete', args=[active_note.id]))
         self.assertEqual(del_res.status_code, 302)
         self.assertFalse(DmNote.objects.filter(id=active_note.id).exists())
+
+
+class DMPlayerInventoryManagementTests(TestCase):
+    def setUp(self):
+        # DM uživatel
+        self.dm_user = User.objects.create_user(username='dm_elminster', password='password123', is_staff=True)
+
+        # Hráč a postava
+        self.player_user = User.objects.create_user(username='hrac_conan', password='password123')
+        self.player = Player.objects.create(user=self.player_user, nickname='Barbar')
+        self.character = Char_info.objects.create(
+            player=self.player,
+            name='Conan Cimmerijec',
+            level=5,
+            character_class='Barbar',
+            gold=42,
+            silver=15
+        )
+
+        # Předměty v inventáři postavy
+        self.item1 = Items_Active.objects.create(
+            char_own=self.character,
+            name_cz='Obouruční meč',
+            name_en='Greatsword',
+            category='Zbraně',
+            cost_gold=50,
+            weight=6.0,
+            damage='2d6 sečné'
+        )
+        self.item2 = Items_Active.objects.create(
+            char_own=self.character,
+            name_cz='Léčivý lektvar',
+            name_en='Potion of Healing',
+            category='Lektvary',
+            cost_gold=50,
+            weight=0.5
+        )
+        self.item3 = Items_Active.objects.create(
+            char_own=self.character,
+            name_cz='Starý pergamen',
+            name_en='Old Parchment',
+            category='Ostatní',
+            cost_gold=0,
+            cost_silver=5,
+            weight=0.1
+        )
+
+    def test_tools_page_contains_player_inventory_card(self):
+        """V rozcestníku DM nástrojů (tools.html) je odkaz na správu inventářů postav."""
+        self.client.force_login(self.dm_user)
+        response = self.client.get(reverse('dm_site_app:tools'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('dm_site_app:player_inventory_management'))
+        self.assertContains(response, 'Inventáře postav')
+
+    def test_loot_management_page_contains_link_to_player_inventory(self):
+        """Ve správě lootů je tlačítko směřující do správy inventářů postav."""
+        self.client.force_login(self.dm_user)
+        response = self.client.get(reverse('dm_site_app:loot_management'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('dm_site_app:player_inventory_management'))
+
+    def test_dm_can_view_player_inventory_management(self):
+        """DM si může zobrazit inventář postavy včetně detailů o předmětech."""
+        self.client.force_login(self.dm_user)
+        response = self.client.get(reverse('dm_site_app:player_inventory_management') + f'?char_id={self.character.id}')
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'dm_site_app/player_inventory_management.html')
+        self.assertContains(response, 'Conan Cimmerijec')
+        self.assertContains(response, 'Obouruční meč')
+        self.assertContains(response, 'Léčivý lektvar')
+        self.assertContains(response, 'Starý pergamen')
+
+    def test_dm_can_delete_single_item(self):
+        """DM může smazat předmět libovolné postavě a akce se zaloguje."""
+        self.client.force_login(self.dm_user)
+        del_url = reverse('dm_site_app:dm_delete_player_item', args=[self.item1.id])
+
+        response = self.client.post(del_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Items_Active.objects.filter(id=self.item1.id).exists())
+
+        # Ověření zápisu v Logs
+        self.assertTrue(Logs.objects.filter(character=self.character, message__contains='DM odebral předmět').exists())
+
+    def test_dm_can_delete_item_via_ajax(self):
+        """DM může smazat předmět přes AJAX s JSON odpovědí."""
+        self.client.force_login(self.dm_user)
+        del_url = reverse('dm_site_app:dm_delete_player_item', args=[self.item2.id])
+
+        response = self.client.post(del_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        json_data = response.json()
+        self.assertEqual(json_data['status'], 'ok')
+        self.assertEqual(json_data['deleted_id'], self.item2.id)
+        self.assertFalse(Items_Active.objects.filter(id=self.item2.id).exists())
+
+    def test_dm_can_bulk_delete_items(self):
+        """DM může hromadně smazat vybrané předměty z inventáře postavy."""
+        self.client.force_login(self.dm_user)
+        bulk_url = reverse('dm_site_app:dm_bulk_delete_player_items')
+
+        response = self.client.post(bulk_url, {
+            'character_id': self.character.id,
+            'item_ids': [self.item1.id, self.item3.id],
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Items_Active.objects.filter(id=self.item1.id).exists())
+        self.assertFalse(Items_Active.objects.filter(id=self.item3.id).exists())
+        self.assertTrue(Items_Active.objects.filter(id=self.item2.id).exists())
+
+        # Ověření hromadného logu
+        self.assertTrue(Logs.objects.filter(character=self.character, message__contains='DM hromadně odebral').exists())
 
 

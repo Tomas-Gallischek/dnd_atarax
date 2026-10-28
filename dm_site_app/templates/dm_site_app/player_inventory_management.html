@@ -1,0 +1,716 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}DnD Atarax - Správa inventářů postav{% endblock %}
+
+{% load static %}
+
+{% block extra_dm_head %}
+<link rel="stylesheet" href="{% static 'dm_site_app/css/loot_management.css' %}">
+<style>
+.char-switcher-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-md);
+    padding: 1.25rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.char-switcher-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 1rem;
+}
+
+.char-switcher-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gold-400);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+}
+
+.char-pills-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.char-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    border-radius: var(--radius-md);
+    background: var(--bg-card-elevated, #24202d);
+    border: 1px solid var(--border-card, #373344);
+    color: var(--text-silver, #cbd5e1);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.char-pill-btn:hover {
+    background: #312b3c;
+    border-color: var(--gold-500);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.char-pill-btn.is-active {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.25));
+    border-color: var(--gold-500);
+    color: var(--gold-300);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.2);
+}
+
+.char-pill-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-card);
+}
+
+.selected-char-hero {
+    background: linear-gradient(135deg, rgba(30, 27, 43, 0.95), rgba(20, 18, 30, 0.95));
+    border: 1px solid var(--border-card);
+    border-left: 4px solid var(--gold-500);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.hero-profile-group {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.hero-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--gold-500);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
+.hero-name {
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 4px 0;
+}
+
+.hero-meta {
+    font-size: 0.88rem;
+    color: var(--text-muted);
+}
+
+.hero-chips-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.hero-stat-chip {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-card);
+    border-radius: 8px;
+    padding: 8px 14px;
+    text-align: center;
+    min-width: 90px;
+}
+
+.hero-stat-chip .chip-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+
+.hero-stat-chip .chip-val {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--gold-300);
+}
+
+.bulk-delete-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px dashed rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-sm);
+    margin-bottom: 1rem;
+}
+
+.btn-dm-delete {
+    background: linear-gradient(135deg, #ef4444, #b91c1c);
+    color: #fff !important;
+    border: 1px solid #991b1b;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-dm-delete:hover {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    transform: translateY(-1px);
+}
+</style>
+{% endblock %}
+
+{% block dm_content %}
+<div class="loot-container">
+
+    <!-- Horní hlavička -->
+    <header class="loot-header">
+        <div class="loot-title-group">
+            <h1><span>🎒</span> Správa inventářů postav</h1>
+            <p class="loot-subtitle">Prohlížení batohů všech hráčských postav a možnost odebírat či mazat nevhodné nebo spotřebované předměty.</p>
+        </div>
+        <div class="loot-header-actions">
+            <a href="{% url 'dm_site_app:loot_management' %}" class="btn-create-custom-item" style="background: linear-gradient(135deg, #1e3a8a, #1d4ed8); border-color: rgba(59, 130, 246, 0.4);" title="Přejít do správy kořisti a přidávání předmětů">
+                <span>💰</span> Přidělit kořist & itemy
+            </a>
+            <a href="{% url 'dm_site_app:tools' %}" class="btn-create-custom-item" style="background: var(--bg-card-elevated); border-color: var(--border-card);" title="Zpět do hubu DM nástrojů">
+                <span>🔧</span> DM Nástroje
+            </a>
+        </div>
+    </header>
+
+    {% if all_chars %}
+    <!-- 1. VÝBĚR POSTAVY (CHAR SWITCHER) -->
+    <div class="char-switcher-panel">
+        <div class="char-switcher-header">
+            <h2 class="char-switcher-title">
+                <span>👤</span> Zvolte postavu pro správu batohu:
+            </h2>
+            <div class="header-stats-badge">
+                Družina: {{ all_chars|length }} {% if all_chars|length == 1 %}hrdina{% elif all_chars|length >= 2 and all_chars|length <= 4 %}hrdinové{% else %}hrdinů{% endif %}
+            </div>
+        </div>
+
+        <div class="char-pills-wrap">
+            {% for char in all_chars %}
+            <a href="?char_id={{ char.id }}" class="char-pill-btn {% if selected_char and selected_char.id == char.id %}is-active{% endif %}">
+                {% if char.image %}
+                    <img src="{{ char.image.url }}" alt="{{ char.name }}" class="char-pill-avatar">
+                {% elif char.image_url %}
+                    <img src="{{ char.image_url }}" alt="{{ char.name }}" class="char-pill-avatar">
+                {% else %}
+                    <span style="font-size: 1.1rem;">🧙</span>
+                {% endif %}
+                <span>{{ char.name }}</span>
+                <small style="opacity: 0.7; font-weight: 400;">({{ char.player.nickname }})</small>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    {% if selected_char %}
+    <!-- 2. KARTA VYBRANÉ POSTAVY -->
+    <div class="selected-char-hero">
+        <div class="hero-profile-group">
+            {% if selected_char.image %}
+                <img src="{{ selected_char.image.url }}" alt="{{ selected_char.name }}" class="hero-avatar">
+            {% elif selected_char.image_url %}
+                <img src="{{ selected_char.image_url }}" alt="{{ selected_char.name }}" class="hero-avatar">
+            {% else %}
+                <div class="hero-avatar" style="display: flex; align-items: center; justify-content: center; font-size: 1.8rem; background: var(--bg-card-elevated);">🧙</div>
+            {% endif %}
+            <div>
+                <h2 class="hero-name">{{ selected_char.name }}</h2>
+                <div class="hero-meta">
+                    Hráč: <strong>{{ selected_char.player.nickname }}</strong> &bull; 
+                    {{ selected_char.race|default:"Neznámá rasa" }} &bull; 
+                    {{ selected_char.character_class|default:"Dobrodruh" }} (Úroveň {{ selected_char.level }})
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-chips-group">
+            <div class="hero-stat-chip">
+                <div class="chip-label">Měšec</div>
+                <div class="chip-val">🪙 {{ selected_char.gold }} zl {{ selected_char.silver }} st</div>
+            </div>
+            <div class="hero-stat-chip">
+                <div class="chip-label">Předměty</div>
+                <div class="chip-val" id="heroTotalItemsCount">📦 {{ total_items_count }}</div>
+            </div>
+            <div class="hero-stat-chip">
+                <div class="chip-label">Váha výbavy</div>
+                <div class="chip-val" id="heroTotalWeight">⚖️ {{ total_weight }} lb</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. TABULKA PŘEDMĚTŮ V BATOHU VYBRANÉ POSTAVY -->
+    <div class="atarax-card">
+        <div class="items-section-header">
+            <h2 class="items-section-title">
+                <span>🎒</span> Obsah inventáře postavy {{ selected_char.name }}
+            </h2>
+            <div class="toolbar-actions">
+                <span class="header-stats-badge" title="Počet předmětů nesených postavou">
+                    Celkem: <strong id="itemsBadgeCount">{{ items|length }}</strong>
+                </span>
+            </div>
+        </div>
+
+        {% if items %}
+        <!-- Filtrační lišta -->
+        <div class="items-toolbar">
+            <div class="search-input-wrap">
+                <input type="text" 
+                       id="dmItemSearchInput" 
+                       class="loot-input-search" 
+                       placeholder="🔍 Okamžité vyhledání v batohu dle názvu..."
+                       autocomplete="off">
+            </div>
+
+            <div>
+                <select id="dmItemCategoryFilter" class="loot-filter-select" aria-label="Filtr kategorie">
+                    <option value="all">📂 Všechny kategorie</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <select id="dmItemSortSelect" class="loot-filter-select" aria-label="Řazení inventáře">
+                    <option value="name_asc">🔤 Název (A → Z)</option>
+                    <option value="name_desc">🔤 Název (Z → A)</option>
+                    <option value="price_desc">💰 Cena (od nejdražšího)</option>
+                    <option value="price_asc">💰 Cena (od nejlevnějšího)</option>
+                    <option value="weight_desc">⚖️ Váha (od nejtěžšího)</option>
+                    <option value="weight_asc">⚖️ Váha (od nejlehčího)</option>
+                </select>
+            </div>
+
+            <button type="button" id="dmBtnResetFilters" class="btn-subtle" title="Obnovit filtry a vyhledávání">
+                ↺ Reset
+            </button>
+
+            <div class="items-count-indicator">
+                Zobrazeno: <strong id="dmVisibleItemsCount">{{ items|length }}</strong> z {{ items|length }}
+            </div>
+        </div>
+
+        <!-- Hromadná lišta pro smazání více předmětů -->
+        <form id="bulkDeleteForm" action="{% url 'dm_site_app:dm_bulk_delete_player_items' %}" method="post">
+            {% csrf_token %}
+            <input type="hidden" name="character_id" value="{{ selected_char.id }}">
+            
+            <div class="bulk-delete-bar" id="bulkDeleteBar">
+                <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.88rem; color: #fff; font-weight: 600;">
+                    <input type="checkbox" id="selectAllCheckbox" style="cursor: pointer; width: 16px; height: 16px;">
+                    Vybrat vše
+                </label>
+                <div style="flex-grow: 1;"></div>
+                <span id="selectedCountText" style="font-size: 0.85rem; color: var(--text-silver);">Vybráno: <strong>0</strong> předmětů</span>
+                <button type="submit" id="btnSubmitBulkDelete" class="btn-dm-delete" disabled style="opacity: 0.5;" onclick="return confirm('Opravdu chcete hromadně smazat všechny označené předměty z inventáře postavy {{ selected_char.name }}?');">
+                    <span>🗑️</span> Smazat vybrané
+                </button>
+            </div>
+
+            <!-- Responzivní tabulka předmětů -->
+            <div class="loot-table-responsive">
+                <table class="items-table" id="dmItemsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px; text-align: center;"></th>
+                            <th>Název předmětu</th>
+                            <th>Kategorie</th>
+                            <th>Hodnota</th>
+                            <th>Bojové vlastnosti</th>
+                            <th>Váha</th>
+                            <th>Popis</th>
+                            <th style="text-align: center; width: 105px;">Akce</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dmItemsTableBody">
+                        {% for item in items %}
+                        <tr class="item-row" 
+                            id="item-row-{{ item.id }}"
+                            data-id="{{ item.id }}"
+                            data-name="{{ item.name_cz|default:''|lower }} {{ item.name_en|default:''|lower }}"
+                            data-category="{{ item.category|default:'' }}"
+                            data-price="{{ item.cost_gold|default:0 }}.{{ item.cost_silver|default:0 }}"
+                            data-weight="{{ item.weight|default:0 }}"
+                            data-name-sort="{{ item.name_cz|default:item.name_en|default:'' }}">
+                            
+                            <!-- 0. Checkbox pro hromadný výběr -->
+                            <td style="text-align: center;">
+                                <input type="checkbox" name="item_ids" value="{{ item.id }}" class="item-checkbox" style="cursor: pointer; width: 16px; height: 16px;">
+                            </td>
+
+                            <!-- 1. Název -->
+                            <td class="item-name-cell">
+                                <strong class="item-name-cz">{{ item.name_cz|default:item.name_en }}</strong>
+                                {% if item.name_en and item.name_en != item.name_cz %}
+                                <span class="item-name-en">{{ item.name_en }}</span>
+                                {% endif %}
+                            </td>
+
+                            <!-- 2. Kategorie -->
+                            <td>
+                                <span class="badge-category">{{ item.category|default:"Obecné" }}</span>
+                            </td>
+
+                            <!-- 3. Cena -->
+                            <td>
+                                <span class="badge-price">
+                                    {% if item.cost_gold > 0 %}{{ item.cost_gold }} zl {% endif %}
+                                    {% if item.cost_silver > 0 %}{{ item.cost_silver }} st{% endif %}
+                                    {% if not item.cost_gold and not item.cost_silver %}0 zl{% endif %}
+                                </span>
+                            </td>
+
+                            <!-- 4. Bojové vlastnosti -->
+                            <td>
+                                <div class="item-stats-cell">
+                                    {% if item.damage %}
+                                    <span class="badge-spec badge-dmg" title="Poškození zbraně">⚔️ {{ item.damage }}</span>
+                                    {% endif %}
+                                    {% if item.armor_class %}
+                                    <span class="badge-spec badge-ac" title="Bonus k třídě zbroje">🛡️ AC +{{ item.armor_class }}</span>
+                                    {% endif %}
+                                    {% if item.properties %}
+                                    <span class="badge-spec badge-prop" title="Vlastnosti">{{ item.properties }}</span>
+                                    {% endif %}
+                                    {% if not item.damage and not item.armor_class and not item.properties %}
+                                    <span class="spec-empty">—</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- 5. Váha -->
+                            <td>
+                                {% if item.weight %}{{ item.weight }} lb{% else %}—{% endif %}
+                            </td>
+
+                            <!-- 6. Popis -->
+                            <td>
+                                <div class="item-desc-cell">
+                                    {{ item.description|default:"—" }}
+                                </div>
+                            </td>
+
+                            <!-- 7. Akce DM (smazat předmět) -->
+                            <td style="text-align: center; vertical-align: middle;">
+                                <button type="button" 
+                                        class="btn-dm-delete btn-single-delete" 
+                                        data-item-id="{{ item.id }}"
+                                        data-item-name="{{ item.name_cz|default:item.name_en }}"
+                                        data-delete-url="{% url 'dm_site_app:dm_delete_player_item' item.id %}"
+                                        title="Odebrat tento předmět z batohu postavy">
+                                    <span>🗑️</span> Smazat
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        <tr id="dmNoFilterResultsRow" style="display: none;">
+                            <td colspan="8" class="td-empty-table">
+                                Žádné předměty neodpovídají zadanému filtru nebo hledání.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </form>
+        {% else %}
+        <div class="atarax-empty-state">
+            <div class="atarax-empty-icon">🎒</div>
+            <h3 class="atarax-empty-title">Batoh postavy {{ selected_char.name }} je prázdný</h3>
+            <p class="atarax-empty-desc">Tato postava momentálně u sebe nemá žádné aktivní předměty.</p>
+            <a href="{% url 'dm_site_app:loot_management' %}" class="btn btn-sapphire btn-sm mt-2">
+                Přejít do Přidělování předmětů &rarr;
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="atarax-empty-state">
+        <div class="atarax-empty-icon">👥</div>
+        <h3 class="atarax-empty-title">V kampani zatím neexistují žádné vytvořené postavy</h3>
+        <p class="atarax-empty-desc">Jakmile hráči nebo vy vytvoříte postavu, budete moci spravovat její batoh zde.</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+{% if selected_char and items %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById("dmItemSearchInput");
+    const categoryFilter = document.getElementById("dmItemCategoryFilter");
+    const sortSelect = document.getElementById("dmItemSortSelect");
+    const btnReset = document.getElementById("dmBtnResetFilters");
+    const visibleCounter = document.getElementById("dmVisibleItemsCount");
+    const tableBody = document.getElementById("dmItemsTableBody");
+    const noResultsRow = document.getElementById("dmNoFilterResultsRow");
+    
+    const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+    const btnBulkDelete = document.getElementById("btnSubmitBulkDelete");
+    const selectedCountText = document.getElementById("selectedCountText");
+    const heroItemsCount = document.getElementById("heroTotalItemsCount");
+    const heroWeight = document.getElementById("heroTotalWeight");
+    const itemsBadgeCount = document.getElementById("itemsBadgeCount");
+
+    if (!tableBody) return;
+    let allRows = Array.from(tableBody.querySelectorAll(".item-row"));
+
+    function applyFilters() {
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
+        const selectedCat = categoryFilter ? categoryFilter.value : "all";
+
+        let visibleCount = 0;
+
+        allRows.forEach(row => {
+            const nameData = row.dataset.name || "";
+            const catData = row.dataset.category || "";
+
+            const matchesQuery = !query || nameData.includes(query);
+            const matchesCat = (selectedCat === "all") || (catData === selectedCat);
+
+            if (matchesQuery && matchesCat) {
+                row.style.display = "";
+                visibleCount++;
+            } else {
+                row.style.display = "none";
+            }
+        });
+
+        if (visibleCounter) visibleCounter.textContent = visibleCount;
+        if (noResultsRow) noResultsRow.style.display = (visibleCount === 0) ? "" : "none";
+
+        applySorting();
+        updateSelectedCounter();
+    }
+
+    function applySorting() {
+        const sortVal = sortSelect ? sortSelect.value : "name_asc";
+
+        allRows.sort((a, b) => {
+            if (sortVal === "name_asc") {
+                const nameA = a.dataset.nameSort || "";
+                const nameB = b.dataset.nameSort || "";
+                return nameA.localeCompare(nameB, "cs", { sensitivity: "base" });
+            } else if (sortVal === "name_desc") {
+                const nameA = a.dataset.nameSort || "";
+                const nameB = b.dataset.nameSort || "";
+                return nameB.localeCompare(nameA, "cs", { sensitivity: "base" });
+            } else if (sortVal === "price_desc") {
+                const priceA = parseFloat(a.dataset.price) || 0;
+                const priceB = parseFloat(b.dataset.price) || 0;
+                return priceB - priceA;
+            } else if (sortVal === "price_asc") {
+                const priceA = parseFloat(a.dataset.price) || 0;
+                const priceB = parseFloat(b.dataset.price) || 0;
+                return priceA - priceB;
+            } else if (sortVal === "weight_desc") {
+                const wA = parseFloat(a.dataset.weight) || 0;
+                const wB = parseFloat(b.dataset.weight) || 0;
+                return wB - wA;
+            } else if (sortVal === "weight_asc") {
+                const wA = parseFloat(a.dataset.weight) || 0;
+                const wB = parseFloat(b.dataset.weight) || 0;
+                return wA - wB;
+            }
+            return 0;
+        });
+
+        allRows.forEach(row => tableBody.appendChild(row));
+        if (noResultsRow) tableBody.appendChild(noResultsRow);
+    }
+
+    function updateSelectedCounter() {
+        const visibleCheckboxes = allRows
+            .filter(r => r.style.display !== "none")
+            .map(r => r.querySelector(".item-checkbox"))
+            .filter(Boolean);
+
+        const checkedCount = visibleCheckboxes.filter(cb => cb.checked).length;
+        if (selectedCountText) {
+            selectedCountText.innerHTML = `Vybráno: <strong>${checkedCount}</strong> předmětů`;
+        }
+
+        if (btnBulkDelete) {
+            if (checkedCount > 0) {
+                btnBulkDelete.disabled = false;
+                btnBulkDelete.style.opacity = "1";
+            } else {
+                btnBulkDelete.disabled = true;
+                btnBulkDelete.style.opacity = "0.5";
+            }
+        }
+
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = (visibleCheckboxes.length > 0 && checkedCount === visibleCheckboxes.length);
+            selectAllCheckbox.indeterminate = (checkedCount > 0 && checkedCount < visibleCheckboxes.length);
+        }
+    }
+
+    // Select all handler
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener("change", function() {
+            const isChecked = this.checked;
+            allRows.forEach(row => {
+                if (row.style.display !== "none") {
+                    const cb = row.querySelector(".item-checkbox");
+                    if (cb) cb.checked = isChecked;
+                }
+            });
+            updateSelectedCounter();
+        });
+    }
+
+    // Individual checkbox change
+    tableBody.addEventListener("change", function(e) {
+        if (e.target.classList.contains("item-checkbox")) {
+            updateSelectedCounter();
+        }
+    });
+
+    // Filtry event listenery
+    if (searchInput) searchInput.addEventListener("input", applyFilters);
+    if (categoryFilter) categoryFilter.addEventListener("change", applyFilters);
+    if (sortSelect) sortSelect.addEventListener("change", applyFilters);
+    if (btnReset) {
+        btnReset.addEventListener("click", function() {
+            if (searchInput) searchInput.value = "";
+            if (categoryFilter) categoryFilter.value = "all";
+            if (sortSelect) sortSelect.value = "name_asc";
+            applyFilters();
+        });
+    }
+
+    // Single item deletion via AJAX
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken') || document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+    document.querySelectorAll(".btn-single-delete").forEach(btn => {
+        btn.addEventListener("click", function(e) {
+            e.preventDefault();
+            const itemId = btn.dataset.itemId;
+            const itemName = btn.dataset.itemName || "tento předmět";
+            const deleteUrl = btn.dataset.deleteUrl;
+            const row = document.getElementById("item-row-" + itemId);
+
+            if (!confirm(`Opravdu chcete smazat předmět "${itemName}" z inventáře postavy {{ selected_char.name }}?`)) {
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<span>⏳</span> Mazání...';
+
+            const formData = new FormData();
+            formData.append("csrfmiddlewaretoken", csrftoken);
+
+            fetch(deleteUrl, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-CSRFToken": csrftoken
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    if (row) {
+                        row.style.transition = "opacity 0.25s ease, transform 0.25s ease";
+                        row.style.opacity = "0";
+                        row.style.transform = "translateX(20px)";
+                        setTimeout(() => {
+                            row.remove();
+                            const idx = allRows.indexOf(row);
+                            if (idx > -1) allRows.splice(idx, 1);
+
+                            // Přepočet váhy a počtu
+                            let newWeight = 0;
+                            allRows.forEach(r => {
+                                newWeight += parseFloat(r.dataset.weight || 0);
+                            });
+
+                            if (heroItemsCount) heroItemsCount.textContent = `📦 ${allRows.length}`;
+                            if (heroWeight) heroWeight.textContent = `⚖️ ${newWeight.toFixed(2)} lb`;
+                            if (itemsBadgeCount) itemsBadgeCount.textContent = allRows.length;
+
+                            applyFilters();
+
+                            if (allRows.length === 0) {
+                                window.location.reload();
+                            }
+                        }, 250);
+                    }
+                } else {
+                    alert(data.message || "Předmět se nepodařilo smazat.");
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>🗑️</span> Smazat';
+                }
+            })
+            .catch(err => {
+                console.error("Chyba při mazání předmětu:", err);
+                // Fallback na form POST
+                const fallbackForm = document.createElement("form");
+                fallbackForm.method = "POST";
+                fallbackForm.action = deleteUrl;
+                const tokenInput = document.createElement("input");
+                tokenInput.type = "hidden";
+                tokenInput.name = "csrfmiddlewaretoken";
+                tokenInput.value = csrftoken;
+                fallbackForm.appendChild(tokenInput);
+                document.body.appendChild(fallbackForm);
+                fallbackForm.submit();
+            });
+        });
+    });
+
+    updateSelectedCounter();
+});
+</script>
+{% endif %}
+{% endblock %}

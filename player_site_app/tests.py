@@ -2,8 +2,8 @@ from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
-from dm_site_app.models import OverAllSettings
-from .models import Player, Char_info, Esence_Items_Shop, Esence_Items_Owners
+from dm_site_app.models import OverAllSettings, Items_Active
+from .models import Player, Char_info, Esence_Items_Shop, Esence_Items_Owners, Logs
 
 
 class PlayerAuthAndCharacterTests(TestCase):
@@ -99,9 +99,56 @@ class PlayerAuthAndCharacterTests(TestCase):
         self.player1.pin_code = long_pin
         self.player1.save()
 
-        res = self.client.post(reverse('player_site_app:index'), {'pin': long_pin})
+        res = self.client.post(reverse('player_site_app:index'), {
+            'player_id': self.player1.id,
+            'pin': long_pin
+        })
         self.assertEqual(res.status_code, 302)
         self.assertEqual(res.url, reverse('player_site_app:prehled_postav'))
+
+    def test_login_with_profile_dropdown_and_non_unique_pin(self):
+        """Dva hráči mohou mít shodný PIN a úspěšně se přihlásit výběrem svého profilu."""
+        # 1. Nastavíme oběma hráčům stejný PIN (ověření, že PIN již není unikátní v databázi)
+        self.player1.pin_code = '7777'
+        self.player1.save()
+        self.player2.pin_code = '7777'
+        self.player2.save()
+
+        # Ověření, že login stránka obsahuje rozbalovací nabídku s oběma profily a žádné heslo
+        get_res = self.client.get(reverse('player_site_app:index'))
+        self.assertEqual(get_res.status_code, 200)
+        self.assertContains(get_res, 'id="playerSelect"')
+        self.assertContains(get_res, self.player1.nickname)
+        self.assertContains(get_res, self.player2.nickname)
+        self.assertNotContains(get_res, 'name="password"')
+
+        # 2. Přihlášení Hráče 1 se sdíleným PINem '7777'
+        res1 = self.client.post(reverse('player_site_app:index'), {
+            'player_id': self.player1.id,
+            'pin': '7777'
+        })
+        self.assertEqual(res1.status_code, 302)
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.user1.id)
+
+        # Odhlášení
+        self.client.logout()
+
+        # 3. Přihlášení Hráče 2 se stejným PINem '7777'
+        res2 = self.client.post(reverse('player_site_app:index'), {
+            'player_id': self.player2.id,
+            'pin': '7777'
+        })
+        self.assertEqual(res2.status_code, 302)
+        self.assertEqual(int(self.client.session['_auth_user_id']), self.user2.id)
+
+        # 4. Neúspěšný pokus: Vybrán Hráč 1, ale zadán chybný PIN
+        self.client.logout()
+        res_fail = self.client.post(reverse('player_site_app:index'), {
+            'player_id': self.player1.id,
+            'pin': '0000'
+        })
+        self.assertEqual(res_fail.status_code, 200)
+        self.assertContains(res_fail, 'Nesprávný PIN kód pro hráče')
 
     def test_unauthenticated_redirect_all_pages(self):
         """Všech 10 stránek hráče vyžaduje přihlášení a přesměruje nepřihlášeného na login."""
@@ -1163,6 +1210,84 @@ class PlayerCharacterAvatarTests(TestCase):
         self.assertContains(resp, 'id="avatarModal"')
         self.assertContains(resp, 'id="avatarDropzone"')
         self.assertContains(resp, '/static/img/classes/barbar.svg')
+
+
+class PlayerInventoryItemRemovalTests(TestCase):
+    def setUp(self):
+        OverAllSettings.objects.get_or_create(id=1, defaults={'loging_active': True, 'editing_active': True})
+
+        # Hráč 1 a jeho postava
+        self.user1 = User.objects.create_user(username='hrac_jan', password='password123')
+        self.player1 = Player.objects.create(user=self.user1, nickname='Janek')
+        self.char1 = Char_info.objects.create(player=self.player1, name='Galahad', level=3, character_class='Paladin')
+
+        # Hráč 2 a jeho postava
+        self.user2 = User.objects.create_user(username='hrac_petr', password='password123')
+        self.player2 = Player.objects.create(user=self.user2, nickname='Petr')
+        self.char2 = Char_info.objects.create(player=self.player2, name='Robin', level=2, character_class='Hraničář')
+
+        # Předmět v batohu postavy 1
+        self.item1 = Items_Active.objects.create(
+            char_own=self.char1,
+            name_cz='Obyčejné lano',
+            name_en='Hemp Rope',
+            category='Vybavení dobrodruha',
+            cost_gold=1,
+            weight=10.0
+        )
+
+        # Druhý předmět pro AJAX test
+        self.item2 = Items_Active.objects.create(
+            char_own=self.char1,
+            name_cz='Pochodeň',
+            name_en='Torch',
+            category='Vybavení dobrodruha',
+            cost_gold=0,
+            cost_silver=1,
+            weight=1.0
+        )
+
+    def test_player_can_remove_own_item(self):
+        """Hráč může úspěšně smazat/vyřadit předmět ze svého vlastního inventáře."""
+        self.client.login(username='hrac_jan', password='password123')
+        delete_url = reverse('player_site_app:remove_inv_item', kwargs={'item_id': self.item1.id})
+
+        response = self.client.post(delete_url)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Items_Active.objects.filter(id=self.item1.id).exists())
+
+        # Ověření zápisu do logu
+        self.assertTrue(Logs.objects.filter(character=self.char1, message__contains='zahodil předmět').exists())
+
+    def test_player_cannot_remove_other_players_item(self):
+        """Hráč nemůže smazat předmět patřící jiné postavě jiného hráče (vrátí 403 Forbidden)."""
+        self.client.login(username='hrac_petr', password='password123')
+        delete_url = reverse('player_site_app:remove_inv_item', kwargs={'item_id': self.item1.id})
+
+        response = self.client.post(delete_url)
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Items_Active.objects.filter(id=self.item1.id).exists())
+
+    def test_player_ajax_item_removal(self):
+        """Předmět lze smazat i přes asynchronní AJAX požadavek s vrácením JSON statusu."""
+        self.client.login(username='hrac_jan', password='password123')
+        delete_url = reverse('player_site_app:remove_inv_item', kwargs={'item_id': self.item2.id})
+
+        response = self.client.post(delete_url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        json_data = response.json()
+        self.assertEqual(json_data['status'], 'ok')
+        self.assertEqual(json_data['deleted_id'], self.item2.id)
+        self.assertFalse(Items_Active.objects.filter(id=self.item2.id).exists())
+
+    def test_inv_page_renders_action_column_and_delete_form(self):
+        """Stránka inventáře obsahuje sloupec Akce a formulář pro zahození předmětu."""
+        self.client.login(username='hrac_jan', password='password123')
+        response = self.client.get(reverse('player_site_app:inv'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Akce')
+        self.assertContains(response, 'btn-item-drop')
+        self.assertContains(response, reverse('player_site_app:remove_inv_item', kwargs={'item_id': self.item1.id}))
 
 
 

@@ -44,24 +44,52 @@
             >
                 {% csrf_token %}
 
-                <div class="pin-input-group">
-                    <input
-                        type="password"
-                        name="pin"
-                        id="pinInput"
-                        class="pin-large-input"
-                        placeholder="Zadejte PIN"
-                        inputmode="numeric"
-                        pattern="[0-9]*"
-                        maxlength="100"
-                        autocomplete="off"
-                        autofocus
+                <!-- 1. Výběr profilu dobrodruha -->
+                <div class="login-player-group">
+                    <label for="playerSelect" class="login-field-label">
+                        <span>👤</span> Kdo jsi? (Vyber profil)
+                    </label>
+                    <select
+                        name="player_id"
+                        id="playerSelect"
+                        class="login-player-select"
                         required
                         {% if is_locked_out or attempts_left <= 0 %}disabled{% endif %}
                     >
-                    <button type="button" class="pin-toggle-btn" id="pinToggleBtn" title="Zobrazit / skrýt PIN" aria-label="Zobrazit PIN">
-                        👁️
-                    </button>
+                        <option value="" disabled {% if not selected_player_id %}selected{% endif %}>
+                            -- Vyberte svůj profil ze seznamu --
+                        </option>
+                        {% for p in players %}
+                            <option value="{{ p.id }}" {% if selected_player_id == p.id or selected_player_id == p.id|stringformat:"s" %}selected{% endif %}>
+                                {{ p.nickname|default:p.user.username }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- 2. Zadání PIN kódu -->
+                <div class="login-pin-group">
+                    <label for="pinInput" class="login-field-label">
+                        <span>🗝️</span> Zadejte PIN kód
+                    </label>
+                    <div class="pin-input-group">
+                        <input
+                            type="password"
+                            name="pin"
+                            id="pinInput"
+                            class="pin-large-input"
+                            placeholder="Zadejte PIN"
+                            inputmode="numeric"
+                            pattern="[0-9]*"
+                            maxlength="100"
+                            autocomplete="off"
+                            required
+                            {% if is_locked_out or attempts_left <= 0 %}disabled{% endif %}
+                        >
+                        <button type="button" class="pin-toggle-btn" id="pinToggleBtn" title="Zobrazit / skrýt PIN" aria-label="Zobrazit PIN">
+                            👁️
+                        </button>
+                    </div>
                 </div>
 
                 <div class="pin-attempts-status {% if is_locked_out or attempts_left <= 0 %}status-locked{% elif attempts_left == 1 %}status-danger{% elif attempts_left == 2 %}status-warning{% endif %}" id="pinAttemptsStatus">
@@ -80,7 +108,7 @@
                     id="pinSubmitBtn"
                     {% if is_locked_out or attempts_left <= 0 %}disabled{% endif %}
                 >
-                    <span>⚔️</span> Odeslat
+                    <span>⚔️</span> Vstoupit do hry
                 </button>
             </form>
         </div>
@@ -124,6 +152,8 @@
 
         if (isLockedOut || serverAttemptsLeft <= 0) {
             pinInput.disabled = true;
+            const playerSelect = document.getElementById('playerSelect');
+            if (playerSelect) playerSelect.disabled = true;
             if (pinSubmitBtn) pinSubmitBtn.disabled = true;
             if (pinAttemptsStatus) {
                 pinAttemptsStatus.className = 'pin-attempts-status status-locked';
@@ -134,6 +164,13 @@
         }
 
         pinForm.addEventListener('submit', function(e) {
+            const playerSelect = document.getElementById('playerSelect');
+            if (playerSelect && !playerSelect.value) {
+                e.preventDefault();
+                alert('Vyberte prosím svůj profil v rozbalovací nabídce!');
+                playerSelect.focus();
+                return;
+            }
             const val = pinInput.value.trim();
             if (!val || !/^\d+$/.test(val)) {
                 e.preventDefault();

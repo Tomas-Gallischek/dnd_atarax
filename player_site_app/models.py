@@ -31,7 +31,7 @@ class Player(models.Model):
     )
 
     temna_esence = models.IntegerField(default=0, verbose_name="Temná esence", blank=True, null=True)
-    pin_code = models.CharField(max_length=100, unique=True, blank=True, null=True, verbose_name="PIN kód")
+    pin_code = models.CharField(max_length=100, blank=True, null=True, verbose_name="PIN kód")
 
     active_ramecek = models.ForeignKey(
         "Esence_Items_Owners",

@@ -1230,3 +1230,144 @@ def create_custom_item(request):
     }
     return render(request, 'dm_site_app/create_custom_item.html', context)
 
+
+# ==========================================
+# 7. DM SPRÁVA INVENTÁŘŮ POSTAV (ODEBÍRÁNÍ PŘEDMĚTŮ)
+# ==========================================
+
+@dm_required
+def player_inventory_management(request):
+    """
+    DM nástroj pro správu inventářů všech hráčských postav.
+    Umožňuje DM prohlížet batoh jakéhokoliv hrdiny a mazat libovolné předměty (jednotlivě i hromadně).
+    """
+    all_chars = Char_info.objects.all().select_related('player').order_by('name')
+
+    char_id = request.GET.get('char_id')
+    selected_char = None
+    if char_id:
+        try:
+            selected_char = all_chars.filter(id=int(char_id)).first()
+        except (ValueError, TypeError):
+            selected_char = None
+
+    if not selected_char and all_chars.exists():
+        selected_char = all_chars.first()
+
+    items = []
+    categories = []
+    total_weight = 0.0
+    if selected_char:
+        items = Items_Active.objects.filter(char_own=selected_char).order_by('name_cz', 'name_en')
+        categories = sorted(list(set(i.category for i in items if i.category)))
+        total_weight = sum((i.weight or 0.0) for i in items)
+
+    context = {
+        'all_chars': all_chars,
+        'selected_char': selected_char,
+        'items': items,
+        'categories': categories,
+        'total_weight': round(total_weight, 2),
+        'total_items_count': len(items),
+        'current_page': 'tools',
+    }
+    return render(request, 'dm_site_app/player_inventory_management.html', context)
+
+
+@dm_required
+def dm_delete_player_item(request, item_id):
+    """
+    Umožňuje DM smazat jakýkoliv předmět z inventáře libovolné postavy.
+    """
+    if request.method != 'POST':
+        messages.warning(request, "Smazání předmětu vyžaduje potvrzení formuláře.")
+        return redirect('dm_site_app:player_inventory_management')
+
+    item = get_object_or_404(Items_Active, id=item_id)
+    char = item.char_own
+    char_id = char.id if char else None
+    item_name = item.name_cz or item.name_en or f"Předmět #{item.id}"
+    char_name = char.name if char else "neznámá postava"
+
+    item.delete()
+
+    if char:
+        Logs.objects.create(
+            player=char.player,
+            character=char,
+            message=f"DM odebral předmět '{item_name}' postavě {char_name}",
+            value=0.0
+        )
+    log_dm(f"DM smazal předmět '{item_name}' (ID: {item_id}) z inventáře postavy '{char_name}'")
+
+    success_msg = f"Předmět '{item_name}' byl smazán z inventáře postavy {char_name}."
+    messages.success(request, success_msg)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+        return JsonResponse({
+            'status': 'ok',
+            'deleted_id': item_id,
+            'item_name': item_name,
+            'message': success_msg
+        })
+
+    redirect_url = reverse('dm_site_app:player_inventory_management')
+    if char_id:
+        redirect_url += f'?char_id={char_id}'
+    return redirect(redirect_url)
+
+
+@dm_required
+def dm_bulk_delete_player_items(request):
+    """
+    Umožňuje DM hromadně smazat vybrané předměty z inventáře postavy.
+    """
+    if request.method != 'POST':
+        return redirect('dm_site_app:player_inventory_management')
+
+    char_id = request.POST.get('character_id')
+    item_ids = request.POST.getlist('item_ids')
+    if not item_ids and request.POST.get('item_ids_str'):
+        item_ids = [i.strip() for i in request.POST.get('item_ids_str', '').split(',') if i.strip()]
+
+    if not item_ids:
+        messages.warning(request, "Nebyly vybrány žádné předměty ke smazání.")
+        redirect_url = reverse('dm_site_app:player_inventory_management')
+        if char_id:
+            redirect_url += f'?char_id={char_id}'
+        return redirect(redirect_url)
+
+    character = None
+    if char_id:
+        character = Char_info.objects.filter(id=char_id).first()
+
+    deleted_names = []
+    qs = Items_Active.objects.filter(id__in=item_ids)
+    if character:
+        qs = qs.filter(char_own=character)
+
+    for item in qs:
+        name = item.name_cz or item.name_en or f"Předmět #{item.id}"
+        deleted_names.append(name)
+        item.delete()
+
+    if deleted_names:
+        summary = ", ".join(deleted_names)
+        char_name = character.name if character else "vybrané postavy"
+        if character:
+            Logs.objects.create(
+                player=character.player,
+                character=character,
+                message=f"DM hromadně odebral {len(deleted_names)} předmětů ({summary}) postavě {char_name}",
+                value=float(len(deleted_names))
+            )
+        log_dm(f"DM hromadně smazal {len(deleted_names)} předmětů postavě {char_name}: {summary}")
+        messages.success(request, f"Úspěšně smazáno {len(deleted_names)} předmětů z inventáře postavy {char_name}: {summary}")
+    else:
+        messages.warning(request, "Nebyly nalezeny žádné odpovídající předměty ke smazání.")
+
+    redirect_url = reverse('dm_site_app:player_inventory_management')
+    if char_id:
+        redirect_url += f'?char_id={char_id}'
+    return redirect(redirect_url)
+

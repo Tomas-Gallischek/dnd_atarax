@@ -1,12 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
 from .models import (
     Player, Char_info, Achivements_players, Achivements_database,
-    Esence_Items_Shop, Esence_Items_Owners, CharNotes, CharBackstory
+    Esence_Items_Shop, Esence_Items_Owners, CharNotes, CharBackstory, Logs
 )
 from .forms import PlayerLoginForm, PlayerRegistrationForm
 from dnd_atarax.terminal import log_player, log_warning, log_info
@@ -75,6 +75,9 @@ def index(request):
     settings_obj = OverAllSettings.objects.first()
     loging_active = settings_obj.loging_active if settings_obj else True
 
+    # Načtení profilů hráčů pro rozbalovací nabídku
+    players = Player.objects.all().select_related('user').order_by('nickname', 'user__username')
+
     # Sledování pokusů v session (max 3 pokusy)
     now_ts = int(time.time())
     lockout_until = request.session.get('pin_lockout_until', 0)
@@ -93,6 +96,7 @@ def index(request):
             messages.error(request, "Přihlašování je v tuto chvíli pozastaveno Pánem jeskyně.")
             return render(request, 'player_site_app/login_index.html', {
                 'loging_active': False,
+                'players': players,
                 'attempts_left': attempts_left,
                 'is_locked_out': False,
             })
@@ -102,12 +106,60 @@ def index(request):
             messages.error(request, f"Byl vyčerpán maximální počet pokusů (3/3). Přihlášení je zablokováno, zkuste to znovu za {mins_left} min.")
             return render(request, 'player_site_app/login_index.html', {
                 'loging_active': True,
+                'players': players,
                 'attempts_left': 0,
                 'is_locked_out': True,
                 'lockout_remaining_sec': max(0, lockout_until - now_ts),
             })
 
+        player_id = request.POST.get('player_id', '').strip()
         pin = request.POST.get('pin', '').strip()
+
+        # Vyhledání zvoleného hráče
+        selected_player = None
+        if player_id:
+            if player_id.isdigit():
+                selected_player = Player.objects.filter(id=int(player_id)).first()
+            if not selected_player:
+                selected_player = Player.objects.filter(Q(nickname=player_id) | Q(user__username=player_id)).first()
+        elif pin:
+            # Zpětná kompatibilita pro testy / starší volání bez player_id
+            matching_players = list(Player.objects.filter(pin_code=pin))
+            if len(matching_players) == 1:
+                selected_player = matching_players[0]
+            elif not matching_players:
+                # Pokud nebyl vybrán player_id a zadaný PIN neodpovídá žádnému hráči:
+                attempts_used += 1
+                request.session['pin_attempts'] = attempts_used
+                attempts_left = max(0, 3 - attempts_used)
+
+                if attempts_used >= 3:
+                    request.session['pin_lockout_until'] = now_ts + 300
+                    is_locked_out = True
+                    log_warning("Vyčerpány pokusy o PIN", "Chybný PIN 3x za sebou. Lockout na 5 minut.")
+                    messages.error(request, "Nesprávný PIN. Vyčerpali jste všechny 3 pokusy. Přihlášení bylo zablokováno na 5 minut.")
+                else:
+                    log_warning("Neúspěšné přihlášení PINem", f"Zbývá pokusů: {attempts_left}")
+                    messages.error(request, f"Nesprávný PIN kód! Zbývající pokusy: {attempts_left} z 3.")
+
+                return render(request, 'player_site_app/login_index.html', {
+                    'loging_active': True,
+                    'players': players,
+                    'attempts_left': attempts_left,
+                    'is_locked_out': is_locked_out,
+                    'lockout_remaining_sec': 300 if is_locked_out else 0,
+                })
+
+        if not selected_player:
+            messages.error(request, "Vyberte prosím svůj profil ze seznamu dobrodruhů.")
+            return render(request, 'player_site_app/login_index.html', {
+                'loging_active': True,
+                'players': players,
+                'selected_player_id': player_id,
+                'attempts_left': attempts_left,
+                'is_locked_out': is_locked_out,
+                'lockout_remaining_sec': 300 if is_locked_out else 0,
+            })
 
         # Validace formátu: celé číslo do 100 znaků
         if not pin or not pin.isdigit() or len(pin) > 100:
@@ -126,28 +178,28 @@ def index(request):
 
             return render(request, 'player_site_app/login_index.html', {
                 'loging_active': True,
+                'players': players,
+                'selected_player_id': selected_player.id,
                 'attempts_left': attempts_left,
                 'is_locked_out': is_locked_out,
                 'lockout_remaining_sec': 300 if is_locked_out else 0,
             })
 
-        # Vyhledání hráče podle unikátního PINu
-        player = Player.objects.filter(pin_code=pin).first()
-
-        if player:
+        # Kontrola PINu pro zvoleného hráče
+        if selected_player.pin_code and selected_player.pin_code == pin:
             # Úspěšné přihlášení -> reset pokusů
             request.session['pin_attempts'] = 0
             request.session['pin_lockout_until'] = 0
 
             # Zajištění vazby na User
-            if not player.user:
-                player.save()
-            user = player.user
+            if not selected_player.user:
+                selected_player.save()
+            user = selected_player.user
 
             login(request, user, backend='django.contrib.auth.backends.ModelBackend')
             role = "DM / Staff 🛡️" if user.is_staff else "Hráč 🧙"
-            log_player("Přihlášení hráče přes PIN", f"'{player.nickname or user.username}' [{role}]")
-            messages.success(request, f"Vítej ve hře, {player.nickname or user.username}!")
+            log_player("Přihlášení hráče přes profil a PIN", f"'{selected_player.nickname or user.username}' [{role}]")
+            messages.success(request, f"Vítej ve hře, {selected_player.nickname or user.username}!")
 
             next_url = request.GET.get('next')
             if next_url:
@@ -157,22 +209,25 @@ def index(request):
             return redirect('player_site_app:prehled_postav')
 
         else:
-            # Neplatný PIN
+            # Neplatný PIN pro zvolený profil
             attempts_used += 1
             request.session['pin_attempts'] = attempts_used
             attempts_left = max(0, 3 - attempts_used)
 
+            player_name = selected_player.nickname or (selected_player.user.username if selected_player.user else "vybraného hráče")
             if attempts_used >= 3:
                 request.session['pin_lockout_until'] = now_ts + 300
                 is_locked_out = True
-                log_warning("Vyčerpány pokusy o PIN", "Chybný PIN 3x za sebou. Lockout na 5 minut.")
+                log_warning("Vyčerpány pokusy o PIN", f"Chybný PIN 3x za sebou pro hráče '{player_name}'. Lockout na 5 minut.")
                 messages.error(request, "Nesprávný PIN. Vyčerpali jste všechny 3 pokusy. Přihlášení bylo zablokováno na 5 minut.")
             else:
-                log_warning("Neúspěšné přihlášení PINem", f"Zbývá pokusů: {attempts_left}")
-                messages.error(request, f"Nesprávný PIN kód! Zbývající pokusy: {attempts_left} z 3.")
+                log_warning("Neúspěšné přihlášení PINem", f"Hráč: '{player_name}', zbývá pokusů: {attempts_left}")
+                messages.error(request, f"Nesprávný PIN kód pro hráče {player_name}! Zbývající pokusy: {attempts_left} z 3.")
 
             return render(request, 'player_site_app/login_index.html', {
                 'loging_active': True,
+                'players': players,
+                'selected_player_id': selected_player.id,
                 'attempts_left': attempts_left,
                 'is_locked_out': is_locked_out,
                 'lockout_remaining_sec': 300 if is_locked_out else 0,
@@ -180,6 +235,7 @@ def index(request):
 
     return render(request, 'player_site_app/login_index.html', {
         'loging_active': loging_active,
+        'players': players,
         'attempts_left': attempts_left,
         'is_locked_out': is_locked_out,
         'lockout_remaining_sec': max(0, lockout_until - now_ts) if is_locked_out else 0,
@@ -494,6 +550,63 @@ def inv_view(request, char_id=None):
         'categories': categories,
         'total_weight': round(total_weight, 2),
     })
+
+
+@login_required(login_url='player_site_app:index')
+def remove_inv_item(request, item_id):
+    """
+    Umožňuje hráči odebrat (zahodit) předmět z inventáře své postavy.
+    Striktně ověřuje, že předmět patří postavě přihlášeného hráče (nebo má uživatel DM práva).
+    """
+    if request.method != 'POST':
+        messages.warning(request, "Předmět lze odebrat pouze potvrzením formuláře.")
+        return redirect('player_site_app:inv')
+
+    player, _ = Player.objects.get_or_create(user=request.user, defaults={'nickname': request.user.username})
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+
+    item = get_object_or_404(Items_Active, id=item_id)
+    char = item.char_own
+
+    # Striktní kontrola vlastnictví
+    if not (is_dm or (char and char.player == player)):
+        log_warning(
+            "Neautorizovaný pokus o smazání předmětu",
+            f"Uživatel '{request.user.username}' se pokusil smazat předmět #{item.id} patřící postavě '{char.name if char else 'bez vlastníka'}'"
+        )
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+            return JsonResponse({'status': 'error', 'message': 'Nemáte oprávnění odebrat tento předmět.'}, status=403)
+        return HttpResponseForbidden("Nemáte oprávnění odebrat předmět z cizího inventáře.")
+
+    item_name = item.name_cz or item.name_en or f"Předmět #{item.id}"
+    char_name = char.name if char else "neznámá postava"
+    char_id = char.id if char else None
+
+    item.delete()
+
+    if char:
+        Logs.objects.create(
+            player=char.player,
+            character=char,
+            message=f"Hráč {player.nickname} zahodil předmět '{item_name}' z inventáře postavy {char_name}",
+            value=0.0
+        )
+    log_player(f"Hráč '{player.nickname}' zahodil předmět '{item_name}' (ID: {item_id}) z inventáře postavy '{char_name}'")
+
+    success_msg = f"Předmět '{item_name}' byl vyřazen z tvého inventáře."
+    messages.success(request, success_msg)
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+        return JsonResponse({
+            'status': 'ok',
+            'deleted_id': item_id,
+            'item_name': item_name,
+            'message': success_msg
+        })
+
+    if char_id:
+        return redirect('player_site_app:inv_detail', char_id=char_id)
+    return redirect('player_site_app:inv')
 
 
 def can_character_cast_cantrips(character):

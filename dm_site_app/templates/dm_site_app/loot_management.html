@@ -18,6 +18,9 @@
             <p class="loot-subtitle">Přidělování zlaťáků z padlých monster a NPC, katalog kompendia a přidělování výbavy postavám.</p>
         </div>
         <div class="loot-header-actions">
+            <a href="{% url 'dm_site_app:player_inventory_management' %}" class="btn-create-custom-item" style="background: linear-gradient(135deg, #7c2d12, #991b1b); border-color: rgba(239, 68, 68, 0.4);" title="Přejít do správy inventářů postav a odebírání předmětů">
+                <span>🎒</span> Správa inventářů postav
+            </a>
             <a href="{% url 'dm_site_app:create_custom_item' %}" class="btn-create-custom-item" title="Vytvořit nový vlastní předmět do kompendia a připsat jej hráči">
                 <span>✨</span> Vytvořit vlastní item
             </a>

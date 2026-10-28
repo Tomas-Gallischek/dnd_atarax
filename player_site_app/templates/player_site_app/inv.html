@@ -56,10 +56,10 @@
         </h2>
         <div class="toolbar-actions">
             <span class="header-stats-badge" title="Celkový počet předmětů v inventáři">
-                📦 {{ inv_all_items|length }} {% if inv_all_items|length == 1 %}předmět{% elif inv_all_items|length >= 2 and inv_all_items|length <= 4 %}předměty{% else %}předmětů{% endif %}
+                📦 <span id="totalItemsBadgeCount">{{ inv_all_items|length }}</span> <span id="totalItemsBadgeLabel">{% if inv_all_items|length == 1 %}předmět{% elif inv_all_items|length >= 2 and inv_all_items|length <= 4 %}předměty{% else %}předmětů{% endif %}</span>
             </span>
             <span class="header-stats-badge" title="Celková váha nesených předmětů">
-                ⚖️ Celková váha: <strong>{{ total_weight }} lb</strong>
+                ⚖️ Celková váha: <strong id="totalWeightBadgeValue">{{ total_weight }}</strong> lb
             </span>
         </div>
     </div>
@@ -120,6 +120,7 @@
                     <th>Bojové vlastnosti</th>
                     <th>Váha</th>
                     <th>Popis</th>
+                    <th style="text-align: center; width: 105px;">Akce</th>
                 </tr>
             </thead>
             <tbody id="itemsTableBody">
@@ -184,10 +185,20 @@
                             {{ item.description|default:"—" }}
                         </div>
                     </td>
+
+                    <!-- 7. Akce -->
+                    <td style="text-align: center; vertical-align: middle;">
+                        <form action="{% url 'player_site_app:remove_inv_item' item.id %}" method="post" class="form-remove-item" onsubmit="return confirm('Opravdu chceš vyřadit předmět &quot;{{ item.name_cz|default:item.name_en }}&quot; ze svého inventáře?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-ruby btn-sm btn-item-drop" title="Zahodit předmět z batohu">
+                                <span>🗑️</span> Zahodit
+                            </button>
+                        </form>
+                    </td>
                 </tr>
                 {% endfor %}
                 <tr id="noFilterResultsRow" style="display: none;">
-                    <td colspan="6" class="td-empty-table">
+                    <td colspan="7" class="td-empty-table">
                         Žádné předměty neodpovídají zadanému filtru nebo hledání.
                     </td>
                 </tr>
@@ -318,6 +329,85 @@ document.addEventListener("DOMContentLoaded", function() {
             applyFilters();
         });
     }
+
+    // AJAX odebírání předmětů
+    document.querySelectorAll(".form-remove-item").forEach(form => {
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const row = form.closest(".item-row");
+            const itemNameEl = row ? row.querySelector(".item-name-cz") : null;
+            const itemName = itemNameEl ? itemNameEl.textContent.trim() : "tento předmět";
+
+            if (!confirm(`Opravdu chceš vyřadit předmět "${itemName}" ze svého inventáře? Tuto akci nelze vrátit.`)) {
+                return;
+            }
+
+            const btn = form.querySelector("button");
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span>⏳</span> Mazání...';
+            }
+
+            const formData = new FormData(form);
+            fetch(form.action, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "ok") {
+                    if (row) {
+                        row.style.transition = "opacity 0.25s ease, transform 0.25s ease";
+                        row.style.opacity = "0";
+                        row.style.transform = "translateX(20px)";
+                        setTimeout(() => {
+                            row.remove();
+                            const idx = allRows.indexOf(row);
+                            if (idx > -1) allRows.splice(idx, 1);
+                            
+                            // Přepočet váhy a počtu
+                            let newWeight = 0;
+                            allRows.forEach(r => {
+                                newWeight += parseFloat(r.dataset.weight || 0);
+                            });
+                            
+                            const totalBadge = document.getElementById("totalItemsBadgeCount");
+                            const totalLabel = document.getElementById("totalItemsBadgeLabel");
+                            const weightBadge = document.getElementById("totalWeightBadgeValue");
+                            
+                            if (totalBadge) totalBadge.textContent = allRows.length;
+                            if (weightBadge) weightBadge.textContent = newWeight.toFixed(2);
+                            if (totalLabel) {
+                                const count = allRows.length;
+                                if (count === 1) totalLabel.textContent = "předmět";
+                                else if (count >= 2 && count <= 4) totalLabel.textContent = "předměty";
+                                else totalLabel.textContent = "předmětů";
+                            }
+                            
+                            applyFilters();
+
+                            if (allRows.length === 0) {
+                                window.location.reload();
+                            }
+                        }, 250);
+                    }
+                } else {
+                    alert(data.message || "Předmět se nepodařilo odebrat.");
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>🗑️</span> Zahodit';
+                    }
+                }
+            })
+            .catch(err => {
+                console.error("Chyba při mazání předmětu:", err);
+                form.submit(); // fallback na běžný submit
+            });
+        });
+    });
 });
 </script>
 {% endif %}
