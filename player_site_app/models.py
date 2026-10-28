@@ -655,10 +655,10 @@ class Esence_Items_Shop(models.Model):
     def dismantle_value(self):
         """Vrátí počet temné esence získané za rozebrání předmětu podle rarity."""
         values = {
-            'basic': 5,
-            'rare': 25,
-            'epic': 50,
-            'legendary': 100,
+            'basic': 1,
+            'rare': 5,
+            'epic': 10,
+            'legendary': 20,
         }
         return values.get(self.rarity, 0)
 

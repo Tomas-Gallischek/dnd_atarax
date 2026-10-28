@@ -1832,7 +1832,7 @@ def reforge_tresure(request):
             # Zisk esence podle rarity (basic: 5, rare: 25, epic: 50, legendary: 100)
             value = getattr(item, 'dismantle_value', 0)
             if not value:
-                rarity_map = {'basic': 5, 'rare': 25, 'epic': 50, 'legendary': 100}
+                rarity_map = {'basic': 1, 'rare': 5, 'epic': 10, 'legendary': 20}
                 value = rarity_map.get(item.rarity, 0)
 
             # Pokud byl tento předmět aktivní rámeček hráče, ošetříme ho
