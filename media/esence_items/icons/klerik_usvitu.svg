@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_ku" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#78350f"/>
+      <stop offset="60%" stop-color="#451a03"/>
+      <stop offset="100%" stop-color="#180a02"/>
+    </radialGradient>
+    <filter id="glow_ku"><feGaussianBlur stdDeviation="5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_ku)" stroke="#facc15" stroke-width="6"/>
+  <!-- Zlaté sluneční paprsky za hlavou -->
+  <path d="M128 35 L128 5 M128 221 L128 251 M35 128 L5 128 M221 128 L251 128 M62 62 L40 40 M194 194 L216 216 M62 194 L40 216 M194 62 L216 40" stroke="#fef08a" stroke-width="4" filter="url(#glow_ku)"/>
+  <!-- Bělostná zbroj se zlatým lemováním -->
+  <path d="M50 225 C62 165 96 145 128 145 C160 145 194 165 206 225 Z" fill="#f8fafc" stroke="#eab308" stroke-width="3"/>
+  <ellipse cx="128" cy="115" rx="28" ry="32" fill="#fed7aa"/>
+  <!-- Zlatá koruna slunce -->
+  <polygon points="98,85 110,65 128,80 146,65 158,85" fill="#facc15" stroke="#ca8a04" stroke-width="2"/>
+  <!-- Zářící zlaté oči víry -->
+  <circle cx="114" cy="115" r="5" fill="#fde047" filter="url(#glow_ku)"/>
+  <circle cx="142" cy="115" r="5" fill="#fde047" filter="url(#glow_ku)"/>
+</svg>

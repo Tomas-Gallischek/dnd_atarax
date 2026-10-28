@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_th" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#451a03"/>
+      <stop offset="60%" stop-color="#292524"/>
+      <stop offset="100%" stop-color="#0c0a09"/>
+    </radialGradient>
+    <filter id="glow_th"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_th)" stroke="#d97706" stroke-width="5" stroke-opacity="0.6"/>
+  <!-- Ramena a kožená zbroj -->
+  <path d="M45 228 C55 170 95 155 128 155 C161 155 201 170 211 228 Z" fill="#292524" stroke="#78350f" stroke-width="3"/>
+  <!-- Hornická helma -->
+  <path d="M80 100 C80 60 176 60 176 100 L184 112 L72 112 Z" fill="#78350f" stroke="#b45309" stroke-width="3"/>
+  <!-- Krystalová svítilna na helmě -->
+  <rect x="118" y="70" width="20" height="22" rx="4" fill="#d97706" stroke="#fef08a" stroke-width="2"/>
+  <circle cx="128" cy="81" r="7" fill="#fef08a" filter="url(#glow_th)"/>
+  <!-- Obličej a velký nos -->
+  <ellipse cx="128" cy="120" rx="36" ry="26" fill="#fed7aa"/>
+  <ellipse cx="128" cy="125" rx="14" ry="10" fill="#fca5a5"/>
+  <!-- Hustý zrzavý plnovous s copy -->
+  <path d="M82 125 C75 180 95 235 128 245 C161 235 181 180 174 125 C160 135 145 138 128 138 C111 138 96 135 82 125 Z" fill="#c2410c"/>
+  <!-- Kovové kroužky na vousech -->
+  <rect x="118" y="195" width="20" height="8" rx="2" fill="#d97706" stroke="#fef08a" stroke-width="1.5"/>
+</svg>

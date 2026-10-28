@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_bs" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="60%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <filter id="glow_bs"><feGaussianBlur stdDeviation="4" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_bs)" stroke="#38bdf8" stroke-width="6"/>
+  <!-- Blesky křižující pozadí -->
+  <path d="M70 20 L55 70 L80 75 L60 120" stroke="#38bdf8" stroke-width="3" fill="none" filter="url(#glow_bs)"/>
+  <path d="M190 20 L205 70 L180 75 L200 120" stroke="#38bdf8" stroke-width="3" fill="none" filter="url(#glow_bs)"/>
+  <!-- Šamanská tvář a válečné malování -->
+  <ellipse cx="128" cy="115" rx="32" ry="34" fill="#fdba74"/>
+  <!-- Bleskové modré tetování přes oči -->
+  <polygon points="100,105 156,105 145,120 110,120" fill="#0284c7" opacity="0.7"/>
+  <!-- Planoucí blesky v očích -->
+  <circle cx="114" cy="112" r="5" fill="#f0f9ff" filter="url(#glow_bs)"/>
+  <circle cx="142" cy="112" r="5" fill="#f0f9ff" filter="url(#glow_bs)"/>
+  <!-- Ptačí peří ve vlasech -->
+  <polygon points="128,40 120,75 136,75" fill="#38bdf8"/>
+  <polygon points="115,45 110,75 125,75" fill="#818cf8"/>
+  <polygon points="141,45 131,75 146,75" fill="#818cf8"/>
+</svg>

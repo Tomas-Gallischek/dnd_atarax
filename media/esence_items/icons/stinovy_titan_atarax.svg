@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_st" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#3b0764"/>
+      <stop offset="40%" stop-color="#1e0236"/>
+      <stop offset="80%" stop-color="#090012"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <filter id="glow_st"><feGaussianBlur stdDeviation="7" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_st)" stroke="#c084fc" stroke-width="8" filter="url(#glow_st)"/>
+  <!-- Koruna z černé temné esence s hroty -->
+  <polygon points="68,80 88,30 108,60 128,15 148,60 168,30 188,80" fill="#090012" stroke="#a855f7" stroke-width="3" filter="url(#glow_st)"/>
+  <!-- Tvář temného titána vytvořená z prázdnoty -->
+  <path d="M85 95 C85 45 171 45 171 95 C171 165 145 195 128 195 C111 195 85 165 85 95 Z" fill="#05000a" stroke="#7e22ce" stroke-width="3"/>
+  <!-- Jedno gigantické centrální oko Temné esence -->
+  <ellipse cx="128" cy="125" rx="26" ry="16" fill="#18022e" stroke="#e879f9" stroke-width="3"/>
+  <ellipse cx="128" cy="125" rx="14" ry="14" fill="#a855f7" filter="url(#glow_st)"/>
+  <ellipse cx="128" cy="125" rx="5" ry="12" fill="#fdf4ff"/>
+  <!-- Blesky temné esence šlehající z titána -->
+  <path d="M45 180 L80 165 L60 215" stroke="#e879f9" stroke-width="3" fill="none" filter="url(#glow_st)"/>
+  <path d="M211 180 L176 165 L196 215" stroke="#e879f9" stroke-width="3" fill="none" filter="url(#glow_st)"/>
+</svg>

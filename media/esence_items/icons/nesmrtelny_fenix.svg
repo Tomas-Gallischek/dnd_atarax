@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_nf" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#991b1b"/>
+      <stop offset="40%" stop-color="#7c2d12"/>
+      <stop offset="80%" stop-color="#2a0802"/>
+      <stop offset="100%" stop-color="#0a0200"/>
+    </radialGradient>
+    <filter id="glow_nf"><feGaussianBlur stdDeviation="6.5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_nf)" stroke="#f59e0b" stroke-width="8" filter="url(#glow_nf)"/>
+  <!-- Ohnivá křídla fénixe vzpínající se k nebi -->
+  <path d="M90 120 C50 70 20 40 30 15 C60 45 80 85 95 130 Z" fill="#ef4444" filter="url(#glow_nf)"/>
+  <path d="M166 120 C206 70 236 40 226 15 C196 45 176 85 161 130 Z" fill="#ef4444" filter="url(#glow_nf)"/>
+  <path d="M98 120 C70 80 45 55 55 35 C75 60 90 95 102 130 Z" fill="#f59e0b"/>
+  <path d="M158 120 C186 80 211 55 201 35 C181 60 166 95 154 130 Z" fill="#f59e0b"/>
+  <!-- Hlava fénixe a chochol slunce -->
+  <path d="M128 55 C110 55 98 85 105 130 L128 175 L151 130 C158 85 146 55 128 55 Z" fill="#f97316"/>
+  <!-- Zlatý ostrý zobák -->
+  <polygon points="128,140 120,165 128,185 136,165" fill="#fde047" stroke="#b45309" stroke-width="2"/>
+  <!-- Zářící rubínové oči znovuzrození -->
+  <circle cx="116" cy="108" r="6" fill="#fef08a" filter="url(#glow_nf)"/>
+  <circle cx="140" cy="108" r="6" fill="#fef08a" filter="url(#glow_nf)"/>
+  <!-- Znovuzrozený plamen slunce -->
+  <circle cx="128" cy="80" r="12" fill="#fef08a" filter="url(#glow_nf)"/>
+</svg>

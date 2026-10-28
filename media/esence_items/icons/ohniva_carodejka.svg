@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_oc" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#7c2d12"/>
+      <stop offset="60%" stop-color="#451a03"/>
+      <stop offset="100%" stop-color="#180a02"/>
+    </radialGradient>
+    <filter id="glow_oc"><feGaussianBlur stdDeviation="5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_oc)" stroke="#f97316" stroke-width="6"/>
+  <circle cx="128" cy="128" r="110" fill="none" stroke="#ea580c" stroke-width="2"/>
+  <!-- Planoucí vlasy kolem hlavy -->
+  <path d="M70 120 C50 60 110 30 128 20 C146 30 206 60 186 120 C210 160 170 200 128 210 C86 200 46 160 70 120 Z" fill="#ea580c" filter="url(#glow_oc)"/>
+  <path d="M85 110 C70 70 115 45 128 35 C141 45 186 70 171 110 C186 145 156 185 128 190 C100 185 70 145 85 110 Z" fill="#facc15"/>
+  <!-- Tvář čarodějky -->
+  <ellipse cx="128" cy="115" rx="30" ry="34" fill="#fed7aa"/>
+  <!-- Zářící oranžové plamenné oči -->
+  <ellipse cx="114" cy="110" rx="6" ry="4" fill="#ea580c" filter="url(#glow_oc)"/>
+  <ellipse cx="142" cy="110" rx="6" ry="4" fill="#ea580c" filter="url(#glow_oc)"/>
+  <circle cx="114" cy="110" r="2" fill="#fef08a"/>
+  <circle cx="142" cy="110" r="2" fill="#fef08a"/>
+  <!-- Ohnivá koule v dlani v popředí -->
+  <circle cx="128" cy="195" r="20" fill="#f97316" filter="url(#glow_oc)"/>
+  <circle cx="128" cy="195" r="12" fill="#fef08a"/>
+</svg>

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_rk" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="60%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <filter id="glow_rk"><feGaussianBlur stdDeviation="3.5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_rk)" stroke="#06b6d4" stroke-width="6"/>
+  <!-- Trpasličí zbroj s runami -->
+  <path d="M45 228 C55 165 92 145 128 145 C164 145 201 165 211 228 Z" fill="#1e293b" stroke="#0891b2" stroke-width="3"/>
+  <!-- Ocelová helma se zlatými rohy -->
+  <path d="M85 105 C85 60 171 60 171 105 L165 125 L91 125 Z" fill="#334155" stroke="#cbd5e1" stroke-width="2.5"/>
+  <path d="M85 85 C65 75 55 50 65 35 C75 50 82 70 88 85 Z" fill="#eab308"/>
+  <path d="M171 85 C191 75 201 50 191 35 C181 50 174 70 168 85 Z" fill="#eab308"/>
+  <!-- Vousy se zářícími modrými runami -->
+  <path d="M85 130 C80 185 105 235 128 245 C151 235 176 185 171 130 Z" fill="#475569"/>
+  <!-- Zářící azurové runy v pletencích -->
+  <path d="M128 160 L128 190 M120 170 L136 180 M120 180 L136 170" stroke="#22d3ee" stroke-width="3" filter="url(#glow_rk)"/>
+  <path d="M105 185 L115 195 L105 205" stroke="#22d3ee" stroke-width="2.5" fill="none" filter="url(#glow_rk)"/>
+  <path d="M151 185 L141 195 L151 205" stroke="#22d3ee" stroke-width="2.5" fill="none" filter="url(#glow_rk)"/>
+</svg>

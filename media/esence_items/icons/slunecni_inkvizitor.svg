@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_si" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#b45309"/>
+      <stop offset="60%" stop-color="#451a03"/>
+      <stop offset="100%" stop-color="#180a02"/>
+    </radialGradient>
+    <filter id="glow_si"><feGaussianBlur stdDeviation="5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_si)" stroke="#fde047" stroke-width="7"/>
+  <!-- Aureola planoucího slunce -->
+  <circle cx="128" cy="115" r="62" fill="none" stroke="#facc15" stroke-width="4" stroke-dasharray="10 6" filter="url(#glow_si)"/>
+  <!-- Zlaté rytířské pláty -->
+  <path d="M45 228 C55 160 92 145 128 145 C164 145 201 160 211 228 Z" fill="#ca8a04" stroke="#fde047" stroke-width="3.5"/>
+  <!-- Zlaté hledí s křížem spravedlnosti -->
+  <path d="M85 105 C85 60 171 60 171 105 L165 145 L128 160 L91 145 Z" fill="#eab308" stroke="#fef08a" stroke-width="3"/>
+  <line x1="128" y1="80" x2="128" y2="140" stroke="#451a03" stroke-width="4"/>
+  <line x1="100" y1="105" x2="156" y2="105" stroke="#451a03" stroke-width="4"/>
+  <!-- Planoucí meč v popředí -->
+  <line x1="128" y1="170" x2="128" y2="245" stroke="#fef08a" stroke-width="6" filter="url(#glow_si)"/>
+</svg>

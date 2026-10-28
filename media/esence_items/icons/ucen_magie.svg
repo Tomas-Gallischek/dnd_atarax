@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_um" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1e1b4b"/>
+      <stop offset="60%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <filter id="glow_um"><feGaussianBlur stdDeviation="4" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_um)" stroke="#6366f1" stroke-width="5" stroke-opacity="0.5"/>
+  <circle cx="128" cy="128" r="112" fill="none" stroke="#4338ca" stroke-width="2"/>
+  <!-- Modrá magická róba -->
+  <path d="M50 225 C62 170 96 150 128 150 C160 150 194 170 206 225 Z" fill="#312e81" stroke="#4f46e5" stroke-width="2.5"/>
+  <!-- Čarodějnický špičatý klobouk -->
+  <ellipse cx="128" cy="108" rx="55" ry="14" fill="#1e1b4b" stroke="#6366f1" stroke-width="3"/>
+  <path d="M90 105 Q120 40 148 30 Q138 65 166 105 Z" fill="#3730a3" stroke="#6366f1" stroke-width="2"/>
+  <!-- Pásek klobouku se sponou -->
+  <path d="M92 102 Q128 94 164 102 L162 108 Q128 100 94 108 Z" fill="#eab308"/>
+  <!-- Tvář učně -->
+  <ellipse cx="128" cy="128" rx="28" ry="32" fill="#fed7aa"/>
+  <!-- Magické brýle / jiskřící oči -->
+  <circle cx="116" cy="124" r="9" fill="none" stroke="#eab308" stroke-width="2.5"/>
+  <circle cx="140" cy="124" r="9" fill="none" stroke="#eab308" stroke-width="2.5"/>
+  <line x1="125" y1="124" x2="131" y2="124" stroke="#eab308" stroke-width="2"/>
+  <circle cx="116" cy="124" r="4" fill="#38bdf8" filter="url(#glow_um)"/>
+  <circle cx="140" cy="124" r="4" fill="#38bdf8" filter="url(#glow_um)"/>
+  <!-- Zářící magická runa / jiskry -->
+  <polygon points="128,190 133,198 142,200 135,206 137,215 128,210 119,215 121,206 114,200 123,198" fill="#a855f7" filter="url(#glow_um)"/>
+</svg>

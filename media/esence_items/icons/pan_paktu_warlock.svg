@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_pw" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#581c87"/>
+      <stop offset="60%" stop-color="#1e1035"/>
+      <stop offset="100%" stop-color="#05000a"/>
+    </radialGradient>
+    <filter id="glow_pw"><feGaussianBlur stdDeviation="5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_pw)" stroke="#c084fc" stroke-width="7"/>
+  <!-- Obří zakřivené černé rohy démonického patrona -->
+  <path d="M95 85 C60 50 35 15 50 5 C75 25 85 55 95 85 Z" fill="#09090b" stroke="#a855f7" stroke-width="2.5" filter="url(#glow_pw)"/>
+  <path d="M161 85 C196 50 221 15 206 5 C181 25 171 55 161 85 Z" fill="#09090b" stroke="#a855f7" stroke-width="2.5" filter="url(#glow_pw)"/>
+  <!-- Temná kápě a stíny -->
+  <path d="M45 228 C55 160 92 145 128 145 C164 145 201 160 211 228 Z" fill="#18022e" stroke="#7e22ce" stroke-width="3"/>
+  <ellipse cx="128" cy="115" rx="30" ry="32" fill="#2e1065"/>
+  <!-- Tři planoucí fialové oči Prázdnoty -->
+  <ellipse cx="112" cy="115" rx="7" ry="4" fill="#e879f9" filter="url(#glow_pw)"/>
+  <ellipse cx="144" cy="115" rx="7" ry="4" fill="#e879f9" filter="url(#glow_pw)"/>
+  <circle cx="128" cy="95" r="5" fill="#f0abfc" filter="url(#glow_pw)"/>
+  <!-- Chapadla temné esence vystupující z hlubin -->
+  <path d="M60 220 Q75 180 90 200 Q105 220 120 190" stroke="#a855f7" stroke-width="4" fill="none" filter="url(#glow_pw)"/>
+  <path d="M196 220 Q181 180 166 200 Q151 220 136 190" stroke="#a855f7" stroke-width="4" fill="none" filter="url(#glow_pw)"/>
+</svg>

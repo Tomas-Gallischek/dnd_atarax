@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_pk" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#3b2b1d"/>
+      <stop offset="60%" stop-color="#1f1610"/>
+      <stop offset="100%" stop-color="#0a0705"/>
+    </radialGradient>
+    <filter id="glow_pk"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_pk)" stroke="#d97706" stroke-width="5" stroke-opacity="0.5"/>
+  <!-- Mnišská hnědá kutna -->
+  <path d="M50 225 C62 165 96 145 128 145 C160 145 194 165 206 225 Z" fill="#451a03" stroke="#78350f" stroke-width="2.5"/>
+  <!-- Kapuce spadající kolem tváře -->
+  <path d="M128 50 C85 50 78 95 84 150 C95 165 128 172 128 172 C128 172 161 165 172 150 C178 95 171 50 128 50 Z" fill="#78350f"/>
+  <!-- Klidná tvář -->
+  <ellipse cx="128" cy="115" rx="28" ry="32" fill="#fed7aa"/>
+  <!-- Zavřené / moudré oči -->
+  <path d="M110 110 Q115 115 120 110" stroke="#78350f" stroke-width="2.5" fill="none"/>
+  <path d="M136 110 Q141 115 146 110" stroke="#78350f" stroke-width="2.5" fill="none"/>
+  <!-- Dřevěný růženec / amulet slunce -->
+  <circle cx="128" cy="190" r="16" fill="#b45309" stroke="#fde047" stroke-width="2" filter="url(#glow_pk)"/>
+  <circle cx="128" cy="190" r="7" fill="#fde047"/>
+</svg>

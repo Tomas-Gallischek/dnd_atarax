@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_vh" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#334155"/>
+      <stop offset="60%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </radialGradient>
+    <linearGradient id="iron_vh" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5e1"/>
+      <stop offset="50%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <linearGradient id="rim_vh" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <filter id="glow_vh"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_vh)" stroke="url(#rim_vh)" stroke-width="6"/>
+  <circle cx="128" cy="128" r="110" fill="none" stroke="#475569" stroke-width="2" stroke-dasharray="4 4"/>
+  <!-- Ramena a plátová zbroj -->
+  <path d="M50 220 C60 175 95 160 128 160 C161 160 196 175 206 220 Z" fill="#1e293b" stroke="#64748b" stroke-width="3"/>
+  <path d="M80 185 L128 200 L176 185 L165 220 L91 220 Z" fill="#334155" stroke="#94a3b8" stroke-width="2"/>
+  <!-- Hlava a přilba -->
+  <path d="M88 120 C88 70 168 70 168 120 C168 152 148 165 128 165 C108 165 88 152 88 120 Z" fill="url(#iron_vh)" stroke="#334155" stroke-width="3"/>
+  <!-- Ocelové hledí přilby -->
+  <path d="M84 105 Q128 95 172 105 L168 135 Q128 150 88 135 Z" fill="#1e293b" stroke="#cbd5e1" stroke-width="2.5"/>
+  <!-- Průzory hledí -->
+  <rect x="98" y="114" width="24" height="6" rx="2" fill="#f8fafc" opacity="0.9"/>
+  <rect x="134" y="114" width="24" height="6" rx="2" fill="#f8fafc" opacity="0.9"/>
+  <!-- Nosní chránič a nýty -->
+  <path d="M124 105 L132 105 L130 148 L126 148 Z" fill="#64748b"/>
+  <circle cx="128" cy="85" r="4" fill="#cbd5e1"/>
+  <!-- Červený válečný chochol -->
+  <path d="M128 65 C120 40 100 35 90 42 C105 48 115 56 122 72 Z" fill="#dc2626" filter="url(#glow_vh)"/>
+  <path d="M128 65 C136 35 155 30 168 38 C150 45 140 54 134 72 Z" fill="#b91c1c"/>
+</svg>

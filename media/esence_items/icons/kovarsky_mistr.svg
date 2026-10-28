@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_km" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#451a03"/>
+      <stop offset="60%" stop-color="#1c1917"/>
+      <stop offset="100%" stop-color="#0c0a09"/>
+    </radialGradient>
+    <filter id="glow_km"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_km)" stroke="#f97316" stroke-width="5" stroke-opacity="0.5"/>
+  <!-- Kožená kovářská zástěra -->
+  <path d="M50 225 C60 170 95 150 128 150 C161 150 196 170 206 225 Z" fill="#78350f" stroke="#b45309" stroke-width="3"/>
+  <!-- Silná tvář se sazemi -->
+  <ellipse cx="128" cy="115" rx="34" ry="34" fill="#fdba74"/>
+  <circle cx="112" cy="120" r="8" fill="#1c1917" opacity="0.3"/>
+  <circle cx="145" cy="110" r="10" fill="#1c1917" opacity="0.3"/>
+  <!-- Černý plnovous -->
+  <path d="M94 125 C94 175 110 200 128 200 C146 200 162 175 162 125 Z" fill="#292524"/>
+  <!-- Kovářské kladivo -->
+  <rect x="180" y="140" width="24" height="15" rx="3" fill="#64748b" stroke="#cbd5e1" stroke-width="2"/>
+  <line x1="192" y1="155" x2="192" y2="210" stroke="#78350f" stroke-width="5"/>
+  <!-- Žhavá jiskra -->
+  <polygon points="128,60 133,72 145,77 133,82 128,94 123,82 111,77 123,72" fill="#fb923c" filter="url(#glow_km)"/>
+</svg>

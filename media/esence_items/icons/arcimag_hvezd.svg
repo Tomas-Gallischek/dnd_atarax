@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_ah" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#4c1d95"/>
+      <stop offset="60%" stop-color="#1e1b4b"/>
+      <stop offset="100%" stop-color="#030014"/>
+    </radialGradient>
+    <linearGradient id="astral_ah" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="50%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#38bdf8"/>
+    </linearGradient>
+    <filter id="glow_ah"><feGaussianBlur stdDeviation="5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_ah)" stroke="url(#astral_ah)" stroke-width="7"/>
+  <!-- Hvězdný prach v pozadí -->
+  <circle cx="70" cy="50" r="2.5" fill="#fbcfe8" filter="url(#glow_ah)"/>
+  <circle cx="190" cy="65" r="3" fill="#e0e7ff" filter="url(#glow_ah)"/>
+  <circle cx="60" cy="160" r="2" fill="#38bdf8"/>
+  <circle cx="200" cy="155" r="2.5" fill="#f472b6"/>
+  <!-- Galaktická kápě arcimága -->
+  <path d="M128 35 C70 35 65 90 70 155 Q128 185 186 155 C191 90 186 35 128 35 Z" fill="#1e1b4b" stroke="url(#astral_ah)" stroke-width="3"/>
+  <!-- Hvězdná konstelace na kápi -->
+  <circle cx="128" cy="65" r="4" fill="#fbcfe8" filter="url(#glow_ah)"/>
+  <line x1="128" y1="65" x2="110" y2="80" stroke="#f472b6" stroke-width="1.5"/>
+  <line x1="128" y1="65" x2="146" y2="80" stroke="#38bdf8" stroke-width="1.5"/>
+  <!-- Zářící prázdnota / kosmické oči -->
+  <ellipse cx="110" cy="110" rx="9" ry="5" fill="#38bdf8" filter="url(#glow_ah)"/>
+  <ellipse cx="146" cy="110" rx="9" ry="5" fill="#f472b6" filter="url(#glow_ah)"/>
+  <!-- Levitující křišťálový astroláb -->
+  <circle cx="128" cy="205" r="16" fill="none" stroke="url(#astral_ah)" stroke-width="3" filter="url(#glow_ah)"/>
+  <circle cx="128" cy="205" r="6" fill="#fff"/>
+</svg>

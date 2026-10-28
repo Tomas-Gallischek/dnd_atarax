@@ -49,6 +49,12 @@ ICONS_CATALOG = [
 
 
 def seed_icons(apps, schema_editor):
+    try:
+        from player_site_app.asset_definitions import ensure_all_media_assets
+        ensure_all_media_assets()
+    except Exception:
+        pass
+
     Esence_Items_Shop = apps.get_model('player_site_app', 'Esence_Items_Shop')
     # Odstranit staré testovací / provizorní ikonky, pokud existují
     valid_names = {name for _, name, _, _ in ICONS_CATALOG}

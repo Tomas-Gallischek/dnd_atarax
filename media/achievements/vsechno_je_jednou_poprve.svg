@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="vjBg" cx="50%" cy="30%" r="65%">
+      <stop offset="0%" stop-color="#1e1b2e"/>
+      <stop offset="100%" stop-color="#0a0812"/>
+    </radialGradient>
+    <linearGradient id="stoneGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <filter id="flameGlow">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feComposite in="SourceGraphic" in2="b" operator="over"/>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="58" fill="url(#vjBg)" stroke="#64748b" stroke-width="3.5"/>
+  <!-- Tombstone -->
+  <path d="M38 104 L38 48 C38 32 90 32 90 48 L90 104 Z" fill="url(#stoneGrad)" stroke="#cbd5e1" stroke-width="2.5"/>
+  <!-- Grave base -->
+  <rect x="28" y="100" width="72" height="12" rx="3" fill="#1e293b" stroke="#cbd5e1" stroke-width="2"/>
+  <!-- R.I.P text -->
+  <text x="64" y="60" font-family="'Cinzel', Georgia, serif" font-size="14" font-weight="900" fill="#1e293b" text-anchor="middle" letter-spacing="2">R.I.P.</text>
+  <!-- Carved skull -->
+  <circle cx="64" cy="74" r="6" fill="#1e293b"/>
+  <circle cx="62" cy="73" r="1.5" fill="#94a3b8"/>
+  <circle cx="66" cy="73" r="1.5" fill="#94a3b8"/>
+  <rect x="62" y="79" width="4" height="3" fill="#1e293b"/>
+  <!-- Ethereal Soul Flame hovering above -->
+  <path d="M64 16 C58 24 54 32 64 42 C74 32 70 24 64 16 Z" fill="#38bdf8" filter="url(#flameGlow)"/>
+  <circle cx="64" cy="32" r="3" fill="#ffffff" filter="url(#flameGlow)"/>
+</svg>

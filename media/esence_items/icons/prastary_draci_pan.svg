@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_pdp" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#b45309"/>
+      <stop offset="40%" stop-color="#78350f"/>
+      <stop offset="80%" stop-color="#291304"/>
+      <stop offset="100%" stop-color="#0a0501"/>
+    </radialGradient>
+    <linearGradient id="gold_pdp" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="30%" stop-color="#fde047"/>
+      <stop offset="70%" stop-color="#eab308"/>
+      <stop offset="100%" stop-color="#854d0e"/>
+    </linearGradient>
+    <filter id="glow_pdp"><feGaussianBlur stdDeviation="6" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_pdp)" stroke="url(#gold_pdp)" stroke-width="8" filter="url(#glow_pdp)"/>
+  <!-- Vnější sluneční koróna -->
+  <circle cx="128" cy="128" r="110" fill="none" stroke="#fde047" stroke-width="3" stroke-dasharray="12 4" opacity="0.8"/>
+  <!-- Hlava prastarého zlatého draka -->
+  <path d="M128 35 C90 35 60 90 70 150 L128 200 L186 150 C196 90 166 35 128 35 Z" fill="url(#gold_pdp)" stroke="#fff" stroke-width="3"/>
+  <!-- Zlaté monumentální rohy dračího panovníka -->
+  <path d="M90 75 Q40 40 25 10 Q55 35 85 70 Z" fill="url(#gold_pdp)" filter="url(#glow_pdp)"/>
+  <path d="M166 75 Q216 40 231 10 Q201 35 171 70 Z" fill="url(#gold_pdp)" filter="url(#glow_pdp)"/>
+  <!-- Koruna slunečního císaře -->
+  <polygon points="108,60 118,30 128,45 138,30 148,60" fill="#fff" stroke="#fde047" stroke-width="2" filter="url(#glow_pdp)"/>
+  <!-- Zářící diamantové oči -->
+  <polygon points="98,115 116,105 120,118 102,125" fill="#38bdf8" filter="url(#glow_pdp)"/>
+  <polygon points="158,115 140,105 136,118 154,125" fill="#38bdf8" filter="url(#glow_pdp)"/>
+  <!-- Plamenný dech chrlící ze chřtánu -->
+  <circle cx="128" cy="165" r="14" fill="#f97316" filter="url(#glow_pdp)"/>
+  <circle cx="128" cy="165" r="7" fill="#fef08a"/>
+</svg>

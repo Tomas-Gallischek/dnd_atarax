@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_rg" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#1e3a8a"/>
+      <stop offset="60%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#020617"/>
+    </radialGradient>
+    <linearGradient id="silver_rg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="50%" stop-color="#94a3b8"/>
+      <stop offset="100%" stop-color="#475569"/>
+    </linearGradient>
+    <filter id="glow_rg"><feGaussianBlur stdDeviation="4" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_rg)" stroke="#38bdf8" stroke-width="6"/>
+  <circle cx="128" cy="128" r="110" fill="none" stroke="#0284c7" stroke-width="2" stroke-dasharray="6 3"/>
+  <!-- Plátová rytířská zbroj -->
+  <path d="M45 228 C55 165 92 145 128 145 C164 145 201 165 211 228 Z" fill="url(#silver_rg)" stroke="#38bdf8" stroke-width="3"/>
+  <!-- Hlava gryfa jako přilba -->
+  <path d="M85 110 C85 60 171 60 171 110 L165 145 L128 160 L91 145 Z" fill="url(#silver_rg)" stroke="#0284c7" stroke-width="3"/>
+  <!-- Zahnutý zobák gryfa na přilbě -->
+  <path d="M120 105 L136 105 L142 128 L128 142 L114 128 Z" fill="#facc15" stroke="#b45309" stroke-width="2"/>
+  <!-- Zářící azurové průzory -->
+  <ellipse cx="106" cy="100" rx="8" ry="4" fill="#38bdf8" filter="url(#glow_rg)"/>
+  <ellipse cx="150" cy="100" rx="8" ry="4" fill="#38bdf8" filter="url(#glow_rg)"/>
+  <!-- Křídla gryfa na přilbě -->
+  <path d="M85 90 C70 65 60 50 45 60 C60 75 75 95 85 105 Z" fill="#38bdf8"/>
+  <path d="M171 90 C186 65 196 50 211 60 C196 75 181 95 171 105 Z" fill="#38bdf8"/>
+</svg>

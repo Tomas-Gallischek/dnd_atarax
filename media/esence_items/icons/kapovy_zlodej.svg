@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_kz" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="60%" stop-color="#09090b"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <filter id="glow_kz"><feGaussianBlur stdDeviation="3" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_kz)" stroke="#71717a" stroke-width="5" stroke-opacity="0.6"/>
+  <!-- Temný plášť -->
+  <path d="M45 228 C55 165 92 145 128 145 C164 145 201 165 211 228 Z" fill="#18181b" stroke="#3f3f46" stroke-width="2.5"/>
+  <!-- Hluboká temná kápě se stínem -->
+  <path d="M128 45 C75 45 68 95 72 155 C85 170 128 182 128 182 C128 182 171 170 184 155 C188 95 181 45 128 45 Z" fill="#27272a" stroke="#52525b" stroke-width="3"/>
+  <!-- Úplný stín uvnitř kápě -->
+  <path d="M88 105 C85 145 105 165 128 165 C151 165 171 145 168 105 C155 85 101 85 88 105 Z" fill="#09090b"/>
+  <!-- Pronikavé žluté oči ve tmě -->
+  <ellipse cx="112" cy="125" rx="7" ry="3.5" fill="#eab308" filter="url(#glow_kz)"/>
+  <ellipse cx="144" cy="125" rx="7" ry="3.5" fill="#eab308" filter="url(#glow_kz)"/>
+  <circle cx="112" cy="125" r="2" fill="#000"/>
+  <circle cx="144" cy="125" r="2" fill="#000"/>
+  <!-- Ocelová dýka v popředí -->
+  <path d="M125 180 L131 180 L134 235 L128 245 L122 235 Z" fill="#e4e4e7" stroke="#71717a" stroke-width="1.5"/>
+  <rect x="115" y="180" width="26" height="5" rx="2" fill="#a1a1aa"/>
+</svg>

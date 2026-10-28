@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_va" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#78350f"/>
+      <stop offset="60%" stop-color="#180d05"/>
+      <stop offset="100%" stop-color="#050201"/>
+    </radialGradient>
+    <filter id="glow_va"><feGaussianBlur stdDeviation="5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_va)" stroke="#eab308" stroke-width="7"/>
+  <!-- Dlouhé uši šakala Anubise -->
+  <polygon points="95,90 65,15 110,65" fill="#18181b" stroke="#eab308" stroke-width="2"/>
+  <polygon points="161,90 191,15 146,65" fill="#18181b" stroke="#eab308" stroke-width="2"/>
+  <!-- Zlatá egyptská maska šakala -->
+  <path d="M90 90 L166 90 L156 160 L128 175 L100 160 Z" fill="#18181b" stroke="#eab308" stroke-width="3"/>
+  <polygon points="128,150 120,165 136,165" fill="#000"/>
+  <!-- Tyrkysové a zlaté pruhy faraona -->
+  <path d="M80 170 Q128 190 176 170 L190 230 Q128 245 66 230 Z" fill="#0284c7" stroke="#eab308" stroke-width="3"/>
+  <!-- Zářící zlaté oči podsvětí -->
+  <polygon points="106,105 120,100 114,115" fill="#fde047" filter="url(#glow_va)"/>
+  <polygon points="150,105 136,100 142,115" fill="#fde047" filter="url(#glow_va)"/>
+</svg>

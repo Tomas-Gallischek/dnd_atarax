@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="stvBg" cx="50%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#142338"/>
+      <stop offset="100%" stop-color="#070c14"/>
+    </radialGradient>
+    <linearGradient id="stvGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="100%" stop-color="#ca8a04"/>
+    </linearGradient>
+    <linearGradient id="stvParch" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <filter id="stvGlow">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feComposite in="SourceGraphic" in2="b" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#stvBg)" stroke="url(#stvGold)" stroke-width="3.5"/>
+  <!-- Unrolled Scroll -->
+  <path d="M38 32 C38 24 50 24 50 32 L50 88 C50 96 38 96 38 88 Z" fill="#d97706"/>
+  <rect x="44" y="28" width="48" height="66" rx="4" fill="url(#stvParch)" stroke="#92400e" stroke-width="2"/>
+  <path d="M88 32 C88 24 100 24 100 32 L100 88 C100 96 88 96 88 88 Z" fill="#d97706"/>
+  <!-- Scroll runes/lines -->
+  <line x1="52" y1="40" x2="80" y2="40" stroke="#78350f" stroke-width="2" stroke-linecap="round"/>
+  <line x1="52" y1="50" x2="74" y2="50" stroke="#78350f" stroke-width="2" stroke-linecap="round"/>
+  <line x1="52" y1="60" x2="82" y2="60" stroke="#78350f" stroke-width="2" stroke-linecap="round"/>
+  <line x1="52" y1="70" x2="68" y2="70" stroke="#78350f" stroke-width="2" stroke-linecap="round"/>
+  <!-- Magic Feather Quill -->
+  <path d="M86 16 C86 28 74 54 62 82 L58 84 L64 74 C72 50 86 30 86 16 Z" fill="url(#stvGold)" filter="url(#stvGlow)"/>
+  <circle cx="58" cy="84" r="3" fill="#38bdf8" filter="url(#stvGlow)"/>
+  <!-- Sparkles -->
+  <polygon points="32,24 34,29 39,30 34,32 32,37 30,32 25,30 30,29" fill="#38bdf8" filter="url(#stvGlow)"/>
+  <polygon points="96,78 98,82 102,83 98,85 96,89 94,85 90,83 94,82" fill="#fde047" filter="url(#stvGlow)"/>
+</svg>

@@ -423,7 +423,8 @@ class Achivements_database(models.Model):
         """Vrátí URL nahraného obrázku nebo výchozí předpřipravenou SVG ikonu."""
         if self.image:
             try:
-                return self.image.url
+                if hasattr(self.image, 'storage') and self.image.storage.exists(self.image.name):
+                    return self.image.url
             except Exception:
                 pass
         slug_map = {

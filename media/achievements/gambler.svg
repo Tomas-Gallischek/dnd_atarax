@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="gamBg" cx="50%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#311c2e"/>
+      <stop offset="100%" stop-color="#120713"/>
+    </radialGradient>
+    <linearGradient id="chestGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#eab308"/>
+      <stop offset="100%" stop-color="#78350f"/>
+    </linearGradient>
+    <linearGradient id="chestWood" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#854d0e"/>
+      <stop offset="100%" stop-color="#451a03"/>
+    </linearGradient>
+    <filter id="gamGlow">
+      <feGaussianBlur stdDeviation="3" result="b"/>
+      <feComposite in="SourceGraphic" in2="b" operator="over"/>
+    </filter>
+  </defs>
+  <rect x="8" y="8" width="112" height="112" rx="24" fill="url(#gamBg)" stroke="url(#chestGold)" stroke-width="3.5"/>
+  <!-- Chest lower body -->
+  <rect x="26" y="58" width="76" height="46" rx="6" fill="url(#chestWood)" stroke="url(#chestGold)" stroke-width="3"/>
+  <path d="M26 76 L102 76" stroke="url(#chestGold)" stroke-width="2.5"/>
+  <!-- Chest lid (open tilt) -->
+  <path d="M20 54 Q64 26 108 54 L102 58 Q64 34 26 58 Z" fill="url(#chestWood)" stroke="url(#chestGold)" stroke-width="3"/>
+  <!-- Radiant loot glow from inside -->
+  <ellipse cx="64" cy="56" rx="30" ry="8" fill="#fde047" opacity="0.8" filter="url(#gamGlow)"/>
+  <!-- Chest keyhole clasp -->
+  <rect x="58" y="52" width="12" height="18" rx="3" fill="url(#chestGold)"/>
+  <circle cx="64" cy="58" r="2.5" fill="#451a03"/>
+  <path d="M64 60 L64 66" stroke="#451a03" stroke-width="1.5"/>
+  <!-- Flying lucky die -->
+  <polygon points="64,20 78,28 78,44 64,52 50,44 50,28" fill="#dc2626" stroke="#fef08a" stroke-width="1.5" filter="url(#gamGlow)"/>
+  <circle cx="64" cy="36" r="3" fill="#ffffff"/>
+  <circle cx="58" cy="30" r="1.5" fill="#ffffff"/>
+  <circle cx="70" cy="42" r="1.5" fill="#ffffff"/>
+</svg>

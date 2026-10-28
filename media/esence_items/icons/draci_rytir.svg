@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_dr" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#991b1b"/>
+      <stop offset="60%" stop-color="#450a0a"/>
+      <stop offset="100%" stop-color="#1c0505"/>
+    </radialGradient>
+    <filter id="glow_dr"><feGaussianBlur stdDeviation="5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_dr)" stroke="#f87171" stroke-width="7"/>
+  <!-- Zbroj z červených dračích šupin -->
+  <path d="M45 228 C55 160 92 145 128 145 C164 145 201 160 211 228 Z" fill="#7f1d1d" stroke="#ef4444" stroke-width="3"/>
+  <!-- Přilba tvarovaná jako dračí lebka -->
+  <path d="M80 110 C80 50 176 50 176 110 L168 150 L128 165 L88 150 Z" fill="#991b1b" stroke="#fca5a5" stroke-width="3"/>
+  <!-- Dračí rohy na přilbě -->
+  <path d="M85 75 Q60 40 45 30 Q65 55 85 90 Z" fill="#1c0505" stroke="#f87171" stroke-width="2"/>
+  <path d="M171 75 Q196 40 211 30 Q191 55 171 90 Z" fill="#1c0505" stroke="#f87171" stroke-width="2"/>
+  <!-- Zářící ohnivé dračí oči -->
+  <polygon points="102,105 116,98 120,108 106,112" fill="#fde047" filter="url(#glow_dr)"/>
+  <polygon points="154,105 140,98 136,108 150,112" fill="#fde047" filter="url(#glow_dr)"/>
+  <!-- Dým a plameny vycházející z hledí -->
+  <path d="M128 135 L120 155 L128 150 L136 155 Z" fill="#f97316" filter="url(#glow_dr)"/>
+</svg>

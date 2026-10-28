@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_kn" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#064e3b"/>
+      <stop offset="60%" stop-color="#022c22"/>
+      <stop offset="100%" stop-color="#01140e"/>
+    </radialGradient>
+    <filter id="glow_kn"><feGaussianBlur stdDeviation="4.5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_kn)" stroke="#10b981" stroke-width="6"/>
+  <!-- Černá róba s náhrdelníkem z kostí -->
+  <path d="M45 228 C55 165 92 145 128 145 C164 145 201 165 211 228 Z" fill="#022c22" stroke="#065f46" stroke-width="3"/>
+  <!-- Maska beraní lebky -->
+  <path d="M100 80 Q128 65 156 80 L146 140 L128 155 L110 140 Z" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2.5"/>
+  <!-- Zakřivené beraní rohy -->
+  <path d="M100 80 C70 60 50 90 70 120 C85 105 85 90 100 80 Z" fill="#78350f"/>
+  <path d="M156 80 C186 60 206 90 186 120 C171 105 171 90 156 80 Z" fill="#78350f"/>
+  <!-- Spektrální zelené plameny v očních důlcích -->
+  <circle cx="116" cy="105" r="7" fill="#10b981" filter="url(#glow_kn)"/>
+  <circle cx="140" cy="105" r="7" fill="#10b981" filter="url(#glow_kn)"/>
+  <circle cx="116" cy="105" r="3" fill="#a7f3d0"/>
+  <circle cx="140" cy="105" r="3" fill="#a7f3d0"/>
+</svg>

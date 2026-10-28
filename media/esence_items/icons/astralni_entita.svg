@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_ae" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#4c1d95"/>
+      <stop offset="40%" stop-color="#1e1b4b"/>
+      <stop offset="80%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+    <filter id="glow_ae"><feGaussianBlur stdDeviation="7" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_ae)" stroke="#38bdf8" stroke-width="8" filter="url(#glow_ae)"/>
+  <!-- Kosmické spirály a hvězdné mlhoviny -->
+  <ellipse cx="128" cy="128" rx="85" ry="40" fill="none" stroke="#f472b6" stroke-width="3" transform="rotate(-30 128 128)" filter="url(#glow_ae)"/>
+  <ellipse cx="128" cy="128" rx="85" ry="40" fill="none" stroke="#38bdf8" stroke-width="3" transform="rotate(30 128 128)" filter="url(#glow_ae)"/>
+  <!-- Božská astrální maska / beztvará tvář světla -->
+  <circle cx="128" cy="120" r="42" fill="#f8fafc" filter="url(#glow_ae)"/>
+  <circle cx="128" cy="120" r="32" fill="#e0e7ff"/>
+  <!-- Třetí oko kosmického vědomí -->
+  <ellipse cx="128" cy="100" rx="9" ry="5" fill="#f43f5e" filter="url(#glow_ae)"/>
+  <!-- Hvězdné oči z čisté supernovy -->
+  <circle cx="114" cy="122" r="6" fill="#38bdf8" filter="url(#glow_ae)"/>
+  <circle cx="142" cy="122" r="6" fill="#f472b6" filter="url(#glow_ae)"/>
+  <!-- Prstence čistého světla -->
+  <circle cx="128" cy="120" r="65" fill="none" stroke="#a855f7" stroke-width="2" stroke-dasharray="8 6"/>
+</svg>

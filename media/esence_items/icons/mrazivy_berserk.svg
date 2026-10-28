@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_mb" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#0c4a6e"/>
+      <stop offset="60%" stop-color="#082f49"/>
+      <stop offset="100%" stop-color="#021420"/>
+    </radialGradient>
+    <filter id="glow_mb"><feGaussianBlur stdDeviation="4" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_mb)" stroke="#38bdf8" stroke-width="6"/>
+  <!-- Vlčí kůže a ledová zbroj -->
+  <path d="M45 228 C55 160 92 145 128 145 C164 145 201 160 211 228 Z" fill="#0f172a" stroke="#0284c7" stroke-width="3"/>
+  <!-- Vlčí lebka jako přilba -->
+  <path d="M80 90 C80 50 176 50 176 90 L168 115 L128 128 L88 115 Z" fill="#e2e8f0" stroke="#38bdf8" stroke-width="2"/>
+  <!-- Ledové rampouchy a mrazivý plnovous -->
+  <path d="M80 135 C70 190 100 240 128 250 C156 240 186 190 176 135 Z" fill="#7dd3fc" filter="url(#glow_mb)"/>
+  <path d="M95 140 C90 185 110 220 128 230 C146 220 166 185 161 140 Z" fill="#f0f9ff"/>
+  <!-- Ledově zářící modré oči -->
+  <ellipse cx="110" cy="115" rx="6" ry="4" fill="#38bdf8" filter="url(#glow_mb)"/>
+  <ellipse cx="146" cy="115" rx="6" ry="4" fill="#38bdf8" filter="url(#glow_mb)"/>
+</svg>

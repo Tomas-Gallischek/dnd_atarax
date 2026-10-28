@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_pl" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="60%" stop-color="#082f49"/>
+      <stop offset="100%" stop-color="#011420"/>
+    </radialGradient>
+    <filter id="glow_pl"><feGaussianBlur stdDeviation="5.5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_pl)" stroke="#38bdf8" stroke-width="7"/>
+  <!-- Koruna kostí a ledu -->
+  <polygon points="85,80 95,45 110,65 128,35 146,65 161,45 171,80" fill="#e2e8f0" stroke="#38bdf8" stroke-width="3" filter="url(#glow_pl)"/>
+  <!-- Lebka Liche -->
+  <ellipse cx="128" cy="115" rx="36" ry="38" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+  <!-- Prázdné černé oční důlky -->
+  <ellipse cx="112" cy="105" rx="10" ry="12" fill="#0f172a"/>
+  <ellipse cx="144" cy="105" rx="10" ry="12" fill="#0f172a"/>
+  <!-- Mrazivé modré plameny v očích -->
+  <circle cx="112" cy="105" r="5" fill="#38bdf8" filter="url(#glow_pl)"/>
+  <circle cx="144" cy="105" r="5" fill="#38bdf8" filter="url(#glow_pl)"/>
+  <circle cx="112" cy="105" r="2" fill="#fff"/>
+  <circle cx="144" cy="105" r="2" fill="#fff"/>
+  <!-- Zubatá čelist nemrtvého krále -->
+  <path d="M106 135 L150 135 L145 155 L111 155 Z" fill="#cbd5e1" stroke="#475569" stroke-width="1.5"/>
+</svg>

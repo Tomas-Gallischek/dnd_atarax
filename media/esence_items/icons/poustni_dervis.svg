@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <radialGradient id="bg_derv" cx="50%" cy="40%" r="65%">
+      <stop offset="0%" stop-color="#854d0e"/>
+      <stop offset="60%" stop-color="#422006"/>
+      <stop offset="100%" stop-color="#1c0f04"/>
+    </radialGradient>
+    <filter id="glow_derv"><feGaussianBlur stdDeviation="3.5" result="b"/><feComposite in="SourceGraphic" in2="b" operator="over"/></filter>
+  </defs>
+  <circle cx="128" cy="128" r="120" fill="url(#bg_derv)" stroke="#f59e0b" stroke-width="6"/>
+  <!-- Zlatý hedvábný turban s rubínem -->
+  <ellipse cx="128" cy="85" rx="46" ry="26" fill="#fde047" stroke="#b45309" stroke-width="3"/>
+  <path d="M90 85 Q128 65 166 85" stroke="#b45309" stroke-width="2" fill="none"/>
+  <polygon points="128,75 133,85 128,95 123,85" fill="#dc2626" filter="url(#glow_derv)"/>
+  <!-- Šátek zahalující tvář a oči -->
+  <path d="M92 110 L164 110 L156 165 L128 175 L100 165 Z" fill="#d97706" stroke="#92400e" stroke-width="2"/>
+  <ellipse cx="114" cy="102" rx="6" ry="3.5" fill="#f59e0b" filter="url(#glow_derv)"/>
+  <ellipse cx="142" cy="102" rx="6" ry="3.5" fill="#f59e0b" filter="url(#glow_derv)"/>
+  <!-- Zkřížené zahnuté šavle -->
+  <path d="M70 230 Q128 180 186 215" stroke="#f1f5f9" stroke-width="4" fill="none"/>
+  <path d="M186 230 Q128 180 70 215" stroke="#f1f5f9" stroke-width="4" fill="none"/>
+</svg>

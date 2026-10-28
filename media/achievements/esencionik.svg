@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <radialGradient id="esBg" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#3b0764"/>
+      <stop offset="60%" stop-color="#18042b"/>
+      <stop offset="100%" stop-color="#080110"/>
+    </radialGradient>
+    <linearGradient id="esBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d8b4fe"/>
+      <stop offset="50%" stop-color="#9333ea"/>
+      <stop offset="100%" stop-color="#581c87"/>
+    </linearGradient>
+    <radialGradient id="esCore" cx="45%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#f5d0fe"/>
+      <stop offset="40%" stop-color="#c084fc"/>
+      <stop offset="80%" stop-color="#7e22ce"/>
+      <stop offset="100%" stop-color="#3b0764"/>
+    </radialGradient>
+    <filter id="esGlow">
+      <feGaussianBlur stdDeviation="4" result="b1"/>
+      <feComposite in="SourceGraphic" in2="b1" operator="over"/>
+    </filter>
+  </defs>
+  <circle cx="64" cy="64" r="58" fill="url(#esBg)" stroke="url(#esBorder)" stroke-width="4"/>
+  <!-- Swirling aura rings -->
+  <ellipse cx="64" cy="64" rx="46" ry="20" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="6,4" transform="rotate(-30 64 64)" opacity="0.6"/>
+  <ellipse cx="64" cy="64" rx="46" ry="20" fill="none" stroke="#e879f9" stroke-width="1.5" stroke-dasharray="4,6" transform="rotate(45 64 64)" opacity="0.7"/>
+  <!-- Essence Crystal Core -->
+  <polygon points="64,22 84,48 76,96 64,106 52,96 44,48" fill="url(#esCore)" filter="url(#esGlow)"/>
+  <polygon points="64,22 84,48 64,68" fill="#e9d5ff" opacity="0.6"/>
+  <polygon points="64,68 76,96 64,106" fill="#7e22ce" opacity="0.5"/>
+  <polygon points="44,48 64,22 64,68" fill="#fdf4ff" opacity="0.8"/>
+  <polygon points="44,48 64,68 52,96" fill="#a855f7" opacity="0.6"/>
+  <!-- Tiny floating motes -->
+  <circle cx="34" cy="40" r="3" fill="#f0abfc" filter="url(#esGlow)"/>
+  <circle cx="94" cy="74" r="2.5" fill="#f0abfc" filter="url(#esGlow)"/>
+  <circle cx="78" cy="30" r="2" fill="#e879f9" filter="url(#esGlow)"/>
+  <circle cx="38" cy="86" r="2.5" fill="#c084fc" filter="url(#esGlow)"/>
+</svg>

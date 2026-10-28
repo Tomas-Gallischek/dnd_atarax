@@ -6,7 +6,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 staticfiles/
-media/
+media/characters/*
+media/npcs/*
 .vscode/
 .idea/
 *.swp
