@@ -12,32 +12,165 @@
     font-family: var(--font-sans);
 }
 
+.player-nav-bar {
+    display: inline-flex;
+    align-items: stretch;
+    background: #18151f;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    overflow: visible;
+}
+
+.player-nav-bar:hover,
+.player-nav-container.open .player-nav-bar {
+    border-color: rgba(56, 189, 248, 0.45);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 12px rgba(56, 189, 248, 0.2);
+}
+
+/* 1. Samostatné tlačítko profilového obrázku */
+.player-nav-avatar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    position: relative;
+    transition: background-color 0.18s ease;
+}
+
+.player-nav-avatar-btn:hover {
+    background: rgba(245, 158, 11, 0.14);
+}
+
+.player-nav-avatar-btn:hover .char-avatar-nav-xs {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.7));
+}
+
+.player-nav-avatar-btn:focus-visible {
+    outline: 2px solid var(--gold-400);
+    outline-offset: -2px;
+}
+
+/* Mini badge fotoaparátu na avataru při najetí myší */
+.player-nav-avatar-badge {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border: 1.5px solid #18151f;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.55rem;
+    color: #ffffff;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    pointer-events: none;
+    z-index: 5;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+.player-nav-avatar-btn:hover .player-nav-avatar-badge {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* 2. Vizuální oddělovač mezi avatarem a menu */
+.player-nav-divider-v {
+    width: 1px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(212, 175, 55, 0.45) 50%, rgba(255, 255, 255, 0.05) 100%);
+    margin: 6px 0;
+    flex-shrink: 0;
+}
+
+/* 3. Tlačítko pro rozbalení nabídky hráče */
 .player-nav-toggle-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: #18151f;
+    background: transparent;
     color: #f8fafc;
-    border: 1px solid var(--border-card);
-    border-radius: var(--radius-sm);
-    padding: 8px 16px;
+    border: none;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 8px 14px 8px 10px;
     font-size: 0.95rem;
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-    transition: all 0.2s ease;
+    transition: background-color 0.18s ease, color 0.18s ease;
 }
 
 .player-nav-toggle-btn:hover {
+    background: rgba(56, 189, 248, 0.14);
+    color: #38bdf8;
+}
+
+.player-nav-toggle-btn:focus-visible {
+    outline: 2px solid var(--sapphire-400);
+    outline-offset: -2px;
+}
+
+.player-nav-toggle-btn.active,
+.player-nav-container.open .player-nav-toggle-btn {
+    background: rgba(56, 189, 248, 0.18);
+    color: #38bdf8;
+}
+
+/* Samostatný toggle button když není vybrána postava */
+.player-nav-toggle-btn-solo {
+    background: #18151f;
+    border: 1px solid var(--border-card);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+
+.player-nav-toggle-btn-solo:hover {
     background: #24202d;
     border-color: var(--sapphire-400);
-    transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(56, 189, 248, 0.25);
 }
 
 .player-nav-toggle-icon {
     font-size: 1.15rem;
     line-height: 1;
+}
+
+.player-nav-name {
+    display: inline-block;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Šipka ukazující možnost rozbalení menu */
+.player-nav-arrow {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    transition: transform 0.22s ease, color 0.18s ease;
+    display: inline-block;
+    line-height: 1;
+    margin-left: 2px;
+}
+
+.player-nav-toggle-btn:hover .player-nav-arrow {
+    color: #38bdf8;
+}
+
+.player-nav-toggle-btn.active .player-nav-arrow,
+.player-nav-container.open .player-nav-arrow {
+    transform: rotate(180deg);
+    color: #38bdf8;
 }
 
 .player-nav-dropdown {
@@ -4172,12 +4305,21 @@
 .avatar-preview-card {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 20px;
     background: rgba(28, 22, 42, 0.65);
     border: 1px solid rgba(212, 175, 55, 0.25);
     border-radius: 12px;
-    padding: 16px 20px;
+    padding: 18px 22px;
     margin-bottom: 20px;
+}
+
+.avatar-preview-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    flex-shrink: 0;
 }
 
 .avatar-preview-circle {
@@ -4185,7 +4327,11 @@
     height: 84px;
     border-radius: 50%;
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex-shrink: 0;
+    line-height: 0;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
 }
 
@@ -4199,10 +4345,24 @@
 
 .avatar-preview-circle .char-avatar-frame {
     position: absolute;
-    inset: -6px;
-    width: calc(100% + 12px);
-    height: calc(100% + 12px);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) !important;
+    width: 140% !important;
+    height: 140% !important;
+    max-width: none !important;
     pointer-events: none;
+    z-index: 2;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
+}
+
+.avatar-preview-circle:hover .char-avatar-lg {
+    transform: none;
+}
+
+.avatar-preview-circle:hover .char-avatar-frame {
+    transform: translate(-50%, -50%) !important;
 }
 
 .avatar-preview-info {

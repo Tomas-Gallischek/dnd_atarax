@@ -10,20 +10,35 @@
 {% block content %}
 {% if request.user.is_authenticated %}
 <div class="player-nav-container" id="playerNavContainer">
-    <button type="button" class="player-nav-toggle-btn" id="playerNavToggleBtn" aria-label="Menu hráče">
-        {% if active_character %}
-            <span class="char-avatar-wrap char-avatar-nav-xs" title="Klikněte pro změnu profilového obrázku" onclick="handleNavAvatarClick(event)">
+    {% if active_character %}
+    <div class="player-nav-bar" id="playerNavBar">
+        <!-- 1. Samostatné tlačítko pro změnu profilového obrázku -->
+        <button type="button" class="player-nav-avatar-btn" onclick="handleNavAvatarClick(event)" title="Změnit profilový obrázek postavy" aria-label="Změnit profilový obrázek postavy">
+            <span class="char-avatar-wrap char-avatar-nav-xs">
                 <img src="{{ active_character.profile_image_url }}" alt="{{ active_character.name }}" class="char-avatar char-avatar-xs" id="navActiveCharAvatarXs">
                 {% if active_character.frame_url %}
                 <img src="{{ active_character.frame_url }}" alt="" class="char-avatar-frame" id="navActiveCharFrameXs" aria-hidden="true">
                 {% endif %}
+                <span class="player-nav-avatar-badge" title="Změnit obrázek" aria-hidden="true">📷</span>
             </span>
-            <span>{{ active_character.name }}</span>
-        {% else %}
-            <span class="player-nav-toggle-icon">&#9776;</span>
-            <span>Nabídka</span>
-        {% endif %}
+        </button>
+
+        <!-- 2. Vizuální oddělovač mezi avatarem a menu -->
+        <div class="player-nav-divider-v" aria-hidden="true"></div>
+
+        <!-- 3. Samostatné tlačítko pro otevření menu postavy -->
+        <button type="button" class="player-nav-toggle-btn" id="playerNavToggleBtn" aria-label="Menu hráče" title="Otevřít nabídku hráče" aria-expanded="false" aria-haspopup="true">
+            <span class="player-nav-name">{{ active_character.name }}</span>
+            <span class="player-nav-arrow" aria-hidden="true">&#9662;</span>
+        </button>
+    </div>
+    {% else %}
+    <button type="button" class="player-nav-toggle-btn player-nav-toggle-btn-solo" id="playerNavToggleBtn" aria-label="Menu hráče" title="Otevřít nabídku hráče" aria-expanded="false" aria-haspopup="true">
+        <span class="player-nav-toggle-icon">&#9776;</span>
+        <span class="player-nav-name">Nabídka</span>
+        <span class="player-nav-arrow" aria-hidden="true">&#9662;</span>
     </button>
+    {% endif %}
 
     <div class="player-nav-dropdown" id="playerNavDropdown">
         <div class="player-nav-user-info">
@@ -326,7 +341,14 @@
         const modal = document.getElementById('avatarModal');
         const alertBox = document.getElementById('avatarModalAlert');
         const dropdown = document.getElementById('playerNavDropdown');
+        const container = document.getElementById('playerNavContainer');
+        const toggleBtn = document.getElementById('playerNavToggleBtn');
         if (dropdown) dropdown.classList.remove('show');
+        if (container) container.classList.remove('open');
+        if (toggleBtn) {
+            toggleBtn.classList.remove('active');
+            toggleBtn.setAttribute('aria-expanded', 'false');
+        }
         if (alertBox) {
             alertBox.style.display = 'none';
             alertBox.textContent = '';
@@ -715,13 +737,19 @@
         if (toggleBtn && dropdown) {
             toggleBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                dropdown.classList.toggle('show');
+                const isShown = dropdown.classList.toggle('show');
+                if (container) container.classList.toggle('open', isShown);
+                toggleBtn.classList.toggle('active', isShown);
+                toggleBtn.setAttribute('aria-expanded', isShown ? 'true' : 'false');
             });
 
             // Zavření při kliknutí mimo nabídku
             document.addEventListener('click', function(e) {
                 if (container && !container.contains(e.target)) {
                     dropdown.classList.remove('show');
+                    container.classList.remove('open');
+                    toggleBtn.classList.remove('active');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
                 }
             });
 
@@ -729,6 +757,9 @@
             document.addEventListener('keydown', function(e) {
                 if (e.key === 'Escape') {
                     dropdown.classList.remove('show');
+                    container.classList.remove('open');
+                    toggleBtn.classList.remove('active');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
                 }
             });
         }
