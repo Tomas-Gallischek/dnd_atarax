@@ -424,8 +424,9 @@ class AchivementsPlayersAdmin(admin.ModelAdmin):
 class LogsAdmin(admin.ModelAdmin):
     list_display = ('player', 'character', 'message', 'value', 'created_at')
     search_fields = ('player__user__username', 'player__nickname', 'character__name', 'message')
-    list_filter = ('created_at', 'player')
-    ordering = ('-created_at',)
+    list_filter = ('created_at', 'player', 'character')
+    ordering = ('-created_at', '-id')
+    list_per_page = 50
     readonly_fields = ('created_at',)
     fieldsets = (
         ('Základní informace o logu', {

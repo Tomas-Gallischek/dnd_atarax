@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.db.models import Q
 from .models import (
     Player, Char_info, Achivements_players, Achivements_database,
-    Esence_Items_Shop, Esence_Items_Owners, CharNotes, CharBackstory, Logs
+    Esence_Items_Shop, Esence_Items_Owners, CharNotes, CharBackstory, Logs, create_db_log
 )
 from .forms import PlayerLoginForm, PlayerRegistrationForm
 from dnd_atarax.terminal import log_player, log_warning, log_info
@@ -344,9 +344,11 @@ def upload_char_avatar(request):
                     pass
                 character.image = None
             character.image_url = None
+            character._skip_auto_log = True
             character.save()
 
             msg = f"Profilový obrázek postavy '{character.name}' byl resetován na výchozí obrázek povolání ({character.character_class or 'Dobrodruh'})."
+            create_db_log(character=character, player=character.player, message=msg, value=0.0)
             log_info(f"Hráč '{player.nickname}' resetoval profilový obrázek postavy '{character.name}' na výchozí.")
 
             if is_ajax:
@@ -381,9 +383,11 @@ def upload_char_avatar(request):
 
             character.image_url = new_url
             character.active_icon = None
+            character._skip_auto_log = True
             character.save()
 
             msg = f"Profilový obrázek postavy '{character.name}' byl úspěšně nastaven z URL adresy."
+            create_db_log(character=character, player=character.player, message=msg, value=0.0)
             log_info(f"Hráč '{player.nickname}' změnil profilový obrázek postavy '{character.name}' z URL.")
 
             if is_ajax:
@@ -425,12 +429,15 @@ def upload_char_avatar(request):
 
             character.image_url = None
             character.active_icon = owner_rec
+            character._skip_auto_log = True
             character.save()
 
             player.active_icon = owner_rec
+            player._skip_auto_log = True
             player.save()
 
             msg = f"Profilový obrázek postavy '{character.name}' byl nastaven na ikonku '{owner_rec.item.name}'."
+            create_db_log(character=character, player=character.player, message=msg, value=0.0)
             log_info(f"Hráč '{player.nickname}' nastavil profilovou ikonku '{owner_rec.item.name}' pro postavu '{character.name}'.")
 
             if is_ajax:
@@ -487,9 +494,11 @@ def upload_char_avatar(request):
             character.image = uploaded_file
             character.image_url = None
             character.active_icon = None
+            character._skip_auto_log = True
             character.save()
 
             msg = f"Profilový obrázek postavy '{character.name}' byl úspěšně nahrán."
+            create_db_log(character=character, player=character.player, message=msg, value=0.0)
             log_info(f"Hráč '{player.nickname}' nahrál nový profilový obrázek pro postavu '{character.name}'.")
 
             if is_ajax:
@@ -637,6 +646,7 @@ def remove_inv_item(request, item_id):
     char_name = char.name if char else "neznámá postava"
     char_id = char.id if char else None
 
+    item._skip_auto_log = True
     item.delete()
 
     if char:
@@ -1563,11 +1573,19 @@ def esence_buy(request):
 
             if player.temna_esence >= cost:
                 player.temna_esence -= cost
+                player._skip_auto_log = True
                 player.save()
 
                 Esence_Items_Owners.objects.create(
                     player=player,
                     item=this_item,
+                )
+                _, active_char = get_player_and_character(request)
+                create_db_log(
+                    character=active_char,
+                    player=player,
+                    message=f"Hráč {player.nickname} zakoupil v Dungeon Shopu předmět '{this_item.name}' ({this_item.get_category_display()}) za {cost} TE (zbývá {player.temna_esence} TE)",
+                    value=float(-cost)
                 )
                 messages.success(request, f'Předmět „{this_item.name}“ byl úspěšně zakoupen!')
             else:
@@ -1744,8 +1762,16 @@ def use_treasure(request):
                     except Exception:
                         pass
 
+                target_char_obj = Char_info.objects.filter(id=target_char_id).first() if target_char_id else player.characters.first()
+
                 if won_border:
                     category_label = won_border.get_category_display()
+                    create_db_log(
+                        character=target_char_obj,
+                        player=player,
+                        message=f"Hráč {player.nickname} otevřel truhlu '{treasure_name}' a získal {category_label.lower()} '{won_border.name}' (rarita: {won_border.get_rarity_display()})",
+                        value=1.0
+                    )
                     item_payload = {
                         'id': won_border.id,
                         'name': won_border.name,
@@ -1872,12 +1898,14 @@ def reforge_tresure(request):
                         item=item
                     ).exclude(id=owner_record.id).first()
                     p_char.active_icon = another_char_copy
+                    p_char._skip_auto_log = True
                     p_char.save()
 
             # Přidání esence hráči
             if player.temna_esence is None:
                 player.temna_esence = 0
             player.temna_esence += value
+            player._skip_auto_log = True
             player.save()
 
             target_char_id = None
@@ -1892,6 +1920,14 @@ def reforge_tresure(request):
                     target_char_id = active_char.id
                 elif player.characters.exists():
                     target_char_id = player.characters.first().id
+
+            target_char_obj = Char_info.objects.filter(id=target_char_id).first() if target_char_id else player.characters.first()
+            create_db_log(
+                character=target_char_obj,
+                player=player,
+                message=f"Hráč {player.nickname} rozebral předmět '{item.name}' ({item.get_rarity_display()}) na +{value} Temné esence (celkem {player.temna_esence} TE)",
+                value=float(value)
+            )
 
             if target_char_id:
                 try:
@@ -2060,10 +2096,18 @@ def equip_icon(request):
 
             if action == 'unequip':
                 player.active_icon = None
+                player._skip_auto_log = True
                 player.save()
                 if target_character:
                     target_character.active_icon = None
+                    target_character._skip_auto_log = True
                     target_character.save()
+                create_db_log(
+                    character=target_character,
+                    player=player,
+                    message=f"Hráč {player.nickname} sundal profilovou ikonku",
+                    value=0.0
+                )
                 if is_ajax:
                     return JsonResponse({
                         'success': True,
@@ -2095,12 +2139,21 @@ def equip_icon(request):
                 return redirect('player_site_app:dungeon_shop_inv')
 
             player.active_icon = owner_record
+            player._skip_auto_log = True
             player.save()
 
             if target_character:
                 target_character.active_icon = owner_record
                 target_character.image_url = None
+                target_character._skip_auto_log = True
                 target_character.save()
+
+            create_db_log(
+                character=target_character,
+                player=player,
+                message=f"Hráč {player.nickname} nasadil profilovou ikonku '{owner_record.item.name}'",
+                value=0.0
+            )
 
             if is_ajax:
                 return JsonResponse({
@@ -2199,12 +2252,15 @@ def nastaveni_view(request):
 
                 character.image_url = None
                 character.active_icon = owner_rec
+                character._skip_auto_log = True
                 character.save()
 
                 player.active_icon = owner_rec
+                player._skip_auto_log = True
                 player.save()
 
                 msg = f"Profilová ikonka postavy „{character.name}“ byla nastavena na „{owner_rec.item.name}“."
+                create_db_log(character=character, player=player, message=msg, value=0.0)
                 log_info(f"Hráč '{player.nickname}' nastavil ikonku '{owner_rec.item.name}' pro postavu '{character.name}'.")
 
                 if is_ajax:
@@ -2256,12 +2312,15 @@ def nastaveni_view(request):
                 character.image = uploaded_file
                 character.active_icon = None
                 character.image_url = None
+                character._skip_auto_log = True
                 character.save()
 
                 player.active_icon = None
+                player._skip_auto_log = True
                 player.save()
 
                 msg = f"Vlastní profilová fotka postavy „{character.name}“ byla úspěšně nahrána a uložena."
+                create_db_log(character=character, player=player, message=msg, value=0.0)
                 log_info(f"Hráč '{player.nickname}' nahrál vlastní profilovou fotku pro postavu '{character.name}'.")
 
                 if is_ajax:
@@ -2285,12 +2344,15 @@ def nastaveni_view(request):
 
                 character.image_url = None
                 character.active_icon = None
+                character._skip_auto_log = True
                 character.save()
 
                 player.active_icon = None
+                player._skip_auto_log = True
                 player.save()
 
                 msg = f"Profilová ikonka byla resetována na výchozí symbol povolání ({character.character_class or 'Dobrodruh'})."
+                create_db_log(character=character, player=player, message=msg, value=0.0)
                 log_info(f"Hráč '{player.nickname}' resetoval ikonku postavy '{character.name}' na výchozí.")
 
                 if is_ajax:

@@ -844,5 +844,144 @@ class DMSpellSlotsManagementTests(TestCase):
         self.assertFalse(CharacterSpellSlot.objects.filter(id=slot3.id).exists())
 
 
+class DMLoggingRevisionTests(TestCase):
+    """Testy ověřující správné logování DM akcí do modelu Logs."""
+
+    def setUp(self):
+        from player_site_app.models import Achivements_database, Achivements_players
+        self.Achivements_database = Achivements_database
+        self.Achivements_players = Achivements_players
+        self.dm_user = User.objects.create_user(username='dm_log_master', password='password123', is_staff=True)
+        self.player_user = User.objects.create_user(username='player_logged', password='password123')
+        self.player = Player.objects.create(user=self.player_user, nickname='LoggedPlayer', temna_esence=0)
+        self.character = Char_info.objects.create(
+            player=self.player,
+            name='Thorin',
+            character_class='Bojovník',
+            level=4,
+            gold=50,
+            silver=0,
+            total_golds=50.0,
+            hit_points_max=40,
+            hit_points_current=40,
+            in_fight=False,
+        )
+        Achivements_database.objects.create(
+            name='Zbohatlík',
+            description='Získej zlaťáky',
+            bronze_value=10,
+            silver_value=50,
+            gold_value=100,
+            platinum_value=500,
+            emerald_value=1000,
+            diamond_value=5000,
+        )
+        Achivements_database.objects.create(
+            name='Smrtící stroj',
+            description='Zabij monstra',
+            bronze_value=1,
+            silver_value=5,
+            gold_value=10,
+            platinum_value=25,
+            emerald_value=50,
+            diamond_value=100,
+        )
+        Logs.objects.all().delete()
+
+    def test_add_gold_plus_and_minus_logs_correctly(self):
+        """DM přidání a odebrání zlata zapíše správné (kladné/záporné) záznamy do Logs."""
+        self.client.force_login(self.dm_user)
+        url = reverse('dm_site_app:add_gold')
+
+        # 1. Přidání zlata
+        self.client.post(url, {
+            'char_id': self.character.id,
+            'gold': '20',
+            'silver': '5',
+            'action': 'plus',
+        })
+        plus_log = Logs.objects.filter(character=self.character, message__icontains="DM přidal postavě Thorin").first()
+        self.assertIsNotNone(plus_log)
+        self.assertEqual(plus_log.value, 20.5)
+
+        # 2. Odebrání zlata (dříve chybně logovalo 'Přidáno')
+        self.client.post(url, {
+            'char_id': self.character.id,
+            'gold': '10',
+            'silver': '0',
+            'action': 'minus',
+        })
+        minus_log = Logs.objects.filter(character=self.character, message__icontains="DM odebral postavě Thorin").first()
+        self.assertIsNotNone(minus_log)
+        self.assertEqual(minus_log.value, -10.0)
+
+    def test_plus_loot_gold_no_double_count_and_logs_source(self):
+        """Sebrání zlata z monstra nepřičte total_golds dvakrát do Zbohatlíka a zaloguje zdroj."""
+        from dm_site_app.models import Monsters_Active
+        self.client.force_login(self.dm_user)
+        mob = Monsters_Active.objects.create(
+            api_index='goblin-loot',
+            name_cz='Skřet lupič',
+            name_en='Goblin Looter',
+            challenge_rating=1.0,
+            hit_points=10,
+            current_hp=0,
+            is_dead=True,
+            loot_gold=30,
+            loot_silver=0,
+            loot_able=True,
+        )
+
+        self.client.post(reverse('dm_site_app:plus_loot_gold'), {
+            'mob_id': mob.id,
+            'character_id': self.character.id,
+            'source': 'mob',
+        })
+
+        self.character.refresh_from_db()
+        self.assertEqual(self.character.gold, 80)
+        self.assertEqual(self.character.total_golds, 80.0)
+
+        ach = self.Achivements_players.objects.filter(char=self.character, Achivement__name='Zbohatlík').first()
+        self.assertIsNotNone(ach)
+        # Dříve bývalo 110.0 kvůli dvojímu přičtení po character.save()
+        self.assertEqual(ach.current_value, 80.0)
+
+        self.assertTrue(Logs.objects.filter(
+            character=self.character,
+            message__icontains="získala kořist (Skřet lupič): 30 zlata"
+        ).exists())
+
+    def test_arena_hp_update_and_in_fight_switch_logs(self):
+        """Změna HP postavy v aréně a přepnutí stavu v boji vytvoří záznam v Logs."""
+        import json
+        self.client.force_login(self.dm_user)
+
+        # 1. Vstup do boje
+        self.client.post(reverse('dm_site_app:in_fight_switch'), {
+            'source': 'player',
+            'source_id': self.character.id,
+            'in_fight': 'True',
+        })
+        self.assertTrue(Logs.objects.filter(
+            character=self.character,
+            message__icontains="vstoupila do boje v aréně"
+        ).exists())
+
+        # 2. Úprava HP v aréně
+        self.client.post(
+            reverse('dm_site_app:api_update_hp'),
+            data=json.dumps({'updates': [{'entity_type': 'player', 'entity_id': self.character.id, 'current_hp': 25}]}),
+            content_type='application/json'
+        )
+        hp_log = Logs.objects.filter(
+            character=self.character,
+            message__icontains="Aréna (DM): Postavě Thorin se změnily životy (HP): 40 -> 25/40"
+        ).first()
+        self.assertIsNotNone(hp_log)
+        self.assertEqual(hp_log.value, -15.0)
+
+
+
 
 

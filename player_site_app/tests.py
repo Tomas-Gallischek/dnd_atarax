@@ -1898,3 +1898,163 @@ class CharacterSheetUpdatesTests(TestCase):
         self.assertContains(resp, 'Schopnosti a rysy')
         self.assertContains(resp, 'Božský smysl (Divine Sense)')
 
+
+class DatabaseLoggingRevisionTests(TestCase):
+    """Testy kompletní revize databázového logovacího systému (Logs)."""
+
+    def setUp(self):
+        OverAllSettings.objects.get_or_create(id=1, defaults={'loging_active': True, 'editing_active': True})
+        self.user = User.objects.create_user(username='log_tester', password='password123')
+        self.player = Player.objects.create(user=self.user, nickname='LogHero', pin_code='1234', temna_esence=50)
+        self.char = Char_info.objects.create(
+            player=self.player,
+            name='Aldebaran',
+            character_class='Kouzelník',
+            level=2,
+            race='Elf',
+            hit_points_max=14,
+            hit_points_current=14,
+            armor_class=13,
+            strength=10,
+            intelligence=16,
+            is_public=True,
+        )
+        # Vyčistíme počáteční logy z vytváření v setUp
+        Logs.objects.all().delete()
+
+    def test_char_info_save_logs_changed_fields(self):
+        """Přímá změna atributů postavy (např. v Django Adminu) zapíše přehledný záznam do Logs."""
+        self.char.level = 3
+        self.char.hit_points_max = 20
+        self.char.hit_points_current = 20
+        self.char.intelligence = 18
+        self.char.save()
+
+        messages_list = list(Logs.objects.filter(character=self.char).values_list('message', flat=True))
+        combined = " | ".join(messages_list)
+        self.assertIn('Změna úrovně (Level) postavy Aldebaran: 2 -> 3', combined)
+        self.assertIn('Změna maximálních životů (Max HP) postavy Aldebaran: 14 -> 20 HP', combined)
+        self.assertIn('Změna atributu Inteligence (INT) postavy Aldebaran: 16 -> 18', combined)
+
+    def test_player_save_logs_changes(self):
+        """Změna atributů hráče (Temná esence, přezdívka, PIN) se zaznamená do Logs."""
+        self.player.temna_esence = 75
+        self.player.save()
+
+        log = Logs.objects.filter(player=self.player).first()
+        self.assertIsNotNone(log)
+        self.assertIn('Změna Temné esence hráče LogHero: 50 -> 75 TE (+25 TE)', log.message)
+        self.assertEqual(log.value, 25.0)
+
+    def test_notes_and_backstory_crud_logging(self):
+        """Vytvoření, úprava a smazání poznámky i příběhu postavy vytvoří záznamy v Logs."""
+        from player_site_app.models import CharNotes, CharBackstory
+        note = CharNotes.objects.create(
+            player=self.player,
+            character=self.char,
+            title='Tajemná mapa',
+            note='Mapa vede do podzemí.'
+        )
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="Přidána poznámka postavy Aldebaran: 'Tajemná mapa'").exists())
+
+        note.is_favorite = True
+        note.save()
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="označena jako oblíbená").exists())
+
+        note.delete()
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="Smazána poznámka postavy Aldebaran: 'Tajemná mapa'").exists())
+
+        story = CharBackstory.objects.create(
+            player=self.player,
+            character=self.char,
+            title='Původ v lese',
+            backstory='Narodil se v prastarém hvozdu.',
+            public=False
+        )
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="Přidána kapitola příběhu postavy Aldebaran: 'Původ v lese'").exists())
+
+        story.public = True
+        story.save()
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="nastavena jako Veřejná").exists())
+
+    def test_spell_slots_and_features_logging(self):
+        """Změny pozic pro kouzla (CharacterSpellSlot) a schopností (CharacterFeature) se logují."""
+        slot = CharacterSpellSlot.objects.create(character=self.char, level=1, current_slots=3, max_slots=3)
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="Nastaveny pozice pro kouzla (1. úroveň) postavy Aldebaran: 3/3").exists())
+
+        slot.current_slots = 2
+        slot.save()
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="Změna pozic pro kouzla (1. úroveň) postavy Aldebaran: 3/3 -> 2/3").exists())
+
+        feat = CharacterFeature.objects.create(
+            character=self.char,
+            title='Magická obnova',
+            source='Třída - Kouzelník',
+            description='Obnova slotů při krátkém odpočinku.'
+        )
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="Přidána schopnost/rys postavy Aldebaran: 'Magická obnova'").exists())
+
+        feat.delete()
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="Odebrána schopnost/rys postavy Aldebaran: 'Magická obnova'").exists())
+
+    def test_toggle_learn_spell_logging(self):
+        """Naučení a zapomenutí kouzla přes pohled zapíše záznam do Logs."""
+        from dm_site_app.models import Spells_All_db
+        spell = Spells_All_db.objects.create(
+            api_index='magic-missile-logtest',
+            name_cz='Magická střela',
+            name_en='Magic Missile',
+            level=1,
+            is_cantrip=False,
+            classes='Kouzelník, Čaroděj'
+        )
+        self.client.login(username='log_tester', password='password123')
+        url = reverse('player_site_app:toggle_learn_spell')
+
+        # 1. Naučit
+        self.client.post(url, {'char_id': self.char.id, 'spell_id': spell.id, 'ajax': '1'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="naučila kouzlo (1. úroveň): 'Magická střela'").exists())
+
+        # 2. Zapomenout
+        self.client.post(url, {'char_id': self.char.id, 'spell_id': spell.id, 'ajax': '1'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="zapomněla kouzlo (1. úroveň): 'Magická střela'").exists())
+
+    def test_achievement_milestone_unlock_logs_tier_and_essence_reward(self):
+        """Dosažení milníku úspěchu zaloguje odemknutí úrovně a odměnu Temné esence."""
+        ach_db = Achivements_database.objects.create(
+            name='Zbohatlík',
+            description='Nasbírej zlato',
+            bronze_value=10,
+            silver_value=50,
+            gold_value=100,
+            platinum_value=500,
+            emerald_value=1000,
+            diamond_value=5000,
+        )
+        from player_site_app.achivements import zbohatlik_ach
+        zbohatlik_ach(self.char.id, 15.0)
+
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="AKTUALIZACE ACHIVEMENTU 'Zbohatlík'").exists())
+        self.assertTrue(Logs.objects.filter(character=self.char, message__icontains="odemkla hodnost Bronze (+25 TE) v úspěchu 'Zbohatlík'").exists())
+
+    def test_dungeon_shop_buy_open_and_reforge_logging(self):
+        """Nákup truhly, její otevření a rozebrání rámečku v Dungeon Shopu vytvoří záznamy v Logs."""
+        chest = Esence_Items_Shop.objects.create(name='Temná truhla', cost=10, rarity='rare', category='treasures')
+        border = Esence_Items_Shop.objects.create(name='Krvavý rám', cost=20, rarity='rare', category='borders')
+        Esence_Items_Owners.objects.create(player=self.player, item=border)
+
+        self.client.login(username='log_tester', password='password123')
+
+        # 1. Nákup truhly
+        self.client.post(reverse('player_site_app:esence_buy'), {'item_id': chest.id, 'ajax': '1'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertTrue(Logs.objects.filter(player=self.player, message__icontains="zakoupil v Dungeon Shopu předmět 'Temná truhla'").exists())
+
+        # 2. Otevření truhly
+        self.client.post(reverse('player_site_app:use_treasure'), {'item_id': chest.id, 'ajax': '1'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertTrue(Logs.objects.filter(player=self.player, message__icontains="otevřel truhlu 'Temná truhla' a získal").exists())
+
+        # 3. Rozebrání vlastněného rámečku
+        self.client.post(reverse('player_site_app:reforge_tresure'), {'item_id': border.id, 'ajax': '1'}, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertTrue(Logs.objects.filter(player=self.player, message__icontains="rozebral předmět 'Krvavý rám'").exists())
+
+

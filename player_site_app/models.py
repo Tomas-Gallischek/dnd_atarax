@@ -5,6 +5,32 @@ from django.core.exceptions import ValidationError
 import random
 
 
+def create_db_log(character=None, player=None, message="", value=0.0):
+    """Pomocná funkce pro bezpečný zápis podrobného záznamu do tabulky Logs."""
+    try:
+        if player is None and character is not None:
+            player = getattr(character, 'player', None)
+        if character is None and player is not None:
+            try:
+                character = player.characters.first()
+            except Exception:
+                character = None
+        if player is None:
+            return None
+        clean_msg = str(message or "").strip()[:500]
+        clean_val = float(value) if value is not None else 0.0
+        return Logs.objects.create(
+            player=player,
+            character=character,
+            message=clean_msg,
+            value=clean_val
+        )
+    except Exception as exc:
+        print(f"[Log Error] Nepodařilo se zapsat do Logs: {exc}")
+        return None
+
+
+
 class Player(models.Model):     
     user = models.OneToOneField(
         User,
@@ -65,6 +91,14 @@ class Player(models.Model):
             raise ValidationError({'active_icon': "Vybranou ikonku nevlastní tento hráč!"})
 
     def save(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        old_player = None
+        if self.pk and not skip_auto_log:
+            try:
+                old_player = Player.objects.filter(pk=self.pk).first()
+            except Exception:
+                old_player = None
+
         if not self.user_id:
             import re
             base_name = self.nickname or (f"hrac_{self.pin_code}" if self.pin_code else "hrac")
@@ -79,6 +113,46 @@ class Player(models.Model):
         if self.user:
             self.admin = bool(self.user.is_staff)
         super().save(*args, **kwargs)
+
+        if old_player and not skip_auto_log:
+            p_name = self.nickname or (self.user.username if self.user else f"Hráč #{self.pk}")
+            if (old_player.temna_esence or 0) != (self.temna_esence or 0):
+                old_te = old_player.temna_esence or 0
+                new_te = self.temna_esence or 0
+                delta = new_te - old_te
+                sign = "+" if delta >= 0 else ""
+                create_db_log(
+                    player=self,
+                    message=f"Změna Temné esence hráče {p_name}: {old_te} -> {new_te} TE ({sign}{delta} TE)",
+                    value=float(delta)
+                )
+            if old_player.nickname != self.nickname:
+                create_db_log(
+                    player=self,
+                    message=f"Změna přezdívky hráče z '{old_player.nickname}' na '{self.nickname}'",
+                    value=0.0
+                )
+            if old_player.pin_code != self.pin_code:
+                create_db_log(
+                    player=self,
+                    message=f"Hráči {p_name} byl změněn přihlašovací PIN kód",
+                    value=0.0
+                )
+            if old_player.active_ramecek_id != self.active_ramecek_id:
+                frame_name = self.active_ramecek.item.name if (self.active_ramecek and self.active_ramecek.item) else "Žádný"
+                create_db_log(
+                    player=self,
+                    message=f"Změna aktivního rámečku hráče {p_name} na: '{frame_name}'",
+                    value=0.0
+                )
+            if old_player.active_icon_id != self.active_icon_id:
+                icon_name = self.active_icon.item.name if (self.active_icon and self.active_icon.item) else "Výchozí"
+                create_db_log(
+                    player=self,
+                    message=f"Změna aktivní profilové ikonky hráče {p_name} na: '{icon_name}'",
+                    value=0.0
+                )
+        self._skip_auto_log = False
 
     @property
     def active_frame_url(self):
@@ -305,6 +379,11 @@ class Char_info(models.Model):
         ordering = ['-level', 'name']
 
     def save(self, *args, **kwargs):
+        if self.silver is None:
+            self.silver = 0
+        if self.gold is None:
+            self.gold = 0
+
         while self.silver >= 10:
             self.gold += 1
             self.silver -= 10
@@ -317,7 +396,218 @@ class Char_info(models.Model):
         if self.silver < 0:
             self.silver = 0
 
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        is_new = self.pk is None
+        old_char = None
+        if not is_new and not skip_auto_log:
+            try:
+                old_char = Char_info.objects.filter(pk=self.pk).first()
+            except Exception:
+                old_char = None
+
         super().save(*args, **kwargs)
+
+        if not skip_auto_log:
+            if is_new:
+                create_db_log(
+                    character=self,
+                    player=self.player,
+                    message=f"Vytvořena nová postava: {self.name} (Úroveň {self.level}, {self.character_class or 'Ostatní'})",
+                    value=float(self.level or 1)
+                )
+            elif old_char:
+                if old_char.name != self.name:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna jména postavy z '{old_char.name}' na '{self.name}'",
+                        value=0.0
+                    )
+                if old_char.race != self.race:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna rasy postavy {self.name}: {old_char.race} -> {self.race}",
+                        value=0.0
+                    )
+                if old_char.character_class != self.character_class:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna povolání postavy {self.name}: {old_char.character_class} -> {self.character_class}",
+                        value=0.0
+                    )
+                if old_char.level != self.level:
+                    delta_lvl = (self.level or 0) - (old_char.level or 0)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna úrovně (Level) postavy {self.name}: {old_char.level} -> {self.level}",
+                        value=float(delta_lvl)
+                    )
+                if (old_char.experience_points or 0) != (self.experience_points or 0):
+                    delta_xp = (self.experience_points or 0) - (old_char.experience_points or 0)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna zkušeností (XP) postavy {self.name}: {old_char.experience_points or 0} -> {self.experience_points or 0} XP",
+                        value=float(delta_xp)
+                    )
+                if old_char.background != self.background:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna zázemí postavy {self.name}: {old_char.background} -> {self.background}",
+                        value=0.0
+                    )
+                if old_char.alignment != self.alignment:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna přesvědčení postavy {self.name}: {old_char.alignment} -> {self.alignment}",
+                        value=0.0
+                    )
+                if (old_char.gold or 0) != (self.gold or 0) or (old_char.silver or 0) != (self.silver or 0):
+                    old_g_total = (old_char.gold or 0) + (old_char.silver or 0) / 10.0
+                    new_g_total = (self.gold or 0) + (self.silver or 0) / 10.0
+                    delta_gold = round(new_g_total - old_g_total, 2)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna financí postavy {self.name}: {old_char.gold or 0} zl {old_char.silver or 0} st -> {self.gold or 0} zl {self.silver or 0} st",
+                        value=float(delta_gold)
+                    )
+                if old_char.hit_points_current != self.hit_points_current:
+                    delta_hp = (self.hit_points_current or 0) - (old_char.hit_points_current or 0)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna životů (HP) postavy {self.name}: {old_char.hit_points_current} -> {self.hit_points_current} / {self.hit_points_max} HP",
+                        value=float(delta_hp)
+                    )
+                if old_char.hit_points_max != self.hit_points_max:
+                    delta_max_hp = (self.hit_points_max or 0) - (old_char.hit_points_max or 0)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna maximálních životů (Max HP) postavy {self.name}: {old_char.hit_points_max} -> {self.hit_points_max} HP",
+                        value=float(delta_max_hp)
+                    )
+                if old_char.armor_class != self.armor_class:
+                    delta_ac = (self.armor_class or 0) - (old_char.armor_class or 0)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna třídy zbroje (AC) postavy {self.name}: {old_char.armor_class} -> {self.armor_class}",
+                        value=float(delta_ac)
+                    )
+                if old_char.speed != self.speed:
+                    delta_spd = (self.speed or 0) - (old_char.speed or 0)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna rychlosti postavy {self.name}: {old_char.speed} -> {self.speed} stop",
+                        value=float(delta_spd)
+                    )
+                if old_char.initiative != self.initiative:
+                    delta_init = (self.initiative or 0) - (old_char.initiative or 0)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna iniciativy postavy {self.name}: {old_char.initiative} -> {self.initiative}",
+                        value=float(delta_init)
+                    )
+                if old_char.inspiration != self.inspiration:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna inspirace postavy {self.name}: {'Ano' if old_char.inspiration else 'Ne'} -> {'Ano' if self.inspiration else 'Ne'}",
+                        value=1.0 if self.inspiration else 0.0
+                    )
+                if old_char.proficiency_bonus != self.proficiency_bonus:
+                    delta_prof = (self.proficiency_bonus or 0) - (old_char.proficiency_bonus or 0)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna zdatnostního bonusu postavy {self.name}: {old_char.proficiency_bonus} -> {self.proficiency_bonus}",
+                        value=float(delta_prof)
+                    )
+                if old_char.passive_perception != self.passive_perception:
+                    delta_pp = (self.passive_perception or 0) - (old_char.passive_perception or 0)
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna pasivního vnímání postavy {self.name}: {old_char.passive_perception} -> {self.passive_perception}",
+                        value=float(delta_pp)
+                    )
+                if old_char.hit_dice != self.hit_dice:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna kostky životů postavy {self.name}: {old_char.hit_dice} -> {self.hit_dice}",
+                        value=0.0
+                    )
+                ability_fields = [
+                    ('strength', 'Síla (STR)'),
+                    ('dexterity', 'Obratnost (DEX)'),
+                    ('constitution', 'Odolnost (CON)'),
+                    ('intelligence', 'Inteligence (INT)'),
+                    ('wisdom', 'Moudrost (WIS)'),
+                    ('charisma', 'Charisma (CHA)'),
+                ]
+                for field_attr, label in ability_fields:
+                    old_v = getattr(old_char, field_attr, 10) or 0
+                    new_v = getattr(self, field_attr, 10) or 0
+                    if old_v != new_v:
+                        create_db_log(
+                            character=self,
+                            player=self.player,
+                            message=f"Změna atributu {label} postavy {self.name}: {old_v} -> {new_v}",
+                            value=float(new_v - old_v)
+                        )
+                if old_char.saving_throws != self.saving_throws:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna záchranných hodů postavy {self.name}: {', '.join(self.saving_throws_list) or 'Žádné'}",
+                        value=0.0
+                    )
+                if old_char.skills != self.skills:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna dovedností postavy {self.name}: {', '.join(self.skills_list) or 'Žádné'}",
+                        value=0.0
+                    )
+                if old_char.in_fight != self.in_fight:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Postava {self.name} {'vstoupila do boje' if self.in_fight else 'opustila boj'}",
+                        value=1.0 if self.in_fight else 0.0
+                    )
+                if old_char.is_public != self.is_public:
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna viditelnosti postavy {self.name}: {'Veřejná pro družinu' if self.is_public else 'Skrytá (pouze DM)'}",
+                        value=1.0 if self.is_public else 0.0
+                    )
+                old_img_name = getattr(old_char.image, 'name', '') or ''
+                new_img_name = getattr(self.image, 'name', '') or ''
+                if (
+                    old_char.active_icon_id != self.active_icon_id
+                    or old_img_name != new_img_name
+                    or (old_char.image_url or '') != (self.image_url or '')
+                ):
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna profilového obrázku postavy {self.name}",
+                        value=0.0
+                    )
+
+        self._skip_auto_log = False
 
     @property
     def has_custom_image(self):
@@ -636,6 +926,7 @@ class Achivements_players(models.Model):
 
         highest_tier = None
         essence_added = 0
+        newly_unlocked_tiers = []
         now = timezone.now()
 
         for tier_name, threshold, reward, date_attr, cond_fn in tiers:
@@ -647,6 +938,7 @@ class Achivements_players(models.Model):
                     setattr(self, date_attr, now)
                     if old_rank < tier_rank:
                         essence_added += reward
+                        newly_unlocked_tiers.append((tier_name, reward))
 
         self.current_status = highest_tier
 
@@ -654,15 +946,27 @@ class Achivements_players(models.Model):
             if self.player.temna_esence is None:
                 self.player.temna_esence = 0
             self.player.temna_esence += essence_added
+            self.player._skip_auto_log = True
             self.player.save()
+
+            ach_title = self.Achivement.name if self.Achivement else "Úspěch"
+            target_char = self.char
+            if not target_char and self.player:
+                target_char = self.player.characters.first()
+            char_label = target_char.name if target_char else (self.player.nickname or "Hráč")
+            tier_labels = ", ".join([f"{t.capitalize()} (+{r} TE)" for t, r in newly_unlocked_tiers])
+
+            create_db_log(
+                character=target_char,
+                player=self.player,
+                message=f"Postava {char_label} odemkla hodnost {tier_labels} v úspěchu '{ach_title}'! Získáno +{essence_added} Temné esence (celkem {self.player.temna_esence} TE)",
+                value=float(essence_added)
+            )
 
             # Zamezení zacyklení: propsání temné esence do achievementu "Esencionik"
             # provádíme pouze tehdy, pokud aktuální achievement NENÍ "Esencionik".
             ach_name = self.Achivement.name.strip().lower() if self.Achivement and self.Achivement.name else ""
             if ach_name != "esencionik":
-                target_char = self.char
-                if not target_char and self.player:
-                    target_char = self.player.characters.first()
                 if target_char:
                     try:
                         esencionik_db = Achivements_database.objects.filter(name__iexact="Esencionik").first()
@@ -673,15 +977,53 @@ class Achivements_players(models.Model):
                                 Achivement=esencionik_db,
                                 defaults={'current_value': 0}
                             )
-                            es_ach.current_value += essence_added
+                            old_es_val = es_ach.current_value or 0
+                            es_ach.current_value = old_es_val + essence_added
+                            es_ach._skip_auto_log = True
                             es_ach.save()
+                            create_db_log(
+                                character=target_char,
+                                player=self.player,
+                                message=f"Postup v úspěchu 'Esencionik' (z odměny za '{ach_title}'): {old_es_val} -> {es_ach.current_value} (+{essence_added} TE)",
+                                value=float(essence_added)
+                            )
                     except Exception:
                         pass
 
 
     def save(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        is_new = self.pk is None
+        old_val = None
+        if not is_new and not skip_auto_log:
+            try:
+                old_val = Achivements_players.objects.filter(pk=self.pk).values_list('current_value', flat=True).first()
+            except Exception:
+                old_val = None
+
         self.update_achivement_status() # Spuštění funkce pro kontrolu achivementu
         super().save(*args, **kwargs)
+
+        if not skip_auto_log:
+            ach_title = self.Achivement.name if self.Achivement else "Úspěch"
+            target_char = self.char or (self.player.characters.first() if self.player else None)
+            char_label = target_char.name if target_char else (self.player.nickname if self.player else "Hráč")
+            if is_new:
+                create_db_log(
+                    character=target_char,
+                    player=self.player,
+                    message=f"Postavě {char_label} byl přiřazen úspěch '{ach_title}' (hodnota: {self.current_value})",
+                    value=float(self.current_value or 0)
+                )
+            elif old_val is not None and old_val != self.current_value:
+                delta = (self.current_value or 0) - (old_val or 0)
+                create_db_log(
+                    character=target_char,
+                    player=self.player,
+                    message=f"Změna hodnoty úspěchu '{ach_title}' u postavy {char_label}: {old_val} -> {self.current_value}",
+                    value=float(delta)
+                )
+        self._skip_auto_log = False
 
 class Logs(models.Model):
     player = models.ForeignKey(
@@ -695,16 +1037,30 @@ class Logs(models.Model):
         Char_info,
         on_delete=models.CASCADE,
         related_name='logs',
-        verbose_name="Postava"
+        verbose_name="Postava",
+        null=True,
+        blank=True
     )
 
-    
-    message = models.CharField(max_length=200, verbose_name="Zpráva")
+    message = models.CharField(max_length=500, verbose_name="Zpráva")
     value = models.FloatField(default=0, verbose_name="Hodnota", null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
 
+    class Meta:
+        verbose_name = "Log změn"
+        verbose_name_plural = "Logy změn"
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.player_id and self.character_id and self.character and self.character.player_id:
+            self.player = self.character.player
+        if self.message and len(self.message) > 500:
+            self.message = self.message[:500]
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.player} - {self.character} - {self.message} - {self.value}"
+        char_str = str(self.character.name) if self.character else "Bez postavy"
+        return f"{self.player} - {char_str} - {self.message} ({self.value})"
 
 
 EsenceShopChoices = [
@@ -791,6 +1147,54 @@ class CharNotes(models.Model):
     def __str__(self):
         return f"{self.character.name} - {self.title} ({self.player})"
 
+    def save(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        is_new = self.pk is None
+        old_note = None
+        if not is_new and not skip_auto_log:
+            old_note = CharNotes.objects.filter(pk=self.pk).first()
+        super().save(*args, **kwargs)
+        if not skip_auto_log and self.character:
+            if is_new:
+                create_db_log(
+                    character=self.character,
+                    player=self.player,
+                    message=f"Přidána poznámka postavy {self.character.name}: '{self.title}'",
+                    value=0.0
+                )
+            elif old_note:
+                if old_note.is_favorite != self.is_favorite:
+                    fav_label = "označena jako oblíbená" if self.is_favorite else "odebrána z oblíbených"
+                    create_db_log(
+                        character=self.character,
+                        player=self.player,
+                        message=f"Poznámka '{self.title}' postavy {self.character.name} byla {fav_label}",
+                        value=1.0 if self.is_favorite else 0.0
+                    )
+                elif old_note.title != self.title or old_note.note != self.note:
+                    create_db_log(
+                        character=self.character,
+                        player=self.player,
+                        message=f"Upravena poznámka postavy {self.character.name}: '{self.title}'",
+                        value=0.0
+                    )
+        self._skip_auto_log = False
+
+    def delete(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        char = self.character
+        player = self.player
+        title = self.title
+        res = super().delete(*args, **kwargs)
+        if not skip_auto_log and char:
+            create_db_log(
+                character=char,
+                player=player,
+                message=f"Smazána poznámka postavy {char.name}: '{title}'",
+                value=0.0
+            )
+        return res
+
 
 class CharBackstory(models.Model):
     player = models.ForeignKey(
@@ -820,6 +1224,54 @@ class CharBackstory(models.Model):
         status = "Veřejné" if self.public else "Soukromé"
         return f"{self.character.name} - {self.title} [{status}] ({self.player})"
 
+    def save(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        is_new = self.pk is None
+        old_story = None
+        if not is_new and not skip_auto_log:
+            old_story = CharBackstory.objects.filter(pk=self.pk).first()
+        super().save(*args, **kwargs)
+        if not skip_auto_log and self.character:
+            vis_str = "Veřejná" if self.public else "Soukromá"
+            if is_new:
+                create_db_log(
+                    character=self.character,
+                    player=self.player,
+                    message=f"Přidána kapitola příběhu postavy {self.character.name}: '{self.title}' ({vis_str})",
+                    value=0.0
+                )
+            elif old_story:
+                if old_story.public != self.public:
+                    create_db_log(
+                        character=self.character,
+                        player=self.player,
+                        message=f"Kapitola příběhu '{self.title}' postavy {self.character.name} byla nastavena jako {vis_str}",
+                        value=1.0 if self.public else 0.0
+                    )
+                elif old_story.title != self.title or old_story.backstory != self.backstory:
+                    create_db_log(
+                        character=self.character,
+                        player=self.player,
+                        message=f"Upravena kapitola příběhu postavy {self.character.name}: '{self.title}'",
+                        value=0.0
+                    )
+        self._skip_auto_log = False
+
+    def delete(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        char = self.character
+        player = self.player
+        title = self.title
+        res = super().delete(*args, **kwargs)
+        if not skip_auto_log and char:
+            create_db_log(
+                character=char,
+                player=player,
+                message=f"Smazána kapitola příběhu postavy {char.name}: '{title}'",
+                value=0.0
+            )
+        return res
+
 
 class CharacterSpellSlot(models.Model):
     character = models.ForeignKey(
@@ -845,6 +1297,45 @@ class CharacterSpellSlot(models.Model):
     def used_slots(self):
         return max(0, self.max_slots - self.current_slots)
 
+    def save(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        is_new = self.pk is None
+        old_slot = None
+        if not is_new and not skip_auto_log:
+            old_slot = CharacterSpellSlot.objects.filter(pk=self.pk).first()
+        super().save(*args, **kwargs)
+        if not skip_auto_log and self.character:
+            if is_new:
+                create_db_log(
+                    character=self.character,
+                    player=self.character.player,
+                    message=f"Nastaveny pozice pro kouzla ({self.level}. úroveň) postavy {self.character.name}: {self.current_slots}/{self.max_slots}",
+                    value=float(self.current_slots)
+                )
+            elif old_slot and (old_slot.current_slots != self.current_slots or old_slot.max_slots != self.max_slots):
+                delta = (self.current_slots or 0) - (old_slot.current_slots or 0)
+                create_db_log(
+                    character=self.character,
+                    player=self.character.player,
+                    message=f"Změna pozic pro kouzla ({self.level}. úroveň) postavy {self.character.name}: {old_slot.current_slots}/{old_slot.max_slots} -> {self.current_slots}/{self.max_slots}",
+                    value=float(delta)
+                )
+        self._skip_auto_log = False
+
+    def delete(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        char = self.character
+        lvl = self.level
+        res = super().delete(*args, **kwargs)
+        if not skip_auto_log and char:
+            create_db_log(
+                character=char,
+                player=char.player,
+                message=f"Odstraněny pozice pro kouzla ({lvl}. úroveň) postavy {char.name}",
+                value=0.0
+            )
+        return res
+
 
 class CharacterFeature(models.Model):
     character = models.ForeignKey(
@@ -865,3 +1356,42 @@ class CharacterFeature(models.Model):
 
     def __str__(self):
         return f"{self.character.name} - {self.title}"
+
+    def save(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        is_new = self.pk is None
+        old_feat = None
+        if not is_new and not skip_auto_log:
+            old_feat = CharacterFeature.objects.filter(pk=self.pk).first()
+        super().save(*args, **kwargs)
+        if not skip_auto_log and self.character:
+            src_info = f" ({self.source})" if self.source else ""
+            if is_new:
+                create_db_log(
+                    character=self.character,
+                    player=self.character.player,
+                    message=f"Přidána schopnost/rys postavy {self.character.name}: '{self.title}'{src_info}",
+                    value=0.0
+                )
+            elif old_feat and (old_feat.title != self.title or old_feat.description != self.description or old_feat.source != self.source):
+                create_db_log(
+                    character=self.character,
+                    player=self.character.player,
+                    message=f"Upravena schopnost/rys postavy {self.character.name}: '{self.title}'{src_info}",
+                    value=0.0
+                )
+        self._skip_auto_log = False
+
+    def delete(self, *args, **kwargs):
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        char = self.character
+        title = self.title
+        res = super().delete(*args, **kwargs)
+        if not skip_auto_log and char:
+            create_db_log(
+                character=char,
+                player=char.player,
+                message=f"Odebrána schopnost/rys postavy {char.name}: '{title}'",
+                value=0.0
+            )
+        return res

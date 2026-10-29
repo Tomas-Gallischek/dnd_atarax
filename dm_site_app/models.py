@@ -162,6 +162,54 @@ class Items_Active(models.Model):
     def __str__(self):
         return f"{self.name_cz} ({self.category})"
 
+    def save(self, *args, **kwargs):
+        from player_site_app.models import create_db_log
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        is_new = self.pk is None
+        old_item = None
+        if not is_new and not skip_auto_log:
+            old_item = Items_Active.objects.filter(pk=self.pk).first()
+        super().save(*args, **kwargs)
+        if not skip_auto_log and self.char_own:
+            item_val = (self.cost_gold or 0) + ((self.cost_silver or 0) / 10.0)
+            if is_new or (old_item and old_item.char_own_id != self.char_own_id):
+                create_db_log(
+                    character=self.char_own,
+                    player=self.char_own.player,
+                    message=f"Postava {self.char_own.name} získala předmět do inventáře: '{self.name_cz}' ({self.category or 'Ostatní'})",
+                    value=float(item_val)
+                )
+            elif old_item and (
+                old_item.name_cz != self.name_cz
+                or old_item.damage != self.damage
+                or old_item.armor_class != self.armor_class
+                or old_item.cost_gold != self.cost_gold
+                or old_item.cost_silver != self.cost_silver
+            ):
+                create_db_log(
+                    character=self.char_own,
+                    player=self.char_own.player,
+                    message=f"Upraven předmět v inventáři postavy {self.char_own.name}: '{self.name_cz}'",
+                    value=float(item_val)
+                )
+        self._skip_auto_log = False
+
+    def delete(self, *args, **kwargs):
+        from player_site_app.models import create_db_log
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        char = self.char_own
+        name_cz = self.name_cz
+        item_val = (self.cost_gold or 0) + ((self.cost_silver or 0) / 10.0)
+        res = super().delete(*args, **kwargs)
+        if not skip_auto_log and char:
+            create_db_log(
+                character=char,
+                player=char.player,
+                message=f"Předmět '{name_cz}' byl odebrán z inventáře postavy {char.name}",
+                value=float(-item_val)
+            )
+        return res
+
 
 class Monsters_All_db(models.Model):
     # Identifikace
@@ -605,3 +653,58 @@ class Spells_Active(models.Model):
     @property
     def is_trick(self):
         return self.level == 0 or self.is_cantrip
+
+    def save(self, *args, **kwargs):
+        from player_site_app.models import create_db_log
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        is_new = self.pk is None
+        old_spell = None
+        if not is_new and not skip_auto_log:
+            old_spell = Spells_Active.objects.filter(pk=self.pk).first()
+        super().save(*args, **kwargs)
+        if not skip_auto_log and self.char_own:
+            typ_label = "trik" if self.is_trick else f"kouzlo ({self.level}. úroveň)"
+            if is_new:
+                if self.nauceno:
+                    create_db_log(
+                        character=self.char_own,
+                        player=self.char_own.player,
+                        message=f"Postava {self.char_own.name} se naučila {typ_label}: '{self.name_cz}'",
+                        value=float(self.level or 0)
+                    )
+            elif old_spell:
+                if old_spell.nauceno != self.nauceno:
+                    action_str = "se naučila" if self.nauceno else "zapomněla"
+                    create_db_log(
+                        character=self.char_own,
+                        player=self.char_own.player,
+                        message=f"Postava {self.char_own.name} {action_str} {typ_label}: '{self.name_cz}'",
+                        value=1.0 if self.nauceno else 0.0
+                    )
+                if old_spell.vybaveno != self.vybaveno and self.nauceno:
+                    eq_str = "vybavila" if self.vybaveno else "odebrala z vybavených"
+                    create_db_log(
+                        character=self.char_own,
+                        player=self.char_own.player,
+                        message=f"Postava {self.char_own.name} {eq_str} {typ_label}: '{self.name_cz}'",
+                        value=1.0 if self.vybaveno else 0.0
+                    )
+        self._skip_auto_log = False
+
+    def delete(self, *args, **kwargs):
+        from player_site_app.models import create_db_log
+        skip_auto_log = getattr(self, '_skip_auto_log', False)
+        char = self.char_own
+        name_cz = self.name_cz
+        is_trick = self.is_trick
+        lvl = self.level
+        res = super().delete(*args, **kwargs)
+        if not skip_auto_log and char:
+            typ_label = "trik" if is_trick else f"kouzlo ({lvl}. úroveň)"
+            create_db_log(
+                character=char,
+                player=char.player,
+                message=f"Postavě {char.name} bylo odebráno {typ_label}: '{name_cz}'",
+                value=0.0
+            )
+        return res

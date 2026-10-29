@@ -12,7 +12,7 @@ from django.contrib import messages
 from .models import Locations, Npc, Monsters_All_db, Monsters_Active, Items_All_db, Items_Active, Kronika, DmNote
 from player_site_app.models import (
     Player, Char_info, Logs, Achivements_database, Achivements_players,
-    CharacterSpellSlot, CharacterFeature
+    CharacterSpellSlot, CharacterFeature, create_db_log
 )
 from player_site_app.achivements import zbohatlik_ach, smrtici_stroj_ach
 from dnd_atarax.terminal import (
@@ -643,29 +643,35 @@ def add_gold(request):
         # Zapsání goldů
         if char_id:
             char = get_object_or_404(Char_info, id=char_id)
+            gold_int = int(gold or 0)
+            silver_int = int(silver or 0)
             if action == 'plus':
-                char.gold += int(gold or 0)
-                char.silver += int(silver or 0)
-                char.total_golds += plus_total_golds
                 zbohatlik_ach(char_id, plus_total_golds)  # kontrola achievementu
-                log_gold(f"+{gold or 0} gp, +{silver or 0} sp", f"Postava: {char.name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
+                char.gold += gold_int
+                char.silver += silver_int
+                char.total_golds += plus_total_golds
+                log_gold(f"+{gold_int} gp, +{silver_int} sp", f"Postava: {char.name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
+                log_msg = f"DM přidal postavě {char.name}: +{gold_int} zlaťáků a +{silver_int} stříbrňáků (nový stav: {char.gold} zl, {char.silver} st)"
+                log_val = plus_total_golds
             elif action == 'minus':
-                char.gold -= int(gold or 0)
-                char.silver -= int(silver or 0)
-                log_gold(f"-{gold or 0} gp, -{silver or 0} sp", f"Postava: {char.name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
+                char.gold -= gold_int
+                char.silver -= silver_int
+                log_gold(f"-{gold_int} gp, -{silver_int} sp", f"Postava: {char.name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
+                log_msg = f"DM odebral postavě {char.name}: -{gold_int} zlaťáků a -{silver_int} stříbrňáků (nový stav: {char.gold} zl, {char.silver} st)"
+                log_val = -plus_total_golds
             else:
                 return redirect('dm_site_app:golds-management')
 
+            char._skip_auto_log = True
             char.save()
 
             # Zapsání do logu
-            log = Logs(
-                player=char.player,
+            create_db_log(
                 character=char,
-                message=f"Přidáno: {gold} zlaťáků a {silver} stříbrňáků",
-                value=plus_total_golds
+                player=char.player,
+                message=log_msg,
+                value=log_val
             )
-            log.save()
 
     return redirect('dm_site_app:golds-management')
 
@@ -992,9 +998,17 @@ def api_update_hp(request):
                 player = Char_info.objects.get(id=entity_id)
                 old_hp = player.hit_points_current
                 player.hit_points_current = new_hp
+                player._skip_auto_log = True
                 player.save(update_fields=['hit_points_current'])
                 saved_records.append({'entity_type': 'player', 'id': player.id, 'current_hp': player.hit_points_current})
                 log_hp("Změna HP hráče", f"{player.name}: {old_hp} -> {new_hp}/{player.hit_points_max} HP")
+                if old_hp != new_hp:
+                    create_db_log(
+                        character=player,
+                        player=player.player,
+                        message=f"Aréna (DM): Postavě {player.name} se změnily životy (HP): {old_hp} -> {new_hp}/{player.hit_points_max}",
+                        value=float(new_hp - (old_hp or 0))
+                    )
 
         return JsonResponse({'success': True, 'saved': saved_records})
     except Exception as e:
@@ -1017,10 +1031,20 @@ def in_fight_switch(request):
             return redirect('dm_site_app:pvp_pre')
         elif source == "player":
             player = Char_info.objects.get(id=source_id)
+            old_in_fight = player.in_fight
             player.in_fight = (action == 'True') # Musí být takto, jinak to python vždycky zapíše jako "True"
+            player._skip_auto_log = True
             player.save()
             action_desc = "VSTUPUJE DO BOJE ⚔️" if player.in_fight else "ODCHÁZÍ Z BOJE 🏳️"
             log_arena(f"Hráč: {action_desc}", f"{player.name} (Hráč: {player.player.nickname}) [ID: {player.id}]")
+            if old_in_fight != player.in_fight:
+                state_msg = f"Postava {player.name} vstoupila do boje v aréně" if player.in_fight else f"Postava {player.name} opustila boj v aréně"
+                create_db_log(
+                    character=player,
+                    player=player.player,
+                    message=state_msg,
+                    value=1.0 if player.in_fight else 0.0
+                )
             return redirect('dm_site_app:pvp_pre')
     else:
         log_warning("Přepnutí stavu v boji", "Neplatná metoda požadavku (očekáván POST)")
@@ -1220,24 +1244,25 @@ def plus_loot_gold(request):
     plus_gold = int(source_target.loot_gold)
     plus_silver = int(source_target.loot_silver)
     plus_total_gold = float(plus_gold + (plus_silver / 10))
+    source_name = getattr(source_target, 'name_cz', None) or getattr(source_target, 'name', None) or getattr(source_target, 'name_en', 'Neznámý zdroj')
+
+# ACHIVEMENT (před přičtením total_golds do DB)
+    zbohatlik_ach(char_id=character_id, amount=plus_total_gold)
 
 # PŘIPSÁNÍ POSTAVĚ
     character.gold += plus_gold
     character.silver += plus_silver
     character.total_golds += plus_total_gold
+    character._skip_auto_log = True
     character.save()
 
-# ACHIVEMENT
-    zbohatlik_ach(char_id=character_id, amount=plus_total_gold)
-
 # Log
-    log = Logs(
-        player=character.player,
+    create_db_log(
         character=character,
-        message=f"Postava {character.name} získala {plus_gold} zlata a {plus_silver} stříbra",
+        player=character.player,
+        message=f"Postava {character.name} získala kořist ({source_name}): {plus_gold} zlata a {plus_silver} stříbra",
         value=plus_total_gold,
     )
-    log.save()
     log_gold(f"{character_id}, {plus_gold}, {plus_silver}")
 
 # Odebrání
@@ -1275,7 +1300,7 @@ def assign_loot_items(request):
 
         item_template = Items_All_db.objects.filter(id=item_id_int).first()
         if item_template:
-            active_item = Items_Active.objects.create(
+            active_item = Items_Active(
                 char_own=character,
                 api_index=item_template.api_index,
                 name_cz=item_template.name_cz,
@@ -1289,6 +1314,8 @@ def assign_loot_items(request):
                 properties=item_template.properties,
                 description=item_template.description,
             )
+            active_item._skip_auto_log = True
+            active_item.save()
             added_names.append(active_item.name_cz or active_item.name_en or f"Předmět #{active_item.id}")
 
     if added_names:
@@ -1404,7 +1431,7 @@ def create_custom_item(request):
         # 2. Vytvoření instancí v Items_Active pro vybraného hráče
         if character:
             for _ in range(quantity):
-                Items_Active.objects.create(
+                active_item = Items_Active(
                     char_own=character,
                     api_index=item_template.api_index,
                     name_cz=item_template.name_cz,
@@ -1418,6 +1445,8 @@ def create_custom_item(request):
                     properties=item_template.properties,
                     description=item_template.description,
                 )
+                active_item._skip_auto_log = True
+                active_item.save()
 
             log_msg = f"DM vytvořil a připsal předmět '{name_cz}' ({quantity}x) postavě {character.name}"
             log = Logs(
@@ -1505,6 +1534,7 @@ def dm_delete_player_item(request, item_id):
     item_name = item.name_cz or item.name_en or f"Předmět #{item.id}"
     char_name = char.name if char else "neznámá postava"
 
+    item._skip_auto_log = True
     item.delete()
 
     if char:
@@ -1565,6 +1595,7 @@ def dm_bulk_delete_player_items(request):
     for item in qs:
         name = item.name_cz or item.name_en or f"Předmět #{item.id}"
         deleted_names.append(name)
+        item._skip_auto_log = True
         item.delete()
 
     if deleted_names:
@@ -1678,16 +1709,18 @@ def dm_assign_achievement(request):
             existing.current_value += current_val
         else:
             existing.current_value = current_val
+        existing._skip_auto_log = True
         existing.save()
         log_msg = f"DM upravil úspěch '{template.name}' postavě {character.name}: {old_val} -> {existing.current_value} (úroveň: {existing.get_current_status_display() or 'Nesplněno'})"
         messages.success(request, f"Úspěch „{template.name}“ postavy {character.name} byl upraven na hodnotu {existing.current_value}.")
     else:
-        existing = Achivements_players.objects.create(
+        existing = Achivements_players(
             player=player,
             char=character,
             Achivement=template,
             current_value=current_val
         )
+        existing._skip_auto_log = True
         existing.save()
         log_msg = f"DM přiřadil nový úspěch '{template.name}' postavě {character.name} s hodnotou {current_val} (úroveň: {existing.get_current_status_display() or 'Nesplněno'})"
         messages.success(request, f"Úspěch „{template.name}“ byl úspěšně přiřazen postavě {character.name} s hodnotou {current_val}.")
@@ -1730,6 +1763,7 @@ def dm_update_achievement_value(request, ach_player_id):
         except (ValueError, TypeError):
             pass
 
+    ach_player._skip_auto_log = True
     ach_player.save()
     char_name = ach_player.char.name if ach_player.char else "Neznámá"
     ach_name = ach_player.Achivement.name if ach_player.Achivement else "Neznámý"
@@ -1976,9 +2010,17 @@ def modify_spell_slots(request):
         messages.success(request, f"Odebrána 1 volná pozice {slot.level}. úrovně pro postavu {char.name} ({slot.current_slots}/{slot.max_slots}).")
 
     elif action == 'restore_all':
-        for s in char.spell_slots.all():
+        slots = list(char.spell_slots.all())
+        for s in slots:
             s.current_slots = s.max_slots
+            s._skip_auto_log = True
             s.save()
+        create_db_log(
+            character=char,
+            player=char.player,
+            message=f"DM obnovil všechny pozice pro kouzla postavě {char.name} na maximum (Dlouhý odpočinek)",
+            value=float(len(slots))
+        )
         log_dm(f"DM obnovil všechny pozice pro kouzla postavě {char.name} na maximum (Dlouhý odpočinek).")
         if is_ajax:
             slots_data = [{
