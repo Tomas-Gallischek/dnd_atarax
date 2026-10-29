@@ -1199,14 +1199,15 @@ class PlayerCharacterAvatarTests(TestCase):
         self.assertEqual(self.char_barbar.profile_image_url, 'https://example.com/dm_custom_conan.png')
 
     def test_overview_page_contains_clickable_avatar_and_modal(self):
-        """Stránka s přehledem postavy obsahuje klikatelný avatar a modal pro změnu."""
+        """Stránka s přehledem postavy má čistý avatar (bez modal popupu) a obsahuje záložku Nastavení."""
         self.client.login(username='hrac_avatar', password='password123')
         resp = self.client.get(reverse('player_site_app:char_overview', kwargs={'char_id': self.char_barbar.id}))
         self.assertEqual(resp.status_code, 200)
-        self.assertContains(resp, 'char-avatar-clickable')
-        self.assertContains(resp, 'openAvatarModal()')
-        self.assertContains(resp, 'id="avatarModal"')
-        self.assertContains(resp, 'id="avatarDropzone"')
+        self.assertNotContains(resp, 'char-avatar-clickable')
+        self.assertNotContains(resp, 'openAvatarModal()')
+        self.assertNotContains(resp, 'id="avatarModal"')
+        self.assertContains(resp, reverse('player_site_app:nastaveni'))
+        self.assertContains(resp, 'Nastavení')
         self.assertContains(resp, '/static/img/classes/barbar.svg')
 
 
@@ -1536,3 +1537,204 @@ class DungeonShopIconsTests(TestCase):
     def test_player_owned_avatar_icons_property(self):
         """Property owned_avatar_icons vrací jen předměty kategorie 'icons'."""
         self.assertEqual(list(self.player.owned_avatar_icons), [self.owned_icon])
+
+
+class PlayerSettingsTests(TestCase):
+    def setUp(self):
+        OverAllSettings.objects.get_or_create(id=1, defaults={'loging_active': True, 'editing_active': True})
+
+        self.user = User.objects.create_user(username='settings_user', password='password123')
+        self.player = Player.objects.create(user=self.user, nickname='PuvodniJmeno', pin_code='1234')
+        self.char = Char_info.objects.create(player=self.player, name='Conan', character_class='Barbar', level=5)
+
+        # Druhý hráč pro test kolize jména
+        self.user2 = User.objects.create_user(username='druhy_user', password='password123')
+        self.player2 = Player.objects.create(user=self.user2, nickname='ObsazeneJmeno', pin_code='5678')
+
+        # Ikonka v shopu
+        self.icon_item = Esence_Items_Shop.objects.create(
+            name='Kouzelná hůlka',
+            category='icons',
+            rarity='rare',
+            image=SimpleUploadedFile("wand.png", b"fake_wand_png", content_type="image/png")
+        )
+        self.owned_icon = Esence_Items_Owners.objects.create(player=self.player, item=self.icon_item)
+
+        # Rámeček v shopu
+        self.frame_item = Esence_Items_Shop.objects.create(
+            name='Zlatý rámeček',
+            category='borders',
+            rarity='epic',
+            image=SimpleUploadedFile("frame.png", b"fake_frame_png", content_type="image/png")
+        )
+        self.owned_frame = Esence_Items_Owners.objects.create(player=self.player, item=self.frame_item)
+
+    def test_settings_requires_login(self):
+        """Nepřihlášený uživatel je přesměrován na přihlášení."""
+        resp = self.client.get(reverse('player_site_app:nastaveni'))
+        self.assertEqual(resp.status_code, 302)
+        self.assertIn(reverse('player_site_app:index'), resp.url)
+
+    def test_settings_page_renders_with_four_sections(self):
+        """Přihlášený hráč vidí stránku nastavení se všemi 4 požadovanými sekcemi a odkazem v navigaci."""
+        self.client.login(username='settings_user', password='password123')
+        resp = self.client.get(reverse('player_site_app:nastaveni'))
+        self.assertEqual(resp.status_code, 200)
+
+        # Ověření záložky v navigačním menu (nad tlačítkem odhlásit se)
+        self.assertContains(resp, '<span>⚙️</span> Nastavení')
+        self.assertContains(resp, 'Odhlásit se')
+
+        # 1. Změna profilové ikonky
+        self.assertContains(resp, 'Profilová ikonka')
+        self.assertContains(resp, 'Z vlastněných ikonek')
+        self.assertContains(resp, 'Nahrát vlastní fotku')
+        self.assertContains(resp, 'Výchozí symbol')
+
+        # 2. Změna profilového rámečku
+        self.assertContains(resp, 'Profilový rámeček')
+        self.assertContains(resp, 'Odebrat rámeček úplně')
+        self.assertContains(resp, 'Zlatý rámeček')
+
+        # 3. Změna přihlašovacího PIN kódu
+        self.assertContains(resp, 'Změna přihlašovacího PIN kódu')
+        self.assertContains(resp, 'neomezené množství znaků')
+
+        # 4. Změna přihlašovacího jména
+        self.assertContains(resp, 'Změna přihlašovacího jména')
+        self.assertContains(resp, 'PuvodniJmeno')
+
+    def test_change_profile_icon_owned_upload_and_reset(self):
+        """Test změny ikonky: výběr z vlastněných ikonek, nahrání fotky a reset na výchozí."""
+        self.client.login(username='settings_user', password='password123')
+        url = reverse('player_site_app:nastaveni')
+
+        # 1. Výběr z vlastněných ikonek
+        resp_icon = self.client.post(url, {
+            'action': 'change_icon',
+            'icon_type': 'owned_icon',
+            'char_id': self.char.id,
+            'item_id': self.icon_item.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp_icon.status_code, 200)
+        self.char.refresh_from_db()
+        self.assertEqual(self.char.active_icon, self.owned_icon)
+        self.assertEqual(self.char.profile_image_url, self.icon_item.image.url)
+
+        # 2. Nahrání vlastní fotky
+        fake_img = SimpleUploadedFile("hero_photo.png", b"fake_png_data", content_type="image/png")
+        resp_upload = self.client.post(url, {
+            'action': 'change_icon',
+            'icon_type': 'upload',
+            'char_id': self.char.id,
+            'image': fake_img,
+        })
+        self.assertEqual(resp_upload.status_code, 302)
+        self.char.refresh_from_db()
+        self.assertIsNone(self.char.active_icon)
+        self.assertTrue(self.char.has_custom_image)
+        self.assertIn('hero_photo', self.char.image.name)
+
+        # 3. Reset na výchozí ikonku povolání
+        resp_reset = self.client.post(url, {
+            'action': 'change_icon',
+            'icon_type': 'reset',
+            'char_id': self.char.id,
+        })
+        self.assertEqual(resp_reset.status_code, 302)
+        self.char.refresh_from_db()
+        self.assertIsNone(self.char.active_icon)
+        self.assertFalse(self.char.has_custom_image)
+        self.assertEqual(self.char.profile_image_url, '/static/img/classes/barbar.svg')
+
+    def test_change_profile_frame_equip_and_remove(self):
+        """Test změny rámečku: nasazení z vlastněných rámečků a odebrání rámečku úplně."""
+        self.client.login(username='settings_user', password='password123')
+        url = reverse('player_site_app:nastaveni')
+
+        # 1. Nasazení vlastněného rámečku
+        resp_equip = self.client.post(url, {
+            'action': 'change_frame',
+            'frame_action': 'equip',
+            'item_id': self.frame_item.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp_equip.status_code, 200)
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.active_ramecek, self.owned_frame)
+        self.assertEqual(self.player.active_frame_url, self.frame_item.image.url)
+        self.assertEqual(self.char.frame_url, self.frame_item.image.url)
+
+        # 2. Odebrání rámečku úplně
+        resp_remove = self.client.post(url, {
+            'action': 'change_frame',
+            'frame_action': 'remove',
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(resp_remove.status_code, 200)
+        self.player.refresh_from_db()
+        self.assertIsNone(self.player.active_ramecek)
+        self.assertIsNone(self.player.active_frame_url)
+        self.assertIsNone(self.char.frame_url)
+
+    def test_change_pin_unlimited_characters_and_login(self):
+        """PIN může mít neomezené množství znaků (více než 100 znaků, čísla, písmena, symboly) a lze se s ním přihlásit."""
+        self.client.login(username='settings_user', password='password123')
+        url = reverse('player_site_app:nastaveni')
+
+        # Dlouhý PIN kód obsahující písmena, čísla a speciální znaky (> 100 znaků)
+        long_custom_pin = "DndAtarax_SuperSecretKey_2026!#$@_PřílišŽluťoučkýKůňÚpělĎábelskéÓdy_ExtraLongPin_UnlimitedCharactersTest_1234567890_MoreChars"
+        self.assertTrue(len(long_custom_pin) > 100)
+
+        # Test neshody hesel
+        res_mismatch = self.client.post(url, {
+            'action': 'change_pin',
+            'new_pin': long_custom_pin,
+            'confirm_pin': 'different_pin',
+        })
+        self.assertEqual(res_mismatch.status_code, 302)
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.pin_code, '1234')
+
+        # Úspěšná změna PINu
+        res_ok = self.client.post(url, {
+            'action': 'change_pin',
+            'new_pin': long_custom_pin,
+            'confirm_pin': long_custom_pin,
+        })
+        self.assertEqual(res_ok.status_code, 302)
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.pin_code, long_custom_pin)
+
+        # Ověření, že se s tímto dlouhým komplexním PINem lze úspěšně přihlásit
+        self.client.logout()
+        login_res = self.client.post(reverse('player_site_app:index'), {
+            'player_id': self.player.id,
+            'pin': long_custom_pin,
+        })
+        self.assertEqual(login_res.status_code, 302)
+        self.assertEqual(login_res.url, reverse('player_site_app:prehled_postav'))
+
+    def test_change_username_and_collision(self):
+        """Změna přihlašovacího jména s kontrolou unikátnosti."""
+        self.client.login(username='settings_user', password='password123')
+        url = reverse('player_site_app:nastaveni')
+
+        # 1. Pokus o změnu na již obsazené jméno
+        res_taken = self.client.post(url, {
+            'action': 'change_username',
+            'new_username': 'ObsazeneJmeno',
+        })
+        self.assertEqual(res_taken.status_code, 302)
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.nickname, 'PuvodniJmeno')
+
+        # 2. Úspěšná změna na unikátní jméno
+        res_ok = self.client.post(url, {
+            'action': 'change_username',
+            'new_username': 'NovyHrdinaAtarax',
+        })
+        self.assertEqual(res_ok.status_code, 302)
+        self.player.refresh_from_db()
+        self.assertEqual(self.player.nickname, 'NovyHrdinaAtarax')

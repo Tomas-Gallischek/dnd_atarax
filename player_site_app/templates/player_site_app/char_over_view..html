@@ -5,15 +5,11 @@
 {% block player_content %}
 {% if character %}
 <div class="atarax-page-header char-header-with-avatar">
-    <div class="char-header-avatar-wrap char-avatar-clickable" onclick="openAvatarModal()" role="button" tabindex="0" title="Kliknutím změníte profilový obrázek postavy" aria-label="Změnit profilový obrázek postavy">
+    <div class="char-header-avatar-wrap">
         <img src="{{ character.profile_image_url }}" alt="{{ character.name }}" class="char-avatar char-avatar-hero" id="heroCharAvatar">
         {% if character.frame_url %}
         <img src="{{ character.frame_url }}" alt="Rámeček" class="char-avatar-frame" id="heroCharFrame" aria-hidden="true">
         {% endif %}
-        <div class="char-avatar-edit-overlay" aria-hidden="true">
-            <span class="char-avatar-edit-icon">📷</span>
-            <span class="char-avatar-edit-text">Změnit</span>
-        </div>
     </div>
     <div class="atarax-header-title-group char-header-title-flex">
         <h1><span>🛡️</span> {{ character.name }}</h1>

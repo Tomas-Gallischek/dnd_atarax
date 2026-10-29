@@ -31,7 +31,7 @@ class Player(models.Model):
     )
 
     temna_esence = models.IntegerField(default=0, verbose_name="Temná esence", blank=True, null=True)
-    pin_code = models.CharField(max_length=100, blank=True, null=True, verbose_name="PIN kód")
+    pin_code = models.TextField(blank=True, null=True, verbose_name="PIN kód")
 
     active_ramecek = models.ForeignKey(
         "Esence_Items_Owners",
@@ -104,6 +104,18 @@ class Player(models.Model):
     def owned_avatar_icons(self):
         """Vrátí unikátní položky ikonek, které hráč vlastní."""
         records = self.esence_items.filter(item__category='icons').select_related('item').order_by('item__rarity', 'item__name')
+        seen = set()
+        result = []
+        for r in records:
+            if r.item_id not in seen:
+                seen.add(r.item_id)
+                result.append(r)
+        return result
+
+    @property
+    def owned_frames(self):
+        """Vrátí unikátní položky rámečků (borders), které hráč vlastní."""
+        records = self.esence_items.filter(item__category='borders').select_related('item').order_by('item__rarity', 'item__name')
         seen = set()
         result = []
         for r in records:

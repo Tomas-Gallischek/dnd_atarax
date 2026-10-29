@@ -2,6 +2,7 @@ from player_site_app.achivements import esencionik_ach, gambler_ach
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse, HttpResponseForbidden
 from django.contrib.auth import login, logout
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q
@@ -17,6 +18,7 @@ from dm_site_app.models import (
 import os
 import random
 import time
+import re
 
 
 def get_player_and_character(request, char_id=None):
@@ -162,8 +164,8 @@ def index(request):
                 'lockout_remaining_sec': 300 if is_locked_out else 0,
             })
 
-        # Validace formátu: celé číslo do 100 znaků
-        if not pin or not pin.isdigit() or len(pin) > 100:
+        # Validace PINu: nesmí být prázdný
+        if not pin:
             attempts_used += 1
             request.session['pin_attempts'] = attempts_used
             attempts_left = max(0, 3 - attempts_used)
@@ -174,8 +176,8 @@ def index(request):
                 log_warning("Vyčerpány pokusy o PIN", "Session překročila 3 pokusy. Lockout na 5 minut.")
                 messages.error(request, "Vyčerpali jste maximální počet 3 pokusů. Přihlášení bylo zablokováno na 5 minut.")
             else:
-                log_warning("Neplatný formát PINu", f"Zadáno: '{pin[:20]}...'")
-                messages.error(request, f"PIN musí být celé číslo o délce do 100 číslic. Zbývající pokusy: {attempts_left} z 3.")
+                log_warning("Prázdný PIN", "Nebyl zadán žádný PIN kód.")
+                messages.error(request, f"Zadejte prosím svůj PIN kód. Zbývající pokusy: {attempts_left} z 3.")
 
             return render(request, 'player_site_app/login_index.html', {
                 'loging_active': True,
@@ -2119,5 +2121,351 @@ def equip_icon(request):
             return redirect('player_site_app:dungeon_shop_inv')
 
     return redirect('player_site_app:dungeon_shop_inv')
+
+
+@login_required(login_url='player_site_app:index')
+def nastaveni_view(request):
+    """
+    Záložka Nastavení pro hráče:
+    1) Změna profilové ikonky (výběr z vlastněných ikonek, nahrání vlastní fotky, reset na defaultní ikonku)
+    2) Změna profilového rámečku (výběr z vlastněných rámečků, odebrání rámečku úplně)
+    3) Změna přihlašovacího PIN kódu (neomezené množství znaků)
+    4) Změna přihlašovacího jména
+    """
+    player, _ = Player.objects.get_or_create(user=request.user, defaults={'nickname': request.user.username})
+
+    # Podpora volby postavy pro hráče s více postavami
+    char_id = request.GET.get('char_id') or request.POST.get('char_id')
+    if char_id:
+        try:
+            char_id_int = int(char_id)
+            if request.user.is_staff or getattr(player, 'admin', False):
+                character = Char_info.objects.filter(id=char_id_int).first()
+            else:
+                character = Char_info.objects.filter(id=char_id_int, player=player).first()
+            if character:
+                request.session['active_char_id'] = character.id
+        except (ValueError, TypeError):
+            character = None
+    else:
+        _, character = get_player_and_character(request)
+
+    is_ajax = (
+        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+        'application/json' in request.headers.get('Accept', '') or
+        request.POST.get('ajax') == '1'
+    )
+
+    if request.method == 'POST':
+        action = request.POST.get('action', '').strip()
+
+        # ---------------------------------------------------------
+        # 1. ZMĚNA PROFILOVÉ IKONKY POSTAVY
+        # ---------------------------------------------------------
+        if action == 'change_icon':
+            icon_type = request.POST.get('icon_type', '').strip()
+
+            if not character:
+                err = "Nebyla nalezena žádná postava k úpravě profilové ikonky."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err}, status=404)
+                messages.error(request, err)
+                return redirect('player_site_app:nastaveni')
+
+            if icon_type == 'owned_icon':
+                # Výběr z vlastněných ikonek z Dungeon Shopu
+                item_id = request.POST.get('item_id')
+                owner_rec = Esence_Items_Owners.objects.filter(
+                    player=player,
+                    item_id=item_id,
+                    item__category='icons'
+                ).first()
+
+                if not owner_rec:
+                    err = "Tuto profilovou ikonku nemáte ve svém inventáři."
+                    if is_ajax:
+                        return JsonResponse({'success': False, 'error': err}, status=400)
+                    messages.error(request, err)
+                    return redirect('player_site_app:nastaveni')
+
+                # Smazání starého vlastního souboru
+                if character.image:
+                    try:
+                        if character.image.name and 'default_avatar' not in character.image.name:
+                            character.image.delete(save=False)
+                    except Exception:
+                        pass
+                    character.image = None
+
+                character.image_url = None
+                character.active_icon = owner_rec
+                character.save()
+
+                player.active_icon = owner_rec
+                player.save()
+
+                msg = f"Profilová ikonka postavy „{character.name}“ byla nastavena na „{owner_rec.item.name}“."
+                log_info(f"Hráč '{player.nickname}' nastavil ikonku '{owner_rec.item.name}' pro postavu '{character.name}'.")
+
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'message': msg,
+                        'profile_image_url': character.profile_image_url,
+                        'active_icon_id': owner_rec.item.id,
+                        'active_icon_name': owner_rec.item.name,
+                    })
+                messages.success(request, msg)
+                return redirect('player_site_app:nastaveni')
+
+            elif icon_type == 'upload':
+                # Nahrání vlastní fotky
+                uploaded_file = request.FILES.get('image')
+                if not uploaded_file:
+                    err = "Vyberte prosím soubor s fotkou k nahrání."
+                    if is_ajax:
+                        return JsonResponse({'success': False, 'error': err}, status=400)
+                    messages.error(request, err)
+                    return redirect('player_site_app:nastaveni')
+
+                # Kontrola velikosti (max 5 MB)
+                if uploaded_file.size > 5 * 1024 * 1024:
+                    err = "Soubor je příliš velký. Maximální povolená velikost je 5 MB."
+                    if is_ajax:
+                        return JsonResponse({'success': False, 'error': err}, status=400)
+                    messages.error(request, err)
+                    return redirect('player_site_app:nastaveni')
+
+                # Kontrola formátu
+                ext = os.path.splitext(uploaded_file.name)[1].lower()
+                if ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg']:
+                    err = f"Nepodporovaný formát souboru ({ext}). Povolené jsou: JPG, PNG, WEBP, GIF, SVG."
+                    if is_ajax:
+                        return JsonResponse({'success': False, 'error': err}, status=400)
+                    messages.error(request, err)
+                    return redirect('player_site_app:nastaveni')
+
+                # Smazání starého vlastního souboru
+                if character.image:
+                    try:
+                        if character.image.name and 'default_avatar' not in character.image.name:
+                            character.image.delete(save=False)
+                    except Exception:
+                        pass
+
+                character.image = uploaded_file
+                character.active_icon = None
+                character.image_url = None
+                character.save()
+
+                player.active_icon = None
+                player.save()
+
+                msg = f"Vlastní profilová fotka postavy „{character.name}“ byla úspěšně nahrána a uložena."
+                log_info(f"Hráč '{player.nickname}' nahrál vlastní profilovou fotku pro postavu '{character.name}'.")
+
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'message': msg,
+                        'profile_image_url': character.profile_image_url,
+                    })
+                messages.success(request, msg)
+                return redirect('player_site_app:nastaveni')
+
+            elif icon_type == 'reset':
+                # Reset na defaultní ikonku povolání
+                if character.image:
+                    try:
+                        if character.image.name and 'default_avatar' not in character.image.name:
+                            character.image.delete(save=False)
+                    except Exception:
+                        pass
+                    character.image = None
+
+                character.image_url = None
+                character.active_icon = None
+                character.save()
+
+                player.active_icon = None
+                player.save()
+
+                msg = f"Profilová ikonka byla resetována na výchozí symbol povolání ({character.character_class or 'Dobrodruh'})."
+                log_info(f"Hráč '{player.nickname}' resetoval ikonku postavy '{character.name}' na výchozí.")
+
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'message': msg,
+                        'profile_image_url': character.profile_image_url,
+                    })
+                messages.success(request, msg)
+                return redirect('player_site_app:nastaveni')
+
+            else:
+                err = "Neplatný typ úpravy profilové ikonky."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err}, status=400)
+                messages.error(request, err)
+                return redirect('player_site_app:nastaveni')
+
+        # ---------------------------------------------------------
+        # 2. ZMĚNA PROFILOVÉHO RÁMEČKU HRÁČE
+        # ---------------------------------------------------------
+        elif action == 'change_frame':
+            frame_action = request.POST.get('frame_action', '').strip()
+
+            if frame_action == 'remove':
+                # Odebrání rámečku úplně
+                player.active_ramecek = None
+                player.save()
+
+                msg = "Profilový rámeček byl úspěšně odebrán z profilu."
+                log_info(f"Hráč '{player.nickname}' odebral profilový rámeček.")
+
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'message': msg,
+                        'active_frame_url': None,
+                    })
+                messages.success(request, msg)
+                return redirect('player_site_app:nastaveni')
+
+            elif frame_action == 'equip':
+                # Výběr z vlastněných rámečků
+                item_id = request.POST.get('item_id')
+                owner_rec = Esence_Items_Owners.objects.filter(
+                    player=player,
+                    item_id=item_id,
+                    item__category='borders'
+                ).first()
+
+                if not owner_rec:
+                    err = "Tento profilový rámeček nemáte ve svém inventáři."
+                    if is_ajax:
+                        return JsonResponse({'success': False, 'error': err}, status=400)
+                    messages.error(request, err)
+                    return redirect('player_site_app:nastaveni')
+
+                player.active_ramecek = owner_rec
+                player.save()
+
+                msg = f"Profilový rámeček „{owner_rec.item.name}“ byl úspěšně nasazen."
+                log_info(f"Hráč '{player.nickname}' nasadil rámeček '{owner_rec.item.name}'.")
+
+                if is_ajax:
+                    return JsonResponse({
+                        'success': True,
+                        'message': msg,
+                        'active_frame_url': player.active_frame_url,
+                        'active_frame_id': owner_rec.item.id,
+                    })
+                messages.success(request, msg)
+                return redirect('player_site_app:nastaveni')
+
+            else:
+                err = "Neplatná akce pro profilový rámeček."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err}, status=400)
+                messages.error(request, err)
+                return redirect('player_site_app:nastaveni')
+
+        # ---------------------------------------------------------
+        # 3. ZMĚNA PŘIHLAŠOVACÍHO PIN KÓDU (neomezené množství znaků)
+        # ---------------------------------------------------------
+        elif action == 'change_pin':
+            new_pin = request.POST.get('new_pin', '').strip()
+            confirm_pin = request.POST.get('confirm_pin', '').strip()
+
+            if not new_pin:
+                err = "PIN kód nesmí být prázdný. Zadejte prosím nový PIN kód."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err}, status=400)
+                messages.error(request, err)
+                return redirect('player_site_app:nastaveni')
+
+            if new_pin != confirm_pin:
+                err = "Zadané PIN kódy se neshodují. Zkontrolujte prosím zadání a opakujte."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err}, status=400)
+                messages.error(request, err)
+                return redirect('player_site_app:nastaveni')
+
+            player.pin_code = new_pin
+            player.save()
+
+            log_player("Změna PIN kódu", f"Hráč '{player.nickname}' si úspěšně změnil přihlašovací PIN kód.")
+            msg = "Přihlašovací PIN kód byl úspěšně změněn."
+
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': msg})
+            messages.success(request, msg)
+            return redirect('player_site_app:nastaveni')
+
+        # ---------------------------------------------------------
+        # 4. ZMĚNA PŘIHLAŠOVACÍHO JMÉNA
+        # ---------------------------------------------------------
+        elif action == 'change_username':
+            new_username = request.POST.get('new_username', '').strip()
+
+            if not new_username:
+                err = "Přihlašovací jméno nesmí být prázdné."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err}, status=400)
+                messages.error(request, err)
+                return redirect('player_site_app:nastaveni')
+
+            # Kontrola kolize s jiným hráčem (nickname nebo User.username)
+            nickname_collision = Player.objects.filter(nickname__iexact=new_username).exclude(id=player.id).exists()
+            user_collision = User.objects.filter(username__iexact=new_username).exclude(id=player.user.id).exists()
+
+            if nickname_collision or user_collision:
+                err = f"Přihlašovací jméno „{new_username}“ je již obsazené jiným hráčem. Zvolte prosím jiné."
+                if is_ajax:
+                    return JsonResponse({'success': False, 'error': err}, status=400)
+                messages.error(request, err)
+                return redirect('player_site_app:nastaveni')
+
+            old_name = player.nickname or (player.user.username if player.user else "hrac")
+            player.nickname = new_username
+
+            # Synchronizace User.username pokud je validní pro Django User
+            clean_username = re.sub(r'[^\w.@+-]', '_', new_username) or "hrac"
+            if not User.objects.filter(username__iexact=clean_username).exclude(id=player.user.id).exists():
+                player.user.username = clean_username
+                player.user.save()
+
+            player.save()
+
+            log_player("Změna přihlašovacího jména", f"Hráč změnil přihlašovací jméno z '{old_name}' na '{new_username}'.")
+            msg = f"Přihlašovací jméno bylo úspěšně změněno na „{new_username}“."
+
+            if is_ajax:
+                return JsonResponse({'success': True, 'message': msg, 'new_username': new_username})
+            messages.success(request, msg)
+            return redirect('player_site_app:nastaveni')
+
+        else:
+            err = "Neznámá akce nastavení."
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': err}, status=400)
+            messages.error(request, err)
+            return redirect('player_site_app:nastaveni')
+
+    # GET požadavek: zobrazení nastavení
+    owned_icons = player.owned_avatar_icons
+    owned_frames = player.owned_frames
+    player_characters = player.characters.all() if player else []
+
+    return render(request, 'player_site_app/nastaveni.html', {
+        'current_page': 'nastaveni',
+        'player': player,
+        'character': character,
+        'characters': player_characters,
+        'owned_icons': owned_icons,
+        'owned_frames': owned_frames,
+        'active_frame': player.active_ramecek,
+    })
 
 

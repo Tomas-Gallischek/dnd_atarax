@@ -1,0 +1,528 @@
+{% extends "player_site_app/player_base.html" %}
+{% load static %}
+
+{% block title %}DnD Atarax - Nastavení{% endblock %}
+
+{% block player_content %}
+<!-- Hlavička stránky -->
+<div class="atarax-page-header">
+    <div class="atarax-header-title-group">
+        <h1><span>⚙️</span> Nastavení profilu a účtu</h1>
+        <p class="atarax-header-subtitle">Správa herního profilu, ikonky, rámečku a přihlašovacích údajů.</p>
+    </div>
+
+    <!-- Rychlé info o přihlášeném hráči -->
+    <div class="settings-player-badge">
+        <div class="settings-badge-avatar-wrap">
+            <img src="{% if character %}{{ character.profile_image_url }}{% else %}{{ player.active_icon_url|default:'/static/img/classes/ostatni.svg' }}{% endif %}" alt="Avatar" class="char-avatar char-avatar-sm">
+            {% if player.active_frame_url %}
+            <img src="{{ player.active_frame_url }}" alt="Rámeček" class="char-avatar-frame" aria-hidden="true">
+            {% endif %}
+        </div>
+        <div class="settings-badge-info">
+            <span class="settings-badge-label">Přihlášen jako:</span>
+            <strong class="settings-badge-name">{{ player.nickname|default:request.user.username }}</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Systémové zprávy -->
+{% if messages %}
+<div class="dm-messages-container" style="margin-bottom: 20px;">
+    {% for message in messages %}
+    <div class="atarax-alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Výběr aktivní postavy (pokud má hráč více postav) -->
+{% if characters and characters|length > 1 %}
+<div class="settings-char-switcher-bar">
+    <span class="settings-switcher-label">🎭 Upravujete postavu:</span>
+    <div class="settings-char-pills">
+        {% for c in characters %}
+        <a href="?char_id={{ c.id }}" class="settings-char-pill {% if character and character.id == c.id %}active{% endif %}">
+            <span class="settings-char-pill-avatar-wrap">
+                <img src="{{ c.profile_image_url }}" alt="" class="settings-char-pill-img">
+                {% if player.active_frame_url %}
+                <img src="{{ player.active_frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                {% endif %}
+            </span>
+            <span>{{ c.name }}</span>
+            <small>({{ c.character_class|default:"Dobrodruh" }})</small>
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Hlavní mřížka nastavení -->
+<div class="settings-dashboard-grid">
+
+    <!-- ======================================================================
+         1. KARTA: ZMĚNA PROFILOVÉ IKONKY
+         ====================================================================== -->
+    <div class="atarax-card settings-card" id="cardProfileIcon">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>🛡️</span> 1. Profilová ikonka
+            </h2>
+            {% if character %}
+            <span class="settings-card-subtitle">Postava: <strong>{{ character.name }}</strong></span>
+            {% endif %}
+        </div>
+
+        <div class="settings-card-body">
+            <!-- Aktuální náhled ikonky postavy -->
+            <div class="settings-current-preview-box">
+                <div class="char-avatar-wrap settings-avatar-large">
+                    <img src="{% if character %}{{ character.profile_image_url }}{% else %}{{ player.active_icon_url|default:'/static/img/classes/ostatni.svg' }}{% endif %}" alt="Náhled" class="char-avatar char-avatar-lg" id="settingsCurrentIconImg">
+                    {% if player.active_frame_url %}
+                    <img src="{{ player.active_frame_url }}" alt="Rámeček" class="char-avatar-frame" id="settingsCurrentFrameOnIcon" aria-hidden="true">
+                    {% endif %}
+                </div>
+                <div class="settings-preview-details">
+                    <div class="settings-preview-title">Aktuální profilová ikonka</div>
+                    <div class="settings-preview-badge-wrap">
+                        {% if character and character.active_icon %}
+                            <span class="badge badge-purple">🔮 Ikonka ze Shopu: {{ character.active_icon.item.name }}</span>
+                        {% elif character and character.has_custom_image %}
+                            <span class="badge badge-purple">🎨 Vlastní nahraná fotka</span>
+                        {% else %}
+                            <span class="badge badge-gold">⚔️ Výchozí symbol ({{ character.character_class|default:"Dobrodruh" }})</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigační záložky pro 3 možnosti změny ikonky -->
+            <div class="settings-subtabs-nav" role="tablist">
+                <button type="button" class="settings-subtab-btn active" id="tabBtnOwnedIcons" onclick="switchIconSubtab('owned_icons')">
+                    <span>🔮</span> Z vlastněných ikonek
+                </button>
+                <button type="button" class="settings-subtab-btn" id="tabBtnUploadPhoto" onclick="switchIconSubtab('upload_photo')">
+                    <span>📷</span> Nahrát vlastní fotku
+                </button>
+                <button type="button" class="settings-subtab-btn" id="tabBtnResetDefault" onclick="switchIconSubtab('reset_default')">
+                    <span>🔄</span> Výchozí symbol
+                </button>
+            </div>
+
+            <!-- Možnost A: Výběr z vlastněných ikonek -->
+            <div class="settings-subtab-pane active" id="paneOwnedIcons">
+                <p class="settings-section-desc">Vyberte si profilovou ikonku ze své sbírky získané z truhel v Dungeon Shopu:</p>
+                {% if owned_icons %}
+                    <form method="post" action="{% url 'player_site_app:nastaveni' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="change_icon">
+                        <input type="hidden" name="icon_type" value="owned_icon">
+                        {% if character %}<input type="hidden" name="char_id" value="{{ character.id }}">{% endif %}
+                        <input type="hidden" name="item_id" id="selectedOwnedIconId" value="{% if character and character.active_icon %}{{ character.active_icon.item.id }}{% endif %}">
+
+                        <div class="settings-items-grid">
+                            {% for owner in owned_icons %}
+                            <div class="settings-item-card {% if character and character.active_icon and character.active_icon.item.id == owner.item.id %}selected{% endif %}"
+                                 data-item-id="{{ owner.item.id }}"
+                                 onclick="selectOwnedIcon('{{ owner.item.id }}', '{% if owner.item.image %}{{ owner.item.image.url }}{% endif %}')"
+                                 role="button" tabindex="0">
+                                <div class="settings-item-img-wrap">
+                                    {% if owner.item.image %}
+                                    <img src="{{ owner.item.image.url }}" alt="{{ owner.item.name }}" class="settings-item-img">
+                                    {% else %}
+                                    <span class="settings-item-emoji">🔮</span>
+                                    {% endif %}
+                                </div>
+                                <div class="settings-item-name" title="{{ owner.item.name }}">{{ owner.item.name }}</div>
+                                <span class="shop-rarity-pill pill-{{ owner.item.rarity }}">{{ owner.item.get_rarity_display }}</span>
+                                {% if character and character.active_icon and character.active_icon.item.id == owner.item.id %}
+                                <div class="settings-item-active-tag">✓ Nasazeno</div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="settings-form-actions" style="margin-top: 16px;">
+                            <button type="submit" class="btn btn-purple" id="btnSubmitOwnedIcon">
+                                <span>🔮</span> Nastavit vybranou ikonku
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="settings-empty-box">
+                        <span class="settings-empty-icon">📦</span>
+                        <h4>Zatím nemáte žádné profilové ikonky</h4>
+                        <p>Ikonky můžete získat otevřením truhel v Dungeon Shopu za temnou esenci!</p>
+                        <a href="{% url 'player_site_app:dungeon_shop' %}" class="btn btn-sm btn-purple">
+                            <span>🛒</span> Otevřít Dungeon Shop
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Možnost B: Nahrát vlastní fotku -->
+            <div class="settings-subtab-pane" id="paneUploadPhoto" style="display: none;">
+                <p class="settings-section-desc">Nahrajte vlastní obrázek či fotku pro svého dobrodruha z počítače či mobilu:</p>
+                <form method="post" action="{% url 'player_site_app:nastaveni' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_icon">
+                    <input type="hidden" name="icon_type" value="upload">
+                    {% if character %}<input type="hidden" name="char_id" value="{{ character.id }}">{% endif %}
+
+                    <div class="avatar-dropzone settings-dropzone" id="settingsDropzone" onclick="document.getElementById('settingsFileInput').click()">
+                        <input type="file" id="settingsFileInput" name="image" accept=".jpg,.jpeg,.png,.webp,.gif,.svg,image/*" style="display: none;" onchange="handleSettingsFileSelect(this)">
+                        <div class="avatar-dropzone-inner">
+                            <span class="avatar-dropzone-icon">📷</span>
+                            <div class="avatar-dropzone-text">
+                                <strong>Klikněte pro výběr souboru</strong> nebo jej přetáhněte sem
+                            </div>
+                            <span class="avatar-dropzone-hint">
+                                Podporované formáty: JPG, PNG, WEBP, GIF, SVG (max. 5 MB)
+                            </span>
+                        </div>
+                    </div>
+
+                    <div id="settingsFileSelectedInfo" class="avatar-selected-file-info" style="display: none; margin-top: 10px;">
+                        <span class="avatar-file-name" id="settingsFileName">soubor.png</span>
+                        <span class="avatar-file-size" id="settingsFileSize">(1.2 MB)</span>
+                        <button type="button" class="btn-clear-file" onclick="clearSelectedSettingsFile()" title="Zrušit výběr">&times;</button>
+                    </div>
+
+                    <div class="settings-form-actions" style="margin-top: 16px;">
+                        <button type="submit" class="btn btn-gold" id="btnSubmitUploadPhoto">
+                            <span>💾</span> Uložit vlastní fotku
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Možnost C: Resetovat na defaultní ikonku -->
+            <div class="settings-subtab-pane" id="paneResetDefault" style="display: none;">
+                <p class="settings-section-desc">Obnoví oficiální výchozí symbol povolání postavy:</p>
+                <div class="settings-reset-card">
+                    <div class="settings-reset-icon-box">
+                        <img src="{% if character %}{{ character.default_class_image_url }}{% else %}/static/img/classes/ostatni.svg{% endif %}" alt="Výchozí ikona" class="settings-reset-img">
+                    </div>
+                    <div class="settings-reset-info">
+                        <h5>Výchozí symbol pro: {% if character %}{{ character.character_class|default:"Dobrodruh" }}{% else %}Dobrodruh{% endif %}</h5>
+                        <p>Pokud nechcete vlastní fotku ani ikonku ze shopu, postava bude reprezentována symbolem svého povolání.</p>
+                    </div>
+                </div>
+
+                <form method="post" action="{% url 'player_site_app:nastaveni' %}" style="margin-top: 16px;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_icon">
+                    <input type="hidden" name="icon_type" value="reset">
+                    {% if character %}<input type="hidden" name="char_id" value="{{ character.id }}">{% endif %}
+
+                    <div class="settings-form-actions">
+                        <button type="submit" class="btn btn-ruby">
+                            <span>🔄</span> Obnovit výchozí ikonku
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         2. KARTA: ZMĚNA PROFILOVÉHO RÁMEČKU
+         ====================================================================== -->
+    <div class="atarax-card settings-card" id="cardProfileFrame">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>🖼️</span> 2. Profilový rámeček
+            </h2>
+            <span class="settings-card-subtitle">Platí pro celý profil hráče</span>
+        </div>
+
+        <div class="settings-card-body">
+            <!-- Aktuální stav rámečku -->
+            <div class="settings-current-preview-box">
+                <div class="char-avatar-wrap settings-avatar-large">
+                    <img src="{% if character %}{{ character.profile_image_url }}{% else %}{{ player.active_icon_url|default:'/static/img/classes/ostatni.svg' }}{% endif %}" alt="Náhled" class="char-avatar char-avatar-lg">
+                    {% if player.active_frame_url %}
+                    <img src="{{ player.active_frame_url }}" alt="Rámeček" class="char-avatar-frame" id="settingsCurrentFramePreview" aria-hidden="true">
+                    {% endif %}
+                </div>
+                <div class="settings-preview-details">
+                    <div class="settings-preview-title">Aktivní profilový rámeček</div>
+                    <div class="settings-preview-badge-wrap">
+                        {% if player.active_ramecek %}
+                            <span class="badge badge-purple">✨ {{ player.active_ramecek.item.name }} ({{ player.active_ramecek.item.get_rarity_display }})</span>
+                        {% else %}
+                            <span class="badge badge-gray">Žádný rámeček (vypnuto)</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Možnost odebrat rámeček úplně -->
+            <div class="settings-frame-action-row" style="margin-bottom: 18px;">
+                <form method="post" action="{% url 'player_site_app:nastaveni' %}" style="display: inline-block;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="change_frame">
+                    <input type="hidden" name="frame_action" value="remove">
+                    <button type="submit" class="btn {% if not player.active_ramecek %}btn-outline-sapphire disabled{% else %}btn-outline-danger{% endif %}" {% if not player.active_ramecek %}disabled title="Rámeček již máte odebraný"{% endif %}>
+                        <span>✖</span> Odebrat rámeček úplně
+                    </button>
+                </form>
+                {% if not player.active_ramecek %}
+                <span class="settings-active-note" style="color: #94a3b8; font-size: 0.85rem;">(Aktuálně nemáte nasazen žádný rámeček)</span>
+                {% endif %}
+            </div>
+
+            <!-- Výběr z vlastněných rámečků -->
+            <h4 class="settings-subheading"><span>👑</span> Vlastněné rámečky z Dungeon Shopu:</h4>
+            {% if owned_frames %}
+                <div class="settings-items-grid">
+                    {% for owner in owned_frames %}
+                    <div class="settings-item-card frame-card {% if player.active_ramecek and player.active_ramecek.item.id == owner.item.id %}selected{% endif %}" id="frameCard-{{ owner.item.id }}">
+                        <div class="settings-frame-preview-inner">
+                            <img src="{% if character %}{{ character.profile_image_url }}{% else %}/static/img/classes/ostatni.svg{% endif %}" alt="" class="char-avatar char-avatar-sm" style="opacity: 0.6;">
+                            {% if owner.item.image %}
+                            <img src="{{ owner.item.image.url }}" alt="{{ owner.item.name }}" class="char-avatar-frame" aria-hidden="true">
+                            {% endif %}
+                        </div>
+                        <div class="settings-item-name" title="{{ owner.item.name }}">{{ owner.item.name }}</div>
+                        <span class="shop-rarity-pill pill-{{ owner.item.rarity }}">{{ owner.item.get_rarity_display }}</span>
+
+                        {% if player.active_ramecek and player.active_ramecek.item.id == owner.item.id %}
+                            <div class="settings-item-active-tag">✓ Nasazeno</div>
+                        {% else %}
+                            <form method="post" action="{% url 'player_site_app:nastaveni' %}" style="margin-top: 8px;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="change_frame">
+                                <input type="hidden" name="frame_action" value="equip">
+                                <input type="hidden" name="item_id" value="{{ owner.item.id }}">
+                                <button type="submit" class="btn btn-sm btn-gold" style="width: 100%;">
+                                    <span>🎭</span> Nasadit
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="settings-empty-box">
+                    <span class="settings-empty-icon">🖼️</span>
+                    <h4>Zatím nemáte žádné profilové rámečky</h4>
+                    <p>Rámečky můžete získat nákupem nebo z truhel v Dungeon Shopu!</p>
+                    <a href="{% url 'player_site_app:dungeon_shop' %}" class="btn btn-sm btn-purple">
+                        <span>🛒</span> Přejít do Dungeon Shopu
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         3. KARTA: ZMĚNA PŘIHLAŠOVACÍHO PIN KÓDU
+         ====================================================================== -->
+    <div class="atarax-card settings-card" id="cardLoginPin">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>🗝️</span> 3. Změna přihlašovacího PIN kódu
+            </h2>
+            <span class="settings-card-subtitle">Zabezpečení účtu</span>
+        </div>
+
+        <div class="settings-card-body">
+            <p class="settings-section-desc">
+                Tento PIN kód zadáváte při vstupu do hry pod svým profilem dobrodruha.
+                PIN kód může obsahovat <strong>neomezené množství znaků</strong> (číslice, písmena i speciální znaky).
+            </p>
+
+            <form method="post" action="{% url 'player_site_app:nastaveni' %}" class="settings-form" id="formChangePin">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="change_pin">
+
+                <div class="form-group mb-3">
+                    <label for="newPinInput" class="form-label">
+                        <span>🔒</span> Nový PIN kód:
+                    </label>
+                    <div class="pin-input-group">
+                        <input type="password" name="new_pin" id="newPinInput" class="form-control" placeholder="Zadejte nový PIN kód" autocomplete="new-password" required>
+                        <button type="button" class="pin-toggle-btn" onclick="togglePasswordVisibility('newPinInput', this)" title="Zobrazit / skrýt PIN" aria-label="Zobrazit PIN">
+                            👁️
+                        </button>
+                    </div>
+                    <small class="form-hint">Může mít libovolnou délku a kombinaci čísel i písmen.</small>
+                </div>
+
+                <div class="form-group mb-3">
+                    <label for="confirmPinInput" class="form-label">
+                        <span>🔁</span> Potvrzení nového PIN kódu:
+                    </label>
+                    <div class="pin-input-group">
+                        <input type="password" name="confirm_pin" id="confirmPinInput" class="form-control" placeholder="Zadejte nový PIN kód znovu" autocomplete="new-password" required>
+                        <button type="button" class="pin-toggle-btn" onclick="togglePasswordVisibility('confirmPinInput', this)" title="Zobrazit / skrýt PIN" aria-label="Zobrazit PIN">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+
+                <div class="settings-form-actions">
+                    <button type="submit" class="btn btn-gold" id="btnSubmitPin">
+                        <span>💾</span> Uložit nový PIN kód
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================================================================
+         4. KARTA: ZMĚNA PŘIHLAŠOVACÍHO JMÉNA
+         ====================================================================== -->
+    <div class="atarax-card settings-card" id="cardLoginUsername">
+        <div class="atarax-card-header">
+            <h2 class="atarax-card-title">
+                <span>👤</span> 4. Změna přihlašovacího jména
+            </h2>
+            <span class="settings-card-subtitle">Identita hráče</span>
+        </div>
+
+        <div class="settings-card-body">
+            <p class="settings-section-desc">
+                Přihlašovací jméno (přezdívka) je viditelné v nabídce výběru profilu na přihlašovací obrazovce a v celkovém přehledu hry.
+            </p>
+
+            <form method="post" action="{% url 'player_site_app:nastaveni' %}" class="settings-form" id="formChangeUsername">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="change_username">
+
+                <div class="form-group mb-3">
+                    <label for="newUsernameInput" class="form-label">
+                        <span>📝</span> Nové přihlašovací jméno:
+                    </label>
+                    <input type="text" name="new_username" id="newUsernameInput" class="form-control" value="{{ player.nickname|default:request.user.username }}" maxlength="100" required placeholder="Např. Geralt, Aragorn, Gandalf...">
+                    <small class="form-hint">Jméno musí být unikátní a nesmí být používáno jiným hráčem.</small>
+                </div>
+
+                <div class="settings-form-actions">
+                    <button type="submit" class="btn btn-gold" id="btnSubmitUsername">
+                        <span>💾</span> Uložit nové přihlašovací jméno
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<!-- JavaScript pro přepínání záložek ikonky a drag-and-drop náhledy -->
+<script>
+    function switchIconSubtab(tabName) {
+        const tabs = [
+            { id: 'owned_icons', btnId: 'tabBtnOwnedIcons', paneId: 'paneOwnedIcons' },
+            { id: 'upload_photo', btnId: 'tabBtnUploadPhoto', paneId: 'paneUploadPhoto' },
+            { id: 'reset_default', btnId: 'tabBtnResetDefault', paneId: 'paneResetDefault' },
+        ];
+
+        tabs.forEach(t => {
+            const btn = document.getElementById(t.btnId);
+            const pane = document.getElementById(t.paneId);
+            const isTarget = (t.id === tabName);
+            if (btn) btn.classList.toggle('active', isTarget);
+            if (pane) {
+                pane.style.display = isTarget ? 'block' : 'none';
+                pane.classList.toggle('active', isTarget);
+            }
+        });
+    }
+
+    function selectOwnedIcon(itemId, imgUrl) {
+        const input = document.getElementById('selectedOwnedIconId');
+        if (input) input.value = itemId;
+
+        document.querySelectorAll('#paneOwnedIcons .settings-item-card').forEach(c => {
+            c.classList.toggle('selected', c.dataset.itemId === String(itemId));
+        });
+
+        const currentImg = document.getElementById('settingsCurrentIconImg');
+        if (currentImg && imgUrl) {
+            currentImg.src = imgUrl;
+        }
+    }
+
+    function handleSettingsFileSelect(input) {
+        if (!input || !input.files || !input.files[0]) return;
+        const file = input.files[0];
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Vybraný soubor je příliš velký. Maximální povolená velikost je 5 MB.');
+            clearSelectedSettingsFile();
+            return;
+        }
+
+        const infoBox = document.getElementById('settingsFileSelectedInfo');
+        const nameEl = document.getElementById('settingsFileName');
+        const sizeEl = document.getElementById('settingsFileSize');
+        if (infoBox && nameEl && sizeEl) {
+            nameEl.textContent = file.name;
+            const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+            sizeEl.textContent = '(' + sizeMb + ' MB)';
+            infoBox.style.display = 'flex';
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const currentImg = document.getElementById('settingsCurrentIconImg');
+            if (currentImg) currentImg.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function clearSelectedSettingsFile() {
+        const fileInput = document.getElementById('settingsFileInput');
+        if (fileInput) fileInput.value = '';
+        const infoBox = document.getElementById('settingsFileSelectedInfo');
+        if (infoBox) infoBox.style.display = 'none';
+    }
+
+    function togglePasswordVisibility(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            btn.textContent = '🙈';
+        } else {
+            input.type = 'password';
+            btn.textContent = '👁️';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const dropzone = document.getElementById('settingsDropzone');
+        const fileInput = document.getElementById('settingsFileInput');
+
+        if (dropzone && fileInput) {
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.add('drag-over');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.remove('drag-over');
+                }, false);
+            });
+
+            dropzone.addEventListener('drop', function(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length) {
+                    fileInput.files = files;
+                    handleSettingsFileSelect(fileInput);
+                }
+            }, false);
+        }
+    });
+</script>
+{% endblock %}

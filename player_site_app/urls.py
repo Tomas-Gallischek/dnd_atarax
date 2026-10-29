@@ -66,4 +66,7 @@ urlpatterns = [
     path('reforge_treasure/', views.reforge_treasure, name='reforge_treasure'),
     path('equip_frame/', views.equip_frame, name='equip_frame'),
     path('equip_icon/', views.equip_icon, name='equip_icon'),
+
+    # 11. Nastavení hráče (nastaveni.html)
+    path('nastaveni/', views.nastaveni_view, name='nastaveni'),
 ]

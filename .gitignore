@@ -8,6 +8,7 @@ __pycache__/
 staticfiles/
 media/characters/*
 media/npcs/*
+media/esence_items/*
 .vscode/
 .idea/
 *.swp

@@ -79,9 +79,6 @@
                             id="pinInput"
                             class="pin-large-input"
                             placeholder="Zadejte PIN"
-                            inputmode="numeric"
-                            pattern="[0-9]*"
-                            maxlength="100"
                             autocomplete="off"
                             required
                             {% if is_locked_out or attempts_left <= 0 %}disabled{% endif %}
