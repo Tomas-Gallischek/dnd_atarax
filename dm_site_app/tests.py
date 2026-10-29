@@ -729,4 +729,120 @@ class DMPlayerInventoryManagementTests(TestCase):
         self.assertEqual(self.character.hit_points_current, 40)
 
 
+class DMSpellSlotsManagementTests(TestCase):
+    def setUp(self):
+        self.player_user = User.objects.create_user(username='hrac_sloty', password='password123')
+        self.player = Player.objects.create(user=self.player_user, nickname='KouzelnikHrac')
+        self.dm_user = User.objects.create_user(username='dm_arcane', password='password123', is_staff=True)
+        self.character = Char_info.objects.create(
+            player=self.player,
+            name='Kaelen',
+            character_class='Kouzelník',
+            level=5,
+        )
+        from player_site_app.models import CharacterSpellSlot
+        self.slot1 = CharacterSpellSlot.objects.create(
+            character=self.character,
+            level=1,
+            max_slots=4,
+            current_slots=2
+        )
+        self.slot2 = CharacterSpellSlot.objects.create(
+            character=self.character,
+            level=2,
+            max_slots=3,
+            current_slots=3
+        )
+
+    def test_spell_slots_page_permissions(self):
+        """Stránka správy pozic pro kouzla je dostupná pouze pro DM (staff)."""
+        url = reverse('dm_site_app:spell_slots_management')
+
+        # 1. Nepřihlášený -> redirect
+        res_anon = self.client.get(url)
+        self.assertEqual(res_anon.status_code, 302)
+
+        # 2. Hráč bez staff -> redirect
+        self.client.force_login(self.player_user)
+        res_player = self.client.get(url)
+        self.assertEqual(res_player.status_code, 302)
+
+        # 3. DM -> 200 a správná šablona
+        self.client.force_login(self.dm_user)
+        res_dm = self.client.get(url)
+        self.assertEqual(res_dm.status_code, 200)
+        self.assertTemplateUsed(res_dm, 'dm_site_app/spell_slots_management.html')
+        self.assertContains(res_dm, 'Správa pozic pro kouzla')
+        self.assertContains(res_dm, 'Kaelen')
+
+    def test_modify_spell_slots_actions_plus_and_minus(self):
+        """DM může zvýšit a snížit počet aktuálních pozic pro kouzla (i přes AJAX)."""
+        self.client.force_login(self.dm_user)
+        url = reverse('dm_site_app:modify_spell_slots')
+
+        # 1. Plus (2 -> 3)
+        res_plus = self.client.post(url, {
+            'action': 'plus',
+            'slot_id': self.slot1.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_plus.status_code, 200)
+        data = res_plus.json()
+        self.assertEqual(data['status'], 'ok')
+        self.assertEqual(data['current_slots'], 3)
+        self.slot1.refresh_from_db()
+        self.assertEqual(self.slot1.current_slots, 3)
+
+        # 2. Minus (3 -> 2)
+        res_minus = self.client.post(url, {
+            'action': 'minus',
+            'slot_id': self.slot1.id,
+            'ajax': '1',
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_minus.status_code, 200)
+        data_minus = res_minus.json()
+        self.assertEqual(data_minus['status'], 'ok')
+        self.assertEqual(data_minus['current_slots'], 2)
+        self.slot1.refresh_from_db()
+        self.assertEqual(self.slot1.current_slots, 2)
+
+    def test_modify_spell_slots_restore_all_and_crud(self):
+        """DM může obnovit všechny pozice na maximum, nastavit slot a smazat slot."""
+        self.client.force_login(self.dm_user)
+        url = reverse('dm_site_app:modify_spell_slots')
+
+        # 1. Obnova všech pozic na maximum (Dlouhý odpočinek)
+        res_restore = self.client.post(url, {
+            'action': 'restore_all',
+            'character_id': self.character.id,
+        })
+        self.assertEqual(res_restore.status_code, 302)
+        self.slot1.refresh_from_db()
+        self.assertEqual(self.slot1.current_slots, 4)
+
+        # 2. Vytvoření/nastavení nového slotu (úroveň 3, max 2)
+        res_set = self.client.post(url, {
+            'action': 'set_slot',
+            'character_id': self.character.id,
+            'level': '3',
+            'max_slots': '2',
+            'current_slots': '2',
+        })
+        self.assertEqual(res_set.status_code, 302)
+        from player_site_app.models import CharacterSpellSlot
+        slot3 = CharacterSpellSlot.objects.filter(character=self.character, level=3).first()
+        self.assertIsNotNone(slot3)
+        self.assertEqual(slot3.max_slots, 2)
+        self.assertEqual(slot3.current_slots, 2)
+
+        # 3. Smazání slotu
+        res_delete = self.client.post(url, {
+            'action': 'delete_slot',
+            'slot_id': slot3.id,
+        })
+        self.assertEqual(res_delete.status_code, 302)
+        self.assertFalse(CharacterSpellSlot.objects.filter(id=slot3.id).exists())
+
+
+
 

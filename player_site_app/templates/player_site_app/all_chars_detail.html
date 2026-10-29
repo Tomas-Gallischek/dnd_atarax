@@ -72,16 +72,50 @@
         <div class="stat-sub">Obranné číslo</div>
     </div>
 
-    <div class="combat-stat-pill stat-hp">
-        <div class="stat-label">Životy (HP)</div>
-        <div class="stat-value">{{ target_char.hit_points_max }}</div>
-        <div class="stat-sub">Maximální vitalita</div>
+    <div class="combat-stat-pill stat-init">
+        <div class="stat-label">Iniciativa</div>
+        <div class="stat-value">{{ target_char.initiative_display }}</div>
+        <div class="stat-sub">Pořadí v kole</div>
     </div>
 
     <div class="combat-stat-pill stat-speed">
         <div class="stat-label">Rychlost pohybu</div>
         <div class="stat-value">{{ target_char.speed }}</div>
         <div class="stat-sub">stop / kolo</div>
+    </div>
+
+    <div class="combat-stat-pill stat-hp">
+        <div class="stat-label">Životy (HP)</div>
+        <div class="stat-value">{{ target_char.hit_points_max }}</div>
+        <div class="stat-sub">Maximální vitalita</div>
+    </div>
+
+    <div class="combat-stat-pill stat-hitdice">
+        <div class="stat-label">Kostka životů</div>
+        <div class="stat-value">{{ target_char.hit_dice|default:"1d8" }}</div>
+        <div class="stat-sub">Obnova vitality</div>
+    </div>
+</div>
+
+<!-- Doplňkové statistiky: Zdatnost, Pasivní vnímání, Inspirace -->
+<div class="hero-substats-row mt-2" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.75rem;">
+    <div class="hero-substat-box" style="flex: 1 1 200px; background: var(--bg-card-elevated, rgba(255, 255, 255, 0.03)); border: 1px solid var(--border-card, rgba(255, 255, 255, 0.08)); border-radius: var(--radius-md, 8px); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 0.9rem; color: #94a3b8;">🎓 Zdatnostní bonus:</span>
+        <span class="badge badge-sapphire" style="font-size: 1.05rem; font-weight: 700;">{{ target_char.proficiency_bonus_display }}</span>
+    </div>
+
+    <div class="hero-substat-box" style="flex: 1 1 200px; background: var(--bg-card-elevated, rgba(255, 255, 255, 0.03)); border: 1px solid var(--border-card, rgba(255, 255, 255, 0.08)); border-radius: var(--radius-md, 8px); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 0.9rem; color: #94a3b8;">👁️ Pasivní moudrost (vnímání):</span>
+        <span class="badge badge-sapphire" style="font-size: 1.05rem; font-weight: 700;">{{ target_char.passive_perception }}</span>
+    </div>
+
+    <div class="hero-substat-box" style="flex: 1 1 200px; background: var(--bg-card-elevated, rgba(255, 255, 255, 0.03)); border: 1px solid var(--border-card, rgba(255, 255, 255, 0.08)); border-radius: var(--radius-md, 8px); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 0.9rem; color: #94a3b8;">✨ Inspirace:</span>
+        {% if target_char.inspiration %}
+        <span class="badge badge-gold" style="font-size: 0.95rem; font-weight: 700;">⭐ Aktivní (Ano)</span>
+        {% else %}
+        <span class="badge" style="background: rgba(255, 255, 255, 0.08); color: #94a3b8; font-size: 0.9rem;">Neaktivní (Ne)</span>
+        {% endif %}
     </div>
 </div>
 
@@ -174,7 +208,126 @@
     </section>
 </div>
 
-<!-- 4. Úspěchy hrdiny (Achievements) -->
+<!-- 4. Záchranné hody & Dovednosti (vypsány pouze zdatnosti postavy) -->
+<div class="grid-2 mt-3">
+    <!-- Záchranné hody -->
+    <section class="atarax-card">
+        <div class="atarax-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="atarax-card-title">
+                <span>🎯</span> Záchranné hody
+            </h2>
+            <span class="badge badge-sapphire">{{ target_char.saving_throws_list|length }} aktivní</span>
+        </div>
+        <div class="saves-skills-wrap" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0;">
+            {% for save in target_char.saving_throws_list %}
+                <span class="badge badge-sapphire" style="font-size: 0.92rem; padding: 6px 12px;">
+                    🛡️ {{ save }}
+                </span>
+            {% empty %}
+                <p class="text-muted" style="margin: 0; font-size: 0.88rem; color: #94a3b8;">Žádné vybrané záchranné hody se zdatností.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Dovednosti -->
+    <section class="atarax-card">
+        <div class="atarax-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="atarax-card-title">
+                <span>⭐</span> Dovednosti
+            </h2>
+            <span class="badge badge-gold">{{ target_char.skills_list|length }} aktivní</span>
+        </div>
+        <div class="saves-skills-wrap" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0;">
+            {% for sk in target_char.skills_list %}
+                <span class="badge badge-gold" style="font-size: 0.92rem; padding: 6px 12px;">
+                    ✨ {{ sk }}
+                </span>
+            {% empty %}
+                <p class="text-muted" style="margin: 0; font-size: 0.88rem; color: #94a3b8;">Žádné vybrané dovednosti se zdatností.</p>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<!-- 5. Volné pozice pro kouzla (Spell Sloty) -->
+<section class="atarax-card mt-3">
+    <div class="atarax-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <h2 class="atarax-card-title">
+            <span>🔮</span> Volné pozice pro kouzla (Spell Sloty)
+        </h2>
+        {% if is_dm %}
+        <a href="{% url 'dm_site_app:spell_slots_management' %}" class="btn btn-gold btn-sm" target="_blank">
+            <span>👑</span> DM Správa slotů &rarr;
+        </a>
+        {% endif %}
+    </div>
+
+    {% if target_char.spell_slots.all %}
+        <div class="spell-slots-overview-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-top: 6px;">
+            {% for slot in target_char.spell_slots.all %}
+            <div class="slot-display-box" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 14px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span class="badge badge-sapphire" style="font-size: 0.85rem; font-weight: 700;">{{ slot.level }}. úroveň</span>
+                    <span style="font-weight: 800; font-size: 1.15rem; color: #38bdf8;">
+                        {{ slot.current_slots }} <span style="font-size: 0.85rem; color: #94a3b8; font-weight: 400;">/ {{ slot.max_slots }}</span>
+                    </span>
+                </div>
+                <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+                    {% for i in "x"|rjust:slot.max_slots %}
+                        {% if forloop.counter <= slot.current_slots %}
+                            <span style="display: inline-block; width: 13px; height: 13px; border-radius: 50%; background: #38bdf8; box-shadow: 0 0 7px rgba(56, 189, 248, 0.6);" title="Volná pozice"></span>
+                        {% else %}
+                            <span style="display: inline-block; width: 13px; height: 13px; border-radius: 50%; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25);" title="Vyčerpaná pozice"></span>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state-small" style="padding: 14px 18px; background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 6px; color: #94a3b8; font-size: 0.9rem;">
+            Postava nemá zapsané žádné pozice pro kouzla.
+        </div>
+    {% endif %}
+</section>
+
+<!-- 6. Schopnosti a rysy (Features & Traits) -->
+<section class="atarax-card mt-3">
+    <div class="atarax-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 class="atarax-card-title">
+            <span>⚡</span> Schopnosti a rysy postavy
+        </h2>
+        <span class="badge badge-purple">{{ target_char.features.all|length }} celkem</span>
+    </div>
+
+    {% if target_char.features.all %}
+        <div class="features-list-grid" style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
+            {% for feat in target_char.features.all %}
+            <div class="feature-item-card" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 12px 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 8px;">
+                    <h3 style="margin: 0; font-size: 1.05rem; color: #fef08a; font-weight: 700;">
+                        {{ feat.title }}
+                    </h3>
+                    {% if feat.source %}
+                    <span class="badge badge-purple" style="font-size: 0.8rem;">
+                        {{ feat.source }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div style="color: #cbd5e1; font-size: 0.92rem; line-height: 1.5; white-space: pre-line;">
+                    {{ feat.description }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state-small" style="padding: 14px 18px; background: rgba(255, 255, 255, 0.02); border: 1px dashed rgba(255, 255, 255, 0.08); border-radius: 6px; color: #94a3b8; font-size: 0.9rem;">
+            Zatím nebyly přiřazeny žádné specifické schopnosti ani rysy.
+        </div>
+    {% endif %}
+</section>
+
+<!-- 7. Úspěchy hrdiny (Achievements) -->
 {% if achievements %}
 <section class="atarax-card mt-3">
     <div class="atarax-card-header">

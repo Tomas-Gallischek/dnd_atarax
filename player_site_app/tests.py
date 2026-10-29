@@ -3,7 +3,10 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from dm_site_app.models import OverAllSettings, Items_Active
-from .models import Player, Char_info, Esence_Items_Shop, Esence_Items_Owners, Logs, Achivements_database, Achivements_players
+from .models import (
+    Player, Char_info, Esence_Items_Shop, Esence_Items_Owners, Logs,
+    Achivements_database, Achivements_players, CharacterSpellSlot, CharacterFeature
+)
 
 
 class PlayerAuthAndCharacterTests(TestCase):
@@ -1738,3 +1741,160 @@ class PlayerSettingsTests(TestCase):
         self.assertEqual(res_ok.status_code, 302)
         self.player.refresh_from_db()
         self.assertEqual(self.player.nickname, 'NovyHrdinaAtarax')
+
+
+class CharacterSheetUpdatesTests(TestCase):
+    def setUp(self):
+        OverAllSettings.objects.get_or_create(id=1, defaults={'loging_active': True, 'editing_active': True})
+        self.user = User.objects.create_user(username='sheet_user', password='password123')
+        self.player = Player.objects.create(user=self.user, nickname='SheetHero', pin_code='1234')
+        self.char = Char_info.objects.create(
+            player=self.player,
+            name='Arthur Pendragon',
+            character_class='Paladin',
+            level=3,
+            hit_points_max=28,
+            hit_points_current=28,
+            armor_class=18,
+            initiative=2,
+            inspiration=True,
+            proficiency_bonus=2,
+            passive_perception=13,
+            hit_dice='1d10',
+            saving_throws=['Moudrost', 'Charisma'],
+            skills=['Atletika', 'Vhled', 'Přesvědčování']
+        )
+        self.slot1 = CharacterSpellSlot.objects.create(
+            character=self.char,
+            level=1,
+            max_slots=3,
+            current_slots=2
+        )
+        self.feature1 = CharacterFeature.objects.create(
+            character=self.char,
+            title='Božský smysl (Divine Sense)',
+            description='Dokáže vycítit přítomnost nebeských bytostí, běsů nebo nemrtvých.',
+            source='Třída - Paladin 1. úroveň'
+        )
+
+    def test_char_info_fields_and_display_properties(self):
+        """Ověření nových polí a display properties na modelu Char_info."""
+        self.assertEqual(self.char.initiative, 2)
+        self.assertEqual(self.char.initiative_display, '+2')
+        self.assertTrue(self.char.inspiration)
+        self.assertEqual(self.char.inspiration_display, 'Ano')
+        self.assertEqual(self.char.proficiency_bonus, 2)
+        self.assertEqual(self.char.proficiency_bonus_display, '+2')
+        self.assertEqual(self.char.passive_perception, 13)
+        self.assertEqual(self.char.hit_dice, '1d10')
+
+        # Záporná iniciativa a bonus
+        self.char.initiative = -1
+        self.char.proficiency_bonus = -2
+        self.char.inspiration = False
+        self.assertEqual(self.char.initiative_display, '-1')
+        self.assertEqual(self.char.proficiency_bonus_display, '-2')
+        self.assertEqual(self.char.inspiration_display, 'Ne')
+
+        # Seznam záchranných hodů
+        saves = self.char.saving_throws_list
+        self.assertIn('Moudrost', saves)
+        self.assertIn('Charisma', saves)
+        self.assertNotIn('Síla', saves)
+
+        # Seznam dovedností
+        skills = self.char.skills_list
+        self.assertIn('Atletika', skills)
+        self.assertIn('Vhled', skills)
+        self.assertIn('Přesvědčování', skills)
+        self.assertNotIn('Nenápadnost', skills)
+
+    def test_character_spell_slot_model(self):
+        """Ověření modelu CharacterSpellSlot a property used_slots."""
+        self.assertEqual(self.slot1.character, self.char)
+        self.assertEqual(self.slot1.level, 1)
+        self.assertEqual(self.slot1.max_slots, 3)
+        self.assertEqual(self.slot1.current_slots, 2)
+        self.assertEqual(self.slot1.used_slots, 1)
+        self.assertIn('Úroveň 1', str(self.slot1))
+
+    def test_character_feature_model(self):
+        """Ověření modelu CharacterFeature."""
+        self.assertEqual(self.feature1.character, self.char)
+        self.assertEqual(self.feature1.title, 'Božský smysl (Divine Sense)')
+        self.assertIn('Božský smysl', str(self.feature1))
+
+    def test_char_admin_form_multi_select(self):
+        """CharInfoAdminForm správně zpracovává vícenásobný výběr záchran a dovedností."""
+        from player_site_app.admin import CharInfoAdminForm
+        form_data = {
+            'player': self.player.id,
+            'name': 'Lancelot',
+            'level': 1,
+            'character_class': 'Bojovník',
+            'experience_points': 0,
+            'speed': 30,
+            'strength': 16,
+            'dexterity': 12,
+            'constitution': 14,
+            'intelligence': 10,
+            'wisdom': 12,
+            'charisma': 8,
+            'hit_points_max': 12,
+            'hit_points_current': 12,
+            'armor_class': 16,
+            'initiative': 1,
+            'inspiration': False,
+            'proficiency_bonus': 2,
+            'passive_perception': 11,
+            'hit_dice': '1d10',
+            'saving_throws': ['Síla', 'Odolnost'],
+            'skills': ['Atletika', 'Zastrašování'],
+            'gold': 0,
+            'silver': 0,
+            'copper': 0,
+            'platinum': 0,
+            'electrum': 0,
+            'temna_esence': 0,
+        }
+        form = CharInfoAdminForm(data=form_data)
+        self.assertTrue(form.is_valid(), form.errors)
+        obj = form.save()
+        self.assertEqual(obj.saving_throws, ['Síla', 'Odolnost'])
+        self.assertEqual(obj.skills, ['Atletika', 'Zastrašování'])
+
+    def test_character_overview_renders_new_attributes(self):
+        """Přehled postavy obsahuje všech 9 nově požadovaných prvků."""
+        self.client.login(username='sheet_user', password='password123')
+        resp = self.client.get(reverse('player_site_app:char_overview', args=[self.char.id]))
+        self.assertEqual(resp.status_code, 200)
+
+        # 1. Iniciativa
+        self.assertContains(resp, 'Iniciativa')
+        self.assertContains(resp, '+2')
+        # 2. Inspirace
+        self.assertContains(resp, 'Inspirace')
+        # 3. Zdatnostní bonus
+        self.assertContains(resp, 'Zdatnostní bonus')
+        # 4. Pasivní vnímání
+        self.assertContains(resp, 'Pasivní vnímání')
+        self.assertContains(resp, '13')
+        # 5. Kostka životů
+        self.assertContains(resp, 'Kostka životů')
+        self.assertContains(resp, '1d10')
+        # 6. Záchranné hody
+        self.assertContains(resp, 'Záchranné hody')
+        self.assertContains(resp, 'Moudrost')
+        self.assertContains(resp, 'Charisma')
+        # 7. Dovednosti
+        self.assertContains(resp, 'Dovednosti')
+        self.assertContains(resp, 'Atletika')
+        self.assertContains(resp, 'Vhled')
+        self.assertContains(resp, 'Přesvědčování')
+        # 8. Pozice pro kouzla
+        self.assertContains(resp, 'Volné pozice pro kouzla')
+        self.assertContains(resp, '1. úroveň')
+        # 9. Schopnosti a rysy
+        self.assertContains(resp, 'Schopnosti a rysy')
+        self.assertContains(resp, 'Božský smysl (Divine Sense)')
+

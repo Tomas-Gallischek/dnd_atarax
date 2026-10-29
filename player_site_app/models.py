@@ -194,6 +194,36 @@ class Char_info(models.Model):
         ("Ostatní", "Ostatní"),
     )
 
+    saving_throw_choices = (
+        ("Síla", "Síla (STR)"),
+        ("Obratnost", "Obratnost (DEX)"),
+        ("Odolnost", "Odolnost (CON)"),
+        ("Inteligence", "Inteligence (INT)"),
+        ("Moudrost", "Moudrost (WIS)"),
+        ("Charisma", "Charisma (CHA)"),
+    )
+
+    skill_choices = (
+        ("Akrobacie", "Akrobacie (OBR)"),
+        ("Atletika", "Atletika (SIL)"),
+        ("Historie", "Historie (INT)"),
+        ("Hbitost rukou", "Hbitost rukou (OBR)"),
+        ("Klamání", "Klamání (CHA)"),
+        ("Lékařství", "Lékařství (MDR)"),
+        ("Mystika", "Mystika (INT)"),
+        ("Náboženství", "Náboženství (INT)"),
+        ("Nenápadnost", "Nenápadnost (OBR)"),
+        ("Ovládání zvířat", "Ovládání zvířat (MDR)"),
+        ("Pátrání", "Pátrání (INT)"),
+        ("Přesvědčování", "Přesvědčování (CHA)"),
+        ("Přežití", "Přežití (MDR)"),
+        ("Příroda", "Příroda (INT)"),
+        ("Vhled", "Vhled (MDR)"),
+        ("Vnímání", "Vnímání (MDR)"),
+        ("Vystupování", "Vystupování (CHA)"),
+        ("Zastrašování", "Zastrašování (CHA)"),
+    )
+
     player = models.ForeignKey(
         Player,
         on_delete=models.CASCADE,
@@ -234,11 +264,18 @@ class Char_info(models.Model):
     total_golds = models.FloatField(default=0, verbose_name="Celkové zlaťáky - EVER", blank=True, null=True)
     
 
-    # Bojové statistiky & Životy
+    # Bojové statistiky & Životy (Deník hrdiny)
     armor_class = models.IntegerField(default=10, verbose_name="Třída zbroje (AC)")
     hit_points_max = models.IntegerField(default=10, verbose_name="Maximální životy")
     hit_points_current = models.IntegerField(default=10, verbose_name="Současné životy")
     speed = models.IntegerField(default=30, verbose_name="Rychlost (stopy)")
+    initiative = models.IntegerField(default=0, verbose_name="Iniciativa")
+    inspiration = models.BooleanField(default=False, verbose_name="Inspirace")
+    proficiency_bonus = models.IntegerField(default=2, verbose_name="Zdatnostní bonus")
+    passive_perception = models.IntegerField(default=10, verbose_name="Pasivní moudrost (vnímání)")
+    hit_dice = models.CharField(max_length=50, default="1d8", blank=True, null=True, verbose_name="Kostka životů")
+    saving_throws = models.JSONField(default=list, blank=True, verbose_name="Záchranné hody")
+    skills = models.JSONField(default=list, blank=True, verbose_name="Dovednosti")
 
     # Základní vlastnosti (Ability Scores)
     strength = models.IntegerField(default=10, verbose_name="Síla (STR)")
@@ -409,6 +446,34 @@ class Char_info(models.Model):
         if self.hit_points_current is not None:
             return self.hit_points_current
         return self.max_hp
+
+    @property
+    def initiative_display(self):
+        return f"+{self.initiative}" if self.initiative >= 0 else str(self.initiative)
+
+    @property
+    def inspiration_display(self):
+        return "Ano" if self.inspiration else "Ne"
+
+    @property
+    def proficiency_bonus_display(self):
+        return f"+{self.proficiency_bonus}" if self.proficiency_bonus >= 0 else str(self.proficiency_bonus)
+
+    @property
+    def saving_throws_list(self):
+        if isinstance(self.saving_throws, list):
+            return self.saving_throws
+        if isinstance(self.saving_throws, str) and self.saving_throws:
+            return [s.strip() for s in self.saving_throws.split(',') if s.strip()]
+        return []
+
+    @property
+    def skills_list(self):
+        if isinstance(self.skills, list):
+            return self.skills
+        if isinstance(self.skills, str) and self.skills:
+            return [s.strip() for s in self.skills.split(',') if s.strip()]
+        return []
 
 # DATABÁZE EXISTUJÍCÍCH ACHIVEMENTŮ
 class Achivements_database(models.Model):
@@ -756,5 +821,47 @@ class CharBackstory(models.Model):
         return f"{self.character.name} - {self.title} [{status}] ({self.player})"
 
 
-    
-        
+class CharacterSpellSlot(models.Model):
+    character = models.ForeignKey(
+        Char_info,
+        on_delete=models.CASCADE,
+        related_name='spell_slots',
+        verbose_name="Postava"
+    )
+    level = models.IntegerField(default=1, verbose_name="Úroveň kouzla (1–9)")
+    current_slots = models.IntegerField(default=0, verbose_name="Volné pozice")
+    max_slots = models.IntegerField(default=0, verbose_name="Maximální pozice")
+
+    class Meta:
+        verbose_name = "Pozice pro kouzla"
+        verbose_name_plural = "Pozice pro kouzla"
+        ordering = ['level']
+        unique_together = ('character', 'level')
+
+    def __str__(self):
+        return f"{self.character.name} - Úroveň {self.level}: {self.current_slots}/{self.max_slots}"
+
+    @property
+    def used_slots(self):
+        return max(0, self.max_slots - self.current_slots)
+
+
+class CharacterFeature(models.Model):
+    character = models.ForeignKey(
+        Char_info,
+        on_delete=models.CASCADE,
+        related_name='features',
+        verbose_name="Postava"
+    )
+    title = models.CharField(max_length=200, verbose_name="Název schopnosti / rysu")
+    description = models.TextField(verbose_name="Popis schopnosti nebo rysu")
+    source = models.CharField(max_length=100, blank=True, null=True, verbose_name="Zdroj (povolání, rasa, zázemí, apod.)")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
+
+    class Meta:
+        verbose_name = "Schopnost a rys postavy"
+        verbose_name_plural = "Schopnosti a rysy postav"
+        ordering = ['title']
+
+    def __str__(self):
+        return f"{self.character.name} - {self.title}"

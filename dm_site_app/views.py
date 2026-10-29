@@ -10,7 +10,10 @@ from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import Locations, Npc, Monsters_All_db, Monsters_Active, Items_All_db, Items_Active, Kronika, DmNote
-from player_site_app.models import Player, Char_info, Logs, Achivements_database, Achivements_players
+from player_site_app.models import (
+    Player, Char_info, Logs, Achivements_database, Achivements_players,
+    CharacterSpellSlot, CharacterFeature
+)
 from player_site_app.achivements import zbohatlik_ach, smrtici_stroj_ach
 from dnd_atarax.terminal import (
     log_dm, log_arena, log_hp, log_mob, log_player,
@@ -1867,5 +1870,174 @@ def dm_edit_achievement_template(request, template_id):
     log_dm(f"DM upravil šablonu úspěchu '{name}' (ID: {template.id})")
     messages.success(request, f"Šablona úspěchu „{name}“ byla úspěšně aktualizována!")
     return redirect(reverse('dm_site_app:achievements_management') + "?tab=templates")
+
+
+# ==========================================
+# 8. SPRÁVA POZIC PRO KOUZLA (SPELL SLOTS)
+# ==========================================
+
+@dm_required
+def spell_slots_management(request):
+    """8. Správa volných pozic pro kouzla (Spell Sloty) jednotlivých postav."""
+    all_chars = Char_info.objects.select_related('player', 'player__user').prefetch_related('spell_slots').order_by('name')
+    context = {
+        'all_chars': all_chars,
+        'current_page': 'spell_slots_management',
+    }
+    return render(request, 'dm_site_app/spell_slots_management.html', context)
+
+
+@dm_required
+def modify_spell_slots(request):
+    """
+    Rychlé přidávání a odebírání volných pozic pro kouzla nebo nastavení maximálních pozic.
+    Podporuje akce:
+    - plus: přidá 1 volnou pozici pro daný level
+    - minus: ubere 1 volnou pozici pro daný level
+    - restore_all: obnoví všechny volné pozice na maximum (dlouhý odpočinek)
+    - set_slot: vytvoří nebo upraví úroveň slotu (max_slots, current_slots)
+    - delete_slot: smaže daný slot
+    """
+    if request.method != 'POST':
+        return redirect('dm_site_app:spell_slots_management')
+
+    is_ajax = (
+        request.headers.get('x-requested-with') == 'XMLHttpRequest' or
+        'application/json' in request.headers.get('Accept', '') or
+        request.POST.get('ajax') == '1'
+    )
+
+    action = request.POST.get('action')
+    char_id = request.POST.get('char_id') or request.POST.get('character_id')
+    slot_id = request.POST.get('slot_id')
+
+    if not char_id and not slot_id:
+        if is_ajax:
+            return JsonResponse({'success': False, 'status': 'error', 'error': 'Chybí identifikátor postavy nebo slotu.'}, status=400)
+        messages.error(request, "Chybí identifikátor postavy nebo slotu.")
+        return redirect('dm_site_app:spell_slots_management')
+
+    if slot_id:
+        slot = get_object_or_404(CharacterSpellSlot, id=slot_id)
+        char = slot.character
+    else:
+        char = get_object_or_404(Char_info, id=char_id)
+        slot = None
+
+    if action == 'plus':
+        if not slot:
+            try:
+                level = int(request.POST.get('level', 1))
+            except (ValueError, TypeError):
+                level = 1
+            slot, _ = CharacterSpellSlot.objects.get_or_create(character=char, level=level, defaults={'current_slots': 0, 'max_slots': 0})
+
+        if slot.max_slots > 0:
+            slot.current_slots = min(slot.max_slots, slot.current_slots + 1)
+        else:
+            slot.current_slots += 1
+        slot.save()
+        log_dm(f"DM přidal volnou pozici pro kouzlo ({slot.level}. úroveň) postavě {char.name}: {slot.current_slots}/{slot.max_slots}")
+
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'status': 'ok',
+                'char_id': char.id,
+                'slot_id': slot.id,
+                'level': slot.level,
+                'current_slots': slot.current_slots,
+                'max_slots': slot.max_slots,
+            })
+        messages.success(request, f"Přidána 1 volná pozice {slot.level}. úrovně pro postavu {char.name} ({slot.current_slots}/{slot.max_slots}).")
+
+    elif action == 'minus':
+        if not slot:
+            try:
+                level = int(request.POST.get('level', 1))
+            except (ValueError, TypeError):
+                level = 1
+            slot, _ = CharacterSpellSlot.objects.get_or_create(character=char, level=level, defaults={'current_slots': 0, 'max_slots': 0})
+
+        slot.current_slots = max(0, slot.current_slots - 1)
+        slot.save()
+        log_dm(f"DM odebral volnou pozici pro kouzlo ({slot.level}. úroveň) postavě {char.name}: {slot.current_slots}/{slot.max_slots}")
+
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'status': 'ok',
+                'char_id': char.id,
+                'slot_id': slot.id,
+                'level': slot.level,
+                'current_slots': slot.current_slots,
+                'max_slots': slot.max_slots,
+            })
+        messages.success(request, f"Odebrána 1 volná pozice {slot.level}. úrovně pro postavu {char.name} ({slot.current_slots}/{slot.max_slots}).")
+
+    elif action == 'restore_all':
+        for s in char.spell_slots.all():
+            s.current_slots = s.max_slots
+            s.save()
+        log_dm(f"DM obnovil všechny pozice pro kouzla postavě {char.name} na maximum (Dlouhý odpočinek).")
+        if is_ajax:
+            slots_data = [{
+                'id': s.id,
+                'level': s.level,
+                'current_slots': s.current_slots,
+                'max_slots': s.max_slots
+            } for s in char.spell_slots.all()]
+            return JsonResponse({'success': True, 'status': 'ok', 'char_id': char.id, 'slots': slots_data})
+        messages.success(request, f"Všechny pozice pro kouzla postavy {char.name} byly plně obnoveny na maximum.")
+
+    elif action == 'set_slot':
+        try:
+            level = max(1, min(9, int(request.POST.get('level', 1))))
+            max_slots = max(0, int(request.POST.get('max_slots', 0)))
+            raw_curr = request.POST.get('current_slots')
+            if raw_curr is not None and raw_curr != '':
+                current_slots = max(0, int(raw_curr))
+            else:
+                current_slots = max_slots
+        except (ValueError, TypeError):
+            if is_ajax:
+                return JsonResponse({'success': False, 'status': 'error', 'error': 'Neplatné číselné hodnoty.'}, status=400)
+            messages.error(request, "Zadejte platné číselné hodnoty pro úroveň a počet slotů.")
+            return redirect('dm_site_app:spell_slots_management')
+
+        slot, created = CharacterSpellSlot.objects.get_or_create(
+            character=char,
+            level=level,
+            defaults={'max_slots': max_slots, 'current_slots': current_slots}
+        )
+        if not created:
+            slot.max_slots = max_slots
+            slot.current_slots = min(max_slots, current_slots) if max_slots > 0 else current_slots
+            slot.save()
+
+        log_dm(f"DM nastavil pozice pro kouzla {level}. úrovně postavě {char.name}: {slot.current_slots}/{slot.max_slots}")
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'status': 'ok',
+                'char_id': char.id,
+                'slot_id': slot.id,
+                'level': slot.level,
+                'current_slots': slot.current_slots,
+                'max_slots': slot.max_slots,
+            })
+        messages.success(request, f"Pozice pro kouzla {level}. úrovně pro postavu {char.name} byly nastaveny na {slot.current_slots} / {slot.max_slots}.")
+
+    elif action == 'delete_slot':
+        if slot:
+            lvl = slot.level
+            slot.delete()
+            log_dm(f"DM smazal sloty {lvl}. úrovně postavy {char.name}.")
+            if is_ajax:
+                return JsonResponse({'success': True, 'status': 'ok', 'char_id': char.id, 'deleted_level': lvl})
+            messages.success(request, f"Sloty {lvl}. úrovně pro postavu {char.name} byly smazány.")
+
+    return redirect('dm_site_app:spell_slots_management')
+
 
 

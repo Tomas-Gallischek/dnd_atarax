@@ -1,6 +1,11 @@
 from django.contrib import admin
+from django import forms
 from django.utils.html import format_html
-from .models import Player, Char_info, Achivements_database, Achivements_players, Logs, Esence_Items_Shop, Esence_Items_Owners, CharBackstory, CharNotes
+from .models import (
+    Player, Char_info, Achivements_database, Achivements_players, Logs,
+    Esence_Items_Shop, Esence_Items_Owners, CharBackstory, CharNotes,
+    CharacterSpellSlot, CharacterFeature
+)
 
 
 from dm_site_app.models import Items_Active
@@ -94,8 +99,60 @@ class PlayerAdmin(admin.ModelAdmin):
         return obj.achivements.count()
 
 
+class CharInfoAdminForm(forms.ModelForm):
+    saving_throws = forms.MultipleChoiceField(
+        choices=Char_info.saving_throw_choices,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Záchranné hody"
+    )
+    skills = forms.MultipleChoiceField(
+        choices=Char_info.skill_choices,
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+        label="Dovednosti"
+    )
+
+    class Meta:
+        model = Char_info
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            if self.instance.saving_throws:
+                self.initial['saving_throws'] = self.instance.saving_throws_list
+            if self.instance.skills:
+                self.initial['skills'] = self.instance.skills_list
+
+    def clean_saving_throws(self):
+        data = self.cleaned_data.get('saving_throws')
+        return list(data) if data else []
+
+    def clean_skills(self):
+        data = self.cleaned_data.get('skills')
+        return list(data) if data else []
+
+
+class CharacterSpellSlotInline(admin.TabularInline):
+    model = CharacterSpellSlot
+    extra = 0
+    fields = ('level', 'current_slots', 'max_slots')
+    verbose_name = "Pozice pro kouzla"
+    verbose_name_plural = "Volné pozice pro kouzla (Spell Sloty)"
+
+
+class CharacterFeatureInline(admin.StackedInline):
+    model = CharacterFeature
+    extra = 0
+    fields = ('title', 'source', 'description')
+    verbose_name = "Schopnost a rys"
+    verbose_name_plural = "Schopnosti a rysy"
+
+
 @admin.register(Char_info)
 class CharInfoAdmin(admin.ModelAdmin):
+    form = CharInfoAdminForm
     list_display = (
         'avatar_preview',
         'name',
@@ -108,11 +165,14 @@ class CharInfoAdmin(admin.ModelAdmin):
         'hit_points_current',
         'hit_points_max',
         'armor_class',
+        'initiative',
+        'proficiency_bonus',
+        'inspiration',
     )
-    list_filter = ('is_public', 'character_class', 'race', 'level', 'player')
+    list_filter = ('is_public', 'character_class', 'race', 'level', 'inspiration', 'player')
     search_fields = ('name', 'player__user__username', 'player__nickname')
     ordering = ('-level', 'name')
-    inlines = [ItemsActiveInline]
+    inlines = [ItemsActiveInline, CharacterSpellSlotInline, CharacterFeatureInline]
 
     @admin.display(description='Avatar')
     def avatar_preview(self, obj):
@@ -144,10 +204,18 @@ class CharInfoAdmin(admin.ModelAdmin):
                 ('experience_points', 'is_public'),
             ),
         }),
-        ('Bojové statistiky & Životy', {
+        ('Deník hrdiny & Bojové statistiky', {
             'fields': (
                 ('hit_points_current', 'hit_points_max'),
-                ('armor_class', 'speed'),
+                ('armor_class', 'speed', 'initiative'),
+                ('hit_dice', 'proficiency_bonus', 'passive_perception'),
+                'inspiration',
+            ),
+        }),
+        ('Záchranné hody & Dovednosti', {
+            'fields': (
+                'saving_throws',
+                'skills',
             ),
         }),
         ('Základní vlastnosti (Ability Scores)', {
@@ -157,6 +225,22 @@ class CharInfoAdmin(admin.ModelAdmin):
             ),
         }),
     )
+
+
+@admin.register(CharacterSpellSlot)
+class CharacterSpellSlotAdmin(admin.ModelAdmin):
+    list_display = ('character', 'level', 'current_slots', 'max_slots')
+    list_filter = ('level', 'character')
+    search_fields = ('character__name',)
+    ordering = ('character', 'level')
+
+
+@admin.register(CharacterFeature)
+class CharacterFeatureAdmin(admin.ModelAdmin):
+    list_display = ('title', 'character', 'source', 'created_at')
+    list_filter = ('source', 'character')
+    search_fields = ('title', 'description', 'character__name')
+    ordering = ('character', 'title')
 
 
 @admin.register(Achivements_database)

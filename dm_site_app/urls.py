@@ -58,5 +58,9 @@ urlpatterns = [
     path('achievements/delete/<int:ach_player_id>/', views.dm_delete_player_achievement, name='dm_delete_player_achievement'),
     path('achievements/template/create/', views.dm_create_achievement_template, name='dm_create_achievement_template'),
     path('achievements/template/<int:template_id>/edit/', views.dm_edit_achievement_template, name='dm_edit_achievement_template'),
+
+    # 8. Pozice pro kouzla (Spell Slots DM Tool)
+    path('spell-slots/', views.spell_slots_management, name='spell_slots_management'),
+    path('spell-slots/modify/', views.modify_spell_slots, name='modify_spell_slots'),
 ]
 

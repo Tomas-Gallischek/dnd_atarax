@@ -195,8 +195,15 @@
 }
 
 @keyframes playerNavFadeIn {
-    from { opacity: 0; transform: translateY(-8px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .player-nav-user-info {
@@ -422,6 +429,22 @@
 
 .combat-stat-pill.stat-speed .stat-value {
     color: var(--emerald-400);
+}
+
+.combat-stat-pill.stat-init {
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+.combat-stat-pill.stat-init .stat-value {
+    color: var(--gold-400);
+}
+
+.combat-stat-pill.stat-hitdice {
+    border-color: rgba(168, 85, 247, 0.4);
+}
+
+.combat-stat-pill.stat-hitdice .stat-value {
+    color: #c084fc;
 }
 
 /* Ability Scores Cards */
@@ -845,6 +868,7 @@
     --card-accent: #94a3b8;
     border-color: rgba(148, 163, 184, 0.3);
 }
+
 .fantasy-shop-card.rarity-card-basic:hover {
     border-color: rgba(148, 163, 184, 0.6);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 18px rgba(148, 163, 184, 0.2);
@@ -854,6 +878,7 @@
     --card-accent: #38bdf8;
     border-color: rgba(56, 189, 248, 0.38);
 }
+
 .fantasy-shop-card.rarity-card-rare:hover {
     border-color: rgba(56, 189, 248, 0.75);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 22px rgba(56, 189, 248, 0.35);
@@ -863,6 +888,7 @@
     --card-accent: #c084fc;
     border-color: rgba(168, 85, 247, 0.45);
 }
+
 .fantasy-shop-card.rarity-card-epic:hover {
     border-color: rgba(192, 132, 252, 0.8);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 25px rgba(168, 85, 247, 0.45);
@@ -872,6 +898,7 @@
     --card-accent: #f59e0b;
     border-color: rgba(245, 158, 11, 0.5);
 }
+
 .fantasy-shop-card.rarity-card-legendary:hover {
     border-color: rgba(251, 191, 36, 0.85);
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.65), 0 0 30px rgba(245, 158, 11, 0.5);
@@ -954,14 +981,17 @@
 .shop-item-frame.frame-basic {
     border-color: rgba(148, 163, 184, 0.3);
 }
+
 .shop-item-frame.frame-rare {
     border-color: rgba(56, 189, 248, 0.45);
     box-shadow: inset 0 0 24px rgba(56, 189, 248, 0.15), 0 0 12px rgba(56, 189, 248, 0.15);
 }
+
 .shop-item-frame.frame-epic {
     border-color: rgba(168, 85, 247, 0.5);
     box-shadow: inset 0 0 26px rgba(168, 85, 247, 0.22), 0 0 16px rgba(168, 85, 247, 0.2);
 }
+
 .shop-item-frame.frame-legendary {
     border-color: rgba(245, 158, 11, 0.6);
     box-shadow: inset 0 0 30px rgba(245, 158, 11, 0.25), 0 0 20px rgba(245, 158, 11, 0.25);
@@ -1223,8 +1253,13 @@
 }
 
 @keyframes mimicModalFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .mimic-modal.closing {
@@ -1232,8 +1267,15 @@
 }
 
 @keyframes mimicModalFadeOut {
-    from { opacity: 1; transform: scale(1); }
-    to { opacity: 0; transform: scale(0.95); }
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
 }
 
 .mimic-modal-dimmer {
@@ -1272,8 +1314,15 @@
 }
 
 @keyframes mimicPortalPulse {
-    0% { transform: translate(-50%, -50%) scale(0.85); opacity: 0.55; }
-    100% { transform: translate(-50%, -50%) scale(1.3); opacity: 0.95; }
+    0% {
+        transform: translate(-50%, -50%) scale(0.85);
+        opacity: 0.55;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1.3);
+        opacity: 0.95;
+    }
 }
 
 /* 1. FÁZE: MIMIC BOX & SHAKING */
@@ -1320,17 +1369,49 @@
 }
 
 @keyframes mimicViolentRumble {
-    0% { transform: translate(0, 0) rotate(0deg) scale(1); }
-    10% { transform: translate(-6px, -4px) rotate(-4deg) scale(1.03); }
-    20% { transform: translate(6px, 3px) rotate(4deg) scale(1.06); }
-    30% { transform: translate(-7px, 4px) rotate(-5deg) scale(1.09); }
-    40% { transform: translate(8px, -5px) rotate(5deg) scale(1.12); }
-    50% { transform: translate(-9px, 5px) rotate(-6deg) scale(1.15); }
-    60% { transform: translate(9px, -6px) rotate(6deg) scale(1.18); }
-    70% { transform: translate(-10px, 6px) rotate(-7deg) scale(1.22); }
-    80% { transform: translate(11px, -7px) rotate(7deg) scale(1.25); }
-    90% { transform: translate(-8px, 5px) rotate(-5deg) scale(1.28); }
-    100% { transform: translate(0, 0) rotate(0deg) scale(1.3); }
+    0% {
+        transform: translate(0, 0) rotate(0deg) scale(1);
+    }
+
+    10% {
+        transform: translate(-6px, -4px) rotate(-4deg) scale(1.03);
+    }
+
+    20% {
+        transform: translate(6px, 3px) rotate(4deg) scale(1.06);
+    }
+
+    30% {
+        transform: translate(-7px, 4px) rotate(-5deg) scale(1.09);
+    }
+
+    40% {
+        transform: translate(8px, -5px) rotate(5deg) scale(1.12);
+    }
+
+    50% {
+        transform: translate(-9px, 5px) rotate(-6deg) scale(1.15);
+    }
+
+    60% {
+        transform: translate(9px, -6px) rotate(6deg) scale(1.18);
+    }
+
+    70% {
+        transform: translate(-10px, 6px) rotate(-7deg) scale(1.22);
+    }
+
+    80% {
+        transform: translate(11px, -7px) rotate(7deg) scale(1.25);
+    }
+
+    90% {
+        transform: translate(-8px, 5px) rotate(-5deg) scale(1.28);
+    }
+
+    100% {
+        transform: translate(0, 0) rotate(0deg) scale(1.3);
+    }
 }
 
 /* Výpad / exploze Mimica */
@@ -1339,9 +1420,22 @@
 }
 
 @keyframes mimicLungeBurst {
-    0% { transform: scale(1.3) rotate(0deg); opacity: 1; }
-    50% { transform: scale(1.5) translateY(-25px) rotate(-3deg); opacity: 1; filter: drop-shadow(0 0 35px rgba(245, 158, 11, 0.9)) drop-shadow(0 0 50px rgba(168, 85, 247, 0.8)); }
-    100% { transform: scale(0.3) translateY(60px); opacity: 0; filter: blur(12px); }
+    0% {
+        transform: scale(1.3) rotate(0deg);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.5) translateY(-25px) rotate(-3deg);
+        opacity: 1;
+        filter: drop-shadow(0 0 35px rgba(245, 158, 11, 0.9)) drop-shadow(0 0 50px rgba(168, 85, 247, 0.8));
+    }
+
+    100% {
+        transform: scale(0.3) translateY(60px);
+        opacity: 0;
+        filter: blur(12px);
+    }
 }
 
 /* Tlaková vlna při otevření */
@@ -1362,9 +1456,22 @@
 }
 
 @keyframes shockwaveExpand {
-    0% { opacity: 1; transform: scale(0.2); }
-    50% { opacity: 0.9; transform: scale(6); border-width: 6px; }
-    100% { opacity: 0; transform: scale(12); border-width: 1px; }
+    0% {
+        opacity: 1;
+        transform: scale(0.2);
+    }
+
+    50% {
+        opacity: 0.9;
+        transform: scale(6);
+        border-width: 6px;
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(12);
+        border-width: 1px;
+    }
 }
 
 /* Status info text */
@@ -1401,9 +1508,22 @@
 }
 
 @keyframes lootCardEntrance {
-    0% { opacity: 0; transform: scale(0.3) translateY(60px); filter: blur(10px); }
-    70% { opacity: 1; transform: scale(1.06) translateY(-8px); filter: blur(0); }
-    100% { opacity: 1; transform: scale(1) translateY(0); }
+    0% {
+        opacity: 0;
+        transform: scale(0.3) translateY(60px);
+        filter: blur(10px);
+    }
+
+    70% {
+        opacity: 1;
+        transform: scale(1.06) translateY(-8px);
+        filter: blur(0);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 /* Paprsky za kartou (Sunburst) */
@@ -1422,40 +1542,37 @@
 }
 
 @keyframes sunburstRotate {
-    from { transform: translate(-50%, -50%) rotate(0deg); }
-    to { transform: translate(-50%, -50%) rotate(360deg); }
+    from {
+        transform: translate(-50%, -50%) rotate(0deg);
+    }
+
+    to {
+        transform: translate(-50%, -50%) rotate(360deg);
+    }
 }
 
 .loot-sunburst-rays.rays-legendary {
-    background: repeating-conic-gradient(
-        from 0deg,
-        rgba(245, 158, 11, 0.25) 0deg 15deg,
-        transparent 15deg 30deg
-    );
+    background: repeating-conic-gradient(from 0deg,
+            rgba(245, 158, 11, 0.25) 0deg 15deg,
+            transparent 15deg 30deg);
 }
 
 .loot-sunburst-rays.rays-epic {
-    background: repeating-conic-gradient(
-        from 0deg,
-        rgba(168, 85, 247, 0.25) 0deg 15deg,
-        transparent 15deg 30deg
-    );
+    background: repeating-conic-gradient(from 0deg,
+            rgba(168, 85, 247, 0.25) 0deg 15deg,
+            transparent 15deg 30deg);
 }
 
 .loot-sunburst-rays.rays-rare {
-    background: repeating-conic-gradient(
-        from 0deg,
-        rgba(56, 189, 248, 0.25) 0deg 15deg,
-        transparent 15deg 30deg
-    );
+    background: repeating-conic-gradient(from 0deg,
+            rgba(56, 189, 248, 0.25) 0deg 15deg,
+            transparent 15deg 30deg);
 }
 
 .loot-sunburst-rays.rays-basic {
-    background: repeating-conic-gradient(
-        from 0deg,
-        rgba(148, 163, 184, 0.2) 0deg 15deg,
-        transparent 15deg 30deg
-    );
+    background: repeating-conic-gradient(from 0deg,
+            rgba(148, 163, 184, 0.2) 0deg 15deg,
+            transparent 15deg 30deg);
 }
 
 /* Samotná karta vyhraného předmětu */
@@ -1539,8 +1656,15 @@
 }
 
 @keyframes lootImgFloat {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50% { transform: translateY(-5px) scale(1.04); }
+
+    0%,
+    100% {
+        transform: translateY(0) scale(1);
+    }
+
+    50% {
+        transform: translateY(-5px) scale(1.04);
+    }
 }
 
 .loot-award-title {
@@ -1581,8 +1705,17 @@
 }
 
 @keyframes btnSavePulse {
-    0%, 100% { transform: scale(1); box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4); }
-    50% { transform: scale(1.02); box-shadow: 0 8px 26px rgba(16, 185, 129, 0.65), 0 0 20px rgba(16, 185, 129, 0.5); }
+
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 8px 26px rgba(16, 185, 129, 0.65), 0 0 20px rgba(16, 185, 129, 0.5);
+    }
 }
 
 .btn-save-loot:hover {
@@ -1628,8 +1761,15 @@
 }
 
 @keyframes floatEmblem {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-6px); }
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-6px);
+    }
 }
 
 .login-welcome-heading,
@@ -1856,14 +1996,17 @@
 }
 
 @media (max-width: 480px) {
+
     .login-welcome-card,
     .login-pin-card {
         padding: 2rem 1.25rem;
     }
+
     .login-welcome-heading,
     .login-pin-heading {
         font-size: 1.65rem;
     }
+
     .pin-large-input {
         font-size: 1.4rem;
         padding: 0.85rem 3rem 0.85rem 1rem;
@@ -2571,10 +2714,24 @@
     display: inline-block;
 }
 
-.dot-equipped { background: #10b981; box-shadow: 0 0 6px #10b981; }
-.dot-learned { background: #3b82f6; box-shadow: 0 0 6px #3b82f6; }
-.dot-available { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
-.dot-locked { background: #64748b; }
+.dot-equipped {
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
+}
+
+.dot-learned {
+    background: #3b82f6;
+    box-shadow: 0 0 6px #3b82f6;
+}
+
+.dot-available {
+    background: #f59e0b;
+    box-shadow: 0 0 6px #f59e0b;
+}
+
+.dot-locked {
+    background: #64748b;
+}
 
 /* Hlavní rozvržení: Levá stupnice (Ladder) + Pravý strom (Tiers) */
 .rpg-spellbook-layout {
@@ -2684,9 +2841,18 @@
     color: var(--text-muted);
 }
 
-.ladder-unlocked-tag { color: #10b981; }
-.ladder-locked-tag { color: #94a3b8; }
-.ladder-counter { color: var(--gold-400); margin-left: 2px; }
+.ladder-unlocked-tag {
+    color: #10b981;
+}
+
+.ladder-locked-tag {
+    color: #94a3b8;
+}
+
+.ladder-counter {
+    color: var(--gold-400);
+    margin-left: 2px;
+}
 
 /* Pravá část: Sekce úrovní kouzel */
 .rpg-spell-tiers-container {
@@ -2823,10 +2989,12 @@
         box-shadow: 0 0 6px rgba(245, 158, 11, 0.25), inset 0 0 6px rgba(245, 158, 11, 0.05);
         border-color: rgba(245, 158, 11, 0.4);
     }
+
     50% {
         box-shadow: 0 0 16px rgba(245, 158, 11, 0.55), inset 0 0 10px rgba(245, 158, 11, 0.15);
         border-color: rgba(245, 158, 11, 0.8);
     }
+
     100% {
         box-shadow: 0 0 6px rgba(245, 158, 11, 0.25), inset 0 0 6px rgba(245, 158, 11, 0.05);
         border-color: rgba(245, 158, 11, 0.4);
@@ -2863,10 +3031,12 @@
         box-shadow: 0 0 12px rgba(16, 185, 129, 0.35), inset 0 0 8px rgba(16, 185, 129, 0.15);
         border-color: #10b981;
     }
+
     50% {
         box-shadow: 0 0 24px rgba(16, 185, 129, 0.65), inset 0 0 14px rgba(16, 185, 129, 0.25);
         border-color: #34d399;
     }
+
     100% {
         box-shadow: 0 0 12px rgba(16, 185, 129, 0.35), inset 0 0 8px rgba(16, 185, 129, 0.15);
         border-color: #10b981;
@@ -3016,10 +3186,24 @@
     font-size: 0.75rem;
 }
 
-.spell-status-label.status-equipped { color: #34d399; font-weight: 700; }
-.spell-status-label.status-learned { color: var(--sapphire-300); font-weight: 700; }
-.spell-status-label.status-available { color: var(--gold-300); font-weight: 700; }
-.spell-status-label.status-locked { color: var(--text-muted); }
+.spell-status-label.status-equipped {
+    color: #34d399;
+    font-weight: 700;
+}
+
+.spell-status-label.status-learned {
+    color: var(--sapphire-300);
+    font-weight: 700;
+}
+
+.spell-status-label.status-available {
+    color: var(--gold-300);
+    font-weight: 700;
+}
+
+.spell-status-label.status-locked {
+    color: var(--text-muted);
+}
 
 .spell-view-btn {
     color: var(--text-muted);
@@ -3068,8 +3252,15 @@
 }
 
 @keyframes modalPopIn {
-    0% { transform: scale(0.92); opacity: 0; }
-    100% { transform: scale(1); opacity: 1; }
+    0% {
+        transform: scale(0.92);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .modal-close-btn {
@@ -3137,10 +3328,29 @@
     border-radius: 4px;
 }
 
-.modal-status-pill.pill-equipped { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
-.modal-status-pill.pill-learned { background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid #3b82f6; }
-.modal-status-pill.pill-available { background: rgba(245, 158, 11, 0.2); color: #fde047; border: 1px solid #f59e0b; }
-.modal-status-pill.pill-locked { background: rgba(100, 116, 139, 0.2); color: #cbd5e1; border: 1px solid #64748b; }
+.modal-status-pill.pill-equipped {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+    border: 1px solid #10b981;
+}
+
+.modal-status-pill.pill-learned {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border: 1px solid #3b82f6;
+}
+
+.modal-status-pill.pill-available {
+    background: rgba(245, 158, 11, 0.2);
+    color: #fde047;
+    border: 1px solid #f59e0b;
+}
+
+.modal-status-pill.pill-locked {
+    background: rgba(100, 116, 139, 0.2);
+    color: #cbd5e1;
+    border: 1px solid #64748b;
+}
 
 .modal-spell-title {
     font-family: var(--font-heading);
@@ -3273,8 +3483,13 @@
     box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
 }
 
-.text-emerald { color: #34d399 !important; }
-.text-amber { color: #fbbf24 !important; }
+.text-emerald {
+    color: #34d399 !important;
+}
+
+.text-amber {
+    color: #fbbf24 !important;
+}
 
 /* ==========================================================================
    Dungeon Shop Inventory - Reforge & Frame Equip UI & Disintegration Animation
@@ -3504,10 +3719,24 @@
     flex-shrink: 0;
 }
 
-.reforge-preview-frame.frame-basic { border-color: #94a3b8; }
-.reforge-preview-frame.frame-rare { border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.4); }
-.reforge-preview-frame.frame-epic { border-color: #c084fc; box-shadow: 0 0 14px rgba(168, 85, 247, 0.5); }
-.reforge-preview-frame.frame-legendary { border-color: #fbbf24; box-shadow: 0 0 16px rgba(245, 158, 11, 0.55); }
+.reforge-preview-frame.frame-basic {
+    border-color: #94a3b8;
+}
+
+.reforge-preview-frame.frame-rare {
+    border-color: #38bdf8;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+.reforge-preview-frame.frame-epic {
+    border-color: #c084fc;
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.5);
+}
+
+.reforge-preview-frame.frame-legendary {
+    border-color: #fbbf24;
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.55);
+}
 
 .reforge-preview-img {
     width: 100%;
@@ -3726,18 +3955,37 @@
 
 /* Keyframe animace */
 @keyframes reforgeFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes reforgePulse {
-    0% { transform: scale(0.9); opacity: 0.6; }
-    100% { transform: scale(1.15); opacity: 0.95; }
+    0% {
+        transform: scale(0.9);
+        opacity: 0.6;
+    }
+
+    100% {
+        transform: scale(1.15);
+        opacity: 0.95;
+    }
 }
 
 @keyframes reforgeCardPop {
-    from { transform: scale(0.92); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from {
+        transform: scale(0.92);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 @keyframes reforgeDisintegrate {
@@ -3745,15 +3993,18 @@
         transform: scale(1) rotate(0deg);
         filter: drop-shadow(0 0 10px rgba(192, 132, 252, 0.6));
     }
+
     30% {
         transform: scale(1.1) rotate(3deg);
         filter: drop-shadow(0 0 25px rgba(245, 208, 254, 0.9)) brightness(1.6);
     }
+
     60% {
         transform: scale(1.05) rotate(-3deg);
         filter: drop-shadow(0 0 35px rgba(192, 132, 252, 1)) contrast(1.8) hue-rotate(30deg);
         opacity: 0.85;
     }
+
     100% {
         transform: scale(0) rotate(180deg);
         filter: blur(12px) drop-shadow(0 0 45px rgba(168, 85, 247, 1));
@@ -3762,22 +4013,58 @@
 }
 
 @keyframes reforgeArcaneSpin {
-    0% { transform: rotate(0deg) scale(0.7); opacity: 0; }
-    40% { opacity: 1; }
-    100% { transform: rotate(360deg) scale(1.4); opacity: 0; }
+    0% {
+        transform: rotate(0deg) scale(0.7);
+        opacity: 0;
+    }
+
+    40% {
+        opacity: 1;
+    }
+
+    100% {
+        transform: rotate(360deg) scale(1.4);
+        opacity: 0;
+    }
 }
 
 @keyframes reforgeBurst {
-    0% { opacity: 0; transform: scale(0.2); }
-    40% { opacity: 1; transform: scale(1.1); }
-    100% { opacity: 0; transform: scale(1.6); }
+    0% {
+        opacity: 0;
+        transform: scale(0.2);
+    }
+
+    40% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.6);
+    }
 }
 
 @keyframes reforgeEssenceRise {
-    0% { opacity: 0; transform: translateY(20px) scale(0.6); }
-    35% { opacity: 1; transform: translateY(-10px) scale(1.2); }
-    75% { opacity: 1; transform: translateY(-40px) scale(1); }
-    100% { opacity: 0; transform: translateY(-80px) scale(0.8); }
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.6);
+    }
+
+    35% {
+        opacity: 1;
+        transform: translateY(-10px) scale(1.2);
+    }
+
+    75% {
+        opacity: 1;
+        transform: translateY(-40px) scale(1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-80px) scale(0.8);
+    }
 }
 
 /* Animace rozpadu karty v mřížce */
@@ -3795,9 +4082,21 @@
 }
 
 @keyframes essenceCounterPulse {
-    0% { transform: scale(1); color: #fef08a; }
-    40% { transform: scale(1.3); color: #c084fc; text-shadow: 0 0 20px #c084fc, 0 0 35px #a855f7; }
-    100% { transform: scale(1); color: #fef08a; }
+    0% {
+        transform: scale(1);
+        color: #fef08a;
+    }
+
+    40% {
+        transform: scale(1.3);
+        color: #c084fc;
+        text-shadow: 0 0 20px #c084fc, 0 0 35px #a855f7;
+    }
+
+    100% {
+        transform: scale(1);
+        color: #fef08a;
+    }
 }
 
 /* Toast notifikace */
@@ -3996,6 +4295,7 @@
     border: 1px solid rgba(192, 132, 252, 0.5);
     color: #e9d5ff;
 }
+
 .btn-outline-purple:hover {
     background: rgba(147, 51, 234, 0.25);
     border-color: #c084fc;
@@ -4032,6 +4332,7 @@
         opacity: 0;
         transform: scale(0.92) translateY(12px);
     }
+
     to {
         opacity: 1;
         transform: scale(1) translateY(0);
@@ -4066,6 +4367,7 @@
     padding: 0 4px;
     transition: color 0.15s;
 }
+
 .dm-modal-close:hover {
     color: #ffffff;
 }
@@ -4155,7 +4457,8 @@
     border-collapse: collapse;
 }
 
-.dm-chars-table th, .dm-chars-table td {
+.dm-chars-table th,
+.dm-chars-table td {
     padding: 12px 14px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     font-size: 0.9rem;
@@ -4184,6 +4487,7 @@
     color: #f1f5f9;
     text-decoration: none;
 }
+
 .char-table-name:hover {
     color: var(--gold-300, #f6e05e);
 }
@@ -4263,8 +4567,15 @@
 }
 
 @keyframes avatarPulseIcon {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.12); }
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.12);
+    }
 }
 
 /* Ikonka ve floating navigační liště */
@@ -4272,6 +4583,7 @@
     cursor: pointer;
     transition: transform 0.18s ease, filter 0.18s ease;
 }
+
 .char-avatar-nav-xs:hover {
     transform: scale(1.12);
     filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
@@ -4353,6 +4665,7 @@
         opacity: 0;
         transform: scale(0.92) translateY(12px);
     }
+
     to {
         opacity: 1;
         transform: scale(1) translateY(0);
@@ -4387,6 +4700,7 @@
     padding: 0 4px;
     transition: color 0.15s;
 }
+
 .avatar-modal-close:hover {
     color: #ffffff;
 }
@@ -4653,6 +4967,7 @@
     line-height: 1;
     padding: 0 4px;
 }
+
 .btn-clear-file:hover {
     color: #f87171;
 }
@@ -4694,7 +5009,9 @@
    MOBILE & TABLET RESPONSIVE ENHANCEMENTS
    ========================================================================== */
 
-@media (max-width: 768px), (max-height: 720px) {
+@media (max-width: 768px),
+(max-height: 720px) {
+
     /* Mimic Chest Opening Animation scaling */
     .mimic-actor-box {
         width: min(280px, 86vw);
@@ -5076,8 +5393,15 @@
 }
 
 @keyframes fadeInPane {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .settings-items-grid {
@@ -5255,8 +5579,3 @@
     align-items: center;
     gap: 6px;
 }
-
-
-
-
-

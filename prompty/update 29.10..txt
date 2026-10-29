@@ -1,0 +1,12 @@
+Ahoj, mám tady další várku drobných updatů:
+
+1) V hlavní přehledu postavy chybí některé údaje, které mají být správně v deníku hrdiny. Pokud pro ně neexistuje model v databázi, vytvoř ho prosím. Můžeš implementovat i nějaké defaulní hodnoty, ale nějaký dynamický výpočet není potřeba, protože tohle budu naklikávat do dfatabáze ručně. jedná se konkrétně o hodnoty:
+- Iniciativa
+- Inspirace
+- Zdatnostní bonus
+- Pasivní moudrost (vnímání)
+- kostka životů (formát: např: 1d4)
+- záchrané hody (vypis jen těch co má, v databázi by to byl choice field s možností vícečetného výběru)
+- Dovednosti (vypis jen těch co má, v databázi by to byl choice field s možností vícečetného výběru)
+- Volné pozice pro kouzla (není třeba vypisovat dynamicky, ale chci mít i v DM rozhraní možnost je hráčům přidat a ubrat, vytvoř mi pro tento účel prosím i DM tool)
+- Schopnosti a rysy (pro tohle vytvoř prosím jednoduchý model v db, kdy budu moci nějaký rys v podobně textu přiřadit nějaké postavě podle Foreign Key z modelu postavy)

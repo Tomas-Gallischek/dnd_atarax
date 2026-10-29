@@ -78,10 +78,10 @@
         <div class="stat-sub">Obranné číslo</div>
     </div>
 
-    <div class="combat-stat-pill stat-hp">
-        <div class="stat-label">Životy (HP)</div>
-        <div class="stat-value">{{ character.hit_points_current }} / {{ character.hit_points_max }}</div>
-        <div class="stat-sub">Běžné maximum</div>
+    <div class="combat-stat-pill stat-init">
+        <div class="stat-label">Iniciativa</div>
+        <div class="stat-value">{{ character.initiative_display }}</div>
+        <div class="stat-sub">Pořadí v kole</div>
     </div>
 
     <div class="combat-stat-pill stat-speed">
@@ -89,6 +89,79 @@
         <div class="stat-value">{{ character.speed }}</div>
         <div class="stat-sub">stop / kolo</div>
     </div>
+
+    <div class="combat-stat-pill stat-hp">
+        <div class="stat-label">Životy (HP)</div>
+        <div class="stat-value">{{ character.hit_points_current }} / {{ character.hit_points_max }}</div>
+        <div class="stat-sub">Běžné maximum</div>
+    </div>
+
+    <div class="combat-stat-pill stat-hitdice">
+        <div class="stat-label">Kostka životů</div>
+        <div class="stat-value">{{ character.hit_dice|default:"1d8" }}</div>
+        <div class="stat-sub">Obnova vitality</div>
+    </div>
+</div>
+
+<div class="hero-substats-row mt-2" style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.75rem;">
+    <div class="hero-substat-box" style="flex: 1 1 200px; background: var(--bg-card-elevated, rgba(255, 255, 255, 0.03)); border: 1px solid var(--border-card, rgba(255, 255, 255, 0.08)); border-radius: var(--radius-md, 8px); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 0.9rem; color: #94a3b8;">🎓 Zdatnostní bonus:</span>
+        <span class="badge badge-sapphire" style="font-size: 1.05rem; font-weight: 700;">{{ character.proficiency_bonus_display }}</span>
+    </div>
+
+    <div class="hero-substat-box" style="flex: 1 1 200px; background: var(--bg-card-elevated, rgba(255, 255, 255, 0.03)); border: 1px solid var(--border-card, rgba(255, 255, 255, 0.08)); border-radius: var(--radius-md, 8px); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 0.9rem; color: #94a3b8;">👁️ Pasivní moudrost (vnímání):</span>
+        <span class="badge badge-sapphire" style="font-size: 1.05rem; font-weight: 700;">{{ character.passive_perception }}</span>
+    </div>
+
+    <div class="hero-substat-box" style="flex: 1 1 200px; background: var(--bg-card-elevated, rgba(255, 255, 255, 0.03)); border: 1px solid var(--border-card, rgba(255, 255, 255, 0.08)); border-radius: var(--radius-md, 8px); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 0.9rem; color: #94a3b8;">✨ Inspirace:</span>
+        {% if character.inspiration %}
+        <span class="badge badge-gold" style="font-size: 0.95rem; font-weight: 700;">⭐ Aktivní (Ano)</span>
+        {% else %}
+        <span class="badge" style="background: rgba(255, 255, 255, 0.08); color: #94a3b8; font-size: 0.9rem;">Neaktivní (Ne)</span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid-2 mt-3">
+    <!-- Záchranné hody -->
+    <section class="atarax-card">
+        <div class="atarax-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="atarax-card-title">
+                <span>🎯</span> Záchranné hody
+            </h2>
+            <span class="badge badge-sapphire">{{ character.saving_throws_list|length }} aktivní</span>
+        </div>
+        <div class="saves-skills-wrap" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0;">
+            {% for save in character.saving_throws_list %}
+                <span class="badge badge-sapphire" style="font-size: 0.92rem; padding: 6px 12px;">
+                    🛡️ {{ save }}
+                </span>
+            {% empty %}
+                <p class="text-muted" style="margin: 0; font-size: 0.88rem; color: #94a3b8;">Žádné vybrané záchranné hody se zdatností.</p>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Dovednosti -->
+    <section class="atarax-card">
+        <div class="atarax-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h2 class="atarax-card-title">
+                <span>⭐</span> Dovednosti
+            </h2>
+            <span class="badge badge-gold">{{ character.skills_list|length }} aktivní</span>
+        </div>
+        <div class="saves-skills-wrap" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0;">
+            {% for sk in character.skills_list %}
+                <span class="badge badge-gold" style="font-size: 0.92rem; padding: 6px 12px;">
+                    ✨ {{ sk }}
+                </span>
+            {% empty %}
+                <p class="text-muted" style="margin: 0; font-size: 0.88rem; color: #94a3b8;">Žádné vybrané dovednosti se zdatností.</p>
+            {% endfor %}
+        </div>
+    </section>
 </div>
 
 {% else %}
