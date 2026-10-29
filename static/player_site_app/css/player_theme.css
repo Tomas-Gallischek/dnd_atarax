@@ -4824,9 +4824,25 @@
 
 .settings-badge-avatar-wrap {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 42px;
     height: 42px;
     flex-shrink: 0;
+}
+
+.settings-badge-avatar-wrap .char-avatar-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) !important;
+    width: 140% !important;
+    height: 140% !important;
+    max-width: none !important;
+    pointer-events: none;
+    z-index: 2;
+    object-fit: contain;
 }
 
 .settings-badge-info {
@@ -4897,8 +4913,12 @@
 
 .settings-char-pill-avatar-wrap {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 24px;
     height: 24px;
+    flex-shrink: 0;
 }
 
 .settings-char-pill-img {
@@ -4906,6 +4926,19 @@
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
+}
+
+.settings-char-pill-avatar-wrap .char-avatar-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) !important;
+    width: 140% !important;
+    height: 140% !important;
+    max-width: none !important;
+    pointer-events: none;
+    z-index: 2;
+    object-fit: contain;
 }
 
 .settings-dashboard-grid {
@@ -4957,6 +4990,9 @@
 
 .settings-avatar-large {
     position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 80px;
     height: 80px;
     flex-shrink: 0;
@@ -4965,6 +5001,20 @@
 .settings-avatar-large .char-avatar-lg {
     width: 80px;
     height: 80px;
+}
+
+.settings-avatar-large .char-avatar-frame {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) !important;
+    width: 140% !important;
+    height: 140% !important;
+    max-width: none !important;
+    pointer-events: none;
+    z-index: 2;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
 }
 
 .settings-preview-details {
@@ -5105,10 +5155,10 @@
 
 .settings-frame-preview-inner {
     position: relative;
-    width: 52px;
-    height: 52px;
-    margin-bottom: 6px;
-    display: flex;
+    width: 50px;
+    height: 50px;
+    margin: 4px auto 8px auto;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
 }
@@ -5116,15 +5166,24 @@
 .settings-frame-preview-inner .char-avatar-sm {
     width: 44px;
     height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    flex-shrink: 0;
 }
 
 .settings-frame-preview-inner .char-avatar-frame {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) !important;
+    width: 140% !important;
+    height: 140% !important;
+    max-width: none !important;
     pointer-events: none;
+    z-index: 2;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.7));
 }
 
 .settings-empty-box {

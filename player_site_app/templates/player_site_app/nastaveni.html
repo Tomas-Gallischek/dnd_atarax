@@ -13,7 +13,7 @@
 
     <!-- Rychlé info o přihlášeném hráči -->
     <div class="settings-player-badge">
-        <div class="settings-badge-avatar-wrap">
+        <div class="char-avatar-wrap settings-badge-avatar-wrap">
             <img src="{% if character %}{{ character.profile_image_url }}{% else %}{{ player.active_icon_url|default:'/static/img/classes/ostatni.svg' }}{% endif %}" alt="Avatar" class="char-avatar char-avatar-sm">
             {% if player.active_frame_url %}
             <img src="{{ player.active_frame_url }}" alt="Rámeček" class="char-avatar-frame" aria-hidden="true">
@@ -44,7 +44,7 @@
     <div class="settings-char-pills">
         {% for c in characters %}
         <a href="?char_id={{ c.id }}" class="settings-char-pill {% if character and character.id == c.id %}active{% endif %}">
-            <span class="settings-char-pill-avatar-wrap">
+            <span class="char-avatar-wrap settings-char-pill-avatar-wrap">
                 <img src="{{ c.profile_image_url }}" alt="" class="settings-char-pill-img">
                 {% if player.active_frame_url %}
                 <img src="{{ player.active_frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
@@ -279,7 +279,7 @@
                 <div class="settings-items-grid">
                     {% for owner in owned_frames %}
                     <div class="settings-item-card frame-card {% if player.active_ramecek and player.active_ramecek.item.id == owner.item.id %}selected{% endif %}" id="frameCard-{{ owner.item.id }}">
-                        <div class="settings-frame-preview-inner">
+                        <div class="char-avatar-wrap settings-frame-preview-inner">
                             <img src="{% if character %}{{ character.profile_image_url }}{% else %}/static/img/classes/ostatni.svg{% endif %}" alt="" class="char-avatar char-avatar-sm" style="opacity: 0.6;">
                             {% if owner.item.image %}
                             <img src="{{ owner.item.image.url }}" alt="{{ owner.item.name }}" class="char-avatar-frame" aria-hidden="true">
