@@ -107,13 +107,16 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+# Zde máš pravděpodobně své zdrojové styly a obrázky
+STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
+# Sem je Django zkopíruje po spuštění collectstatic (nesmí se jmenovat stejně jako složka výše)
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_URL = '/static/'
+
+# Nastavení pro nahrané obrázky (z předchozí konfigurace už bys měl mít)
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
 
 MAILERS = {
     'default': {
