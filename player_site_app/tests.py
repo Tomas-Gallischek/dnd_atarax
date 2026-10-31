@@ -2058,3 +2058,115 @@ class DatabaseLoggingRevisionTests(TestCase):
         self.assertTrue(Logs.objects.filter(player=self.player, message__icontains="rozebral předmět 'Krvavý rám'").exists())
 
 
+class PlayerMenuNotificationsAndSpellbookLayoutTests(TestCase):
+    """Testy pro odebrání stupnice úrovní v kouzlech a blikající notifikace v menu hráče."""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='notify_player', password='password123')
+        self.player = Player.objects.create(user=self.user, nickname='NotifyTester', pin_code='1111')
+        self.char = Char_info.objects.create(
+            player=self.player,
+            name='Eldrin',
+            character_class='Kouzelník',
+            level=3,
+            gold=10,
+            silver=0,
+        )
+        self.client.force_login(self.user)
+
+    def test_spellbook_does_not_contain_level_ladder(self):
+        """Přehled kouzel již neobsahuje boční sloupec se stupnicí úrovní (.rpg-level-ladder)."""
+        res = self.client.get(reverse('player_site_app:char_schopnosti'))
+        self.assertEqual(res.status_code, 200)
+        self.assertNotContains(res, 'rpg-level-ladder')
+        self.assertNotContains(res, 'Stupnice Úrovní')
+        self.assertContains(res, 'rpg-spellbook-layout')
+        self.assertContains(res, 'rpg-spell-tiers-container')
+
+    def test_inventory_notification_blinks_on_new_item_not_gold_and_clears_on_visit(self):
+        """Záložka Inventář bliká po připsání nového předmětu (ne při změně zlata) a po otevření zhasne."""
+        from dm_site_app.models import Items_Active
+
+        # 1. Změna zlata NEROZBLIKÁ inventář
+        self.char.gold = 50
+        self.char.silver = 5
+        self.char.save()
+        self.char.refresh_from_db()
+        self.assertFalse(self.char.has_new_inv)
+
+        # 2. Připsání předmětu ROZBLIKÁ inventář v menu
+        Items_Active.objects.create(
+            char_own=self.char,
+            name_cz='Kouzelný prsten',
+            name_en='Magic Ring',
+            category='Prsteny',
+            cost_gold=100,
+        )
+        self.char.refresh_from_db()
+        self.assertTrue(self.char.has_new_inv)
+
+        res_overview = self.client.get(reverse('player_site_app:char_overview_active'))
+        self.assertContains(res_overview, 'nav-item-notify')
+
+        # 3. Navštívení stránky Inventář příznak vynuluje
+        res_inv = self.client.get(reverse('player_site_app:inv'))
+        self.assertEqual(res_inv.status_code, 200)
+        self.char.refresh_from_db()
+        self.assertFalse(self.char.has_new_inv)
+
+    def test_achievements_notification_blinks_and_clears_on_visit(self):
+        """Záložka Úspěchy bliká po získání úspěchu a po navštívení zhasne."""
+        ach_tmpl = Achivements_database.objects.create(
+            name='Průzkumník',
+            description='Objev lokaci',
+            bronze_value=1,
+            silver_value=5,
+        )
+        Achivements_players.objects.create(
+            player=self.player,
+            char=self.char,
+            Achivement=ach_tmpl,
+            current_value=2,
+        )
+        self.char.refresh_from_db()
+        self.assertTrue(self.char.has_new_ach)
+
+        res_overview = self.client.get(reverse('player_site_app:char_overview_active'))
+        self.assertContains(res_overview, 'nav-item-notify')
+
+        res_ach = self.client.get(reverse('player_site_app:char_achivements'))
+        self.assertEqual(res_ach.status_code, 200)
+        self.char.refresh_from_db()
+        self.assertFalse(self.char.has_new_ach)
+
+    def test_kronika_notification_blinks_on_revealed_entry_and_clears_on_visit(self):
+        """Záložka Kronika bliká po přidání/odkrytí záznamu v Kronice a po navštívení zhasne."""
+        from dm_site_app.models import Kronika
+
+        # Skrytý záznam nerozbliká kroniku hráčům
+        hidden_entry = Kronika.objects.create(
+            nazev='Tajný plán DM',
+            category='lore',
+            popis='Tajné',
+            odkryto_hracum=False,
+        )
+        self.player.refresh_from_db()
+        self.assertFalse(self.player.has_new_kronika)
+
+        # Odkrytí záznamu rozbliká kroniku
+        hidden_entry.odkryto_hracum = True
+        hidden_entry.save()
+        self.player.refresh_from_db()
+        self.assertTrue(self.player.has_new_kronika)
+
+        res_overview = self.client.get(reverse('player_site_app:char_overview_active'))
+        self.assertContains(res_overview, 'nav-item-notify')
+
+        # Navštívení Kroniky příznak vynuluje
+        res_kronika = self.client.get(reverse('player_site_app:kronika'))
+        self.assertEqual(res_kronika.status_code, 200)
+        self.player.refresh_from_db()
+        self.assertFalse(self.player.has_new_kronika)
+
+
+

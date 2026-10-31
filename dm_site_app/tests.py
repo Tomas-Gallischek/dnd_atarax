@@ -982,6 +982,137 @@ class DMLoggingRevisionTests(TestCase):
         self.assertEqual(hp_log.value, -15.0)
 
 
+class DMLogsAndSpellsToolsTests(TestCase):
+    """Testy pro nové DM nástroje: Logy aplikace a Databáze kouzel."""
+
+    def setUp(self):
+        from dm_site_app.models import Spells_All_db, Spells_Active
+        self.Spells_All_db = Spells_All_db
+        self.Spells_Active = Spells_Active
+
+        self.dm_user = User.objects.create_user(username='dm_tools_admin', password='password123', is_staff=True)
+        self.player_user = User.objects.create_user(username='hrac_tools', password='password123')
+        self.player = Player.objects.create(user=self.player_user, nickname='AragornHrac')
+        self.char1 = Char_info.objects.create(player=self.player, name='Aragorn', character_class='Hraničář', level=5)
+        self.char2 = Char_info.objects.create(player=self.player, name='Gandalf', character_class='Kouzelník', level=10)
+
+        Logs.objects.all().delete()
+        self.log1 = Logs.objects.create(player=self.player, character=self.char1, message='Aragorn získal meč Andúril', value=500.0)
+        self.log2 = Logs.objects.create(player=self.player, character=self.char2, message='Gandalf seslal Ohnivou kouli', value=8.0)
+
+        self.spell = Spells_All_db.objects.create(
+            api_index='fireball-test',
+            name_cz='Ohnivá koule',
+            name_en='Fireball',
+            level=3,
+            is_cantrip=False,
+            school='Evokace',
+            casting_time='1 akce',
+            range='150 stop',
+            components='V, S, M',
+            duration='Ihned',
+            damage_dice='8k6',
+            damage_type='ohnivé',
+            saving_throw='OBR',
+            classes='Kouzelník, Čaroděj',
+            description='Jasný paprsek vyšlehne z tvého prstu.',
+        )
+
+    def test_dm_logs_view_and_character_filtering(self):
+        """DM nástroj Logy aplikace vypisuje logy a umožňuje filtrovat podle postavy."""
+        self.client.force_login(self.dm_user)
+
+        # Kontrola karty v tools.html
+        res_tools = self.client.get(reverse('dm_site_app:tools'))
+        self.assertContains(res_tools, reverse('dm_site_app:logs_view'))
+        self.assertContains(res_tools, 'Logy aplikace')
+
+        # Všechny logy
+        res_all = self.client.get(reverse('dm_site_app:logs_view'))
+        self.assertEqual(res_all.status_code, 200)
+        self.assertContains(res_all, 'Aragorn získal meč Andúril')
+        self.assertContains(res_all, 'Gandalf seslal Ohnivou kouli')
+
+        # Filtrace pouze pro Aragorna (char1)
+        res_char1 = self.client.get(reverse('dm_site_app:logs_view'), {'char_id': self.char1.id})
+        self.assertEqual(res_char1.status_code, 200)
+        self.assertContains(res_char1, 'Aragorn získal meč Andúril')
+        self.assertNotContains(res_char1, 'Gandalf seslal Ohnivou kouli')
+
+    def test_dm_spells_management_list_filter_create_edit_delete(self):
+        """DM nástroj Databáze kouzel zobrazí všechna kouzla v tabulce, filtruje je a umožňuje jejich editaci i tvorbu."""
+        self.client.force_login(self.dm_user)
+
+        # Kontrola karty v tools.html
+        res_tools = self.client.get(reverse('dm_site_app:tools'))
+        self.assertContains(res_tools, reverse('dm_site_app:spells_management'))
+        self.assertContains(res_tools, 'Databáze kouzel')
+
+        # 1. Výpis kouzel
+        res_list = self.client.get(reverse('dm_site_app:spells_management'))
+        self.assertEqual(res_list.status_code, 200)
+        self.assertContains(res_list, 'Ohnivá koule')
+        self.assertContains(res_list, '8k6')
+        self.assertContains(res_list, 'Evokace')
+
+        # 2. Editace kouzla (a propsání do Spells_Active)
+        active_copy = self.Spells_Active.objects.create(
+            char_own=self.char2,
+            template_spell=self.spell,
+            name_cz=self.spell.name_cz,
+            name_en=self.spell.name_en,
+            level=self.spell.level,
+            nauceno=True,
+        )
+        res_edit = self.client.post(reverse('dm_site_app:dm_edit_spell', args=[self.spell.id]), {
+            'name_cz': 'Větší ohnivá koule',
+            'name_en': 'Greater Fireball',
+            'level': '4',
+            'school': 'Evokace',
+            'casting_time': '1 akce',
+            'range': '150 stop',
+            'components': 'V, S, M',
+            'duration': 'Ihned',
+            'damage_dice': '10k6',
+            'damage_type': 'ohnivé',
+            'saving_throw': 'OBR',
+            'classes': 'Kouzelník, Čaroděj',
+            'description': 'Vylepšená verze ohnivé koule.',
+        })
+        self.assertEqual(res_edit.status_code, 302)
+        self.spell.refresh_from_db()
+        self.assertEqual(self.spell.name_cz, 'Větší ohnivá koule')
+        self.assertEqual(self.spell.level, 4)
+        self.assertEqual(self.spell.damage_dice, '10k6')
+
+        active_copy.refresh_from_db()
+        self.assertEqual(active_copy.name_cz, 'Větší ohnivá koule')
+        self.assertEqual(active_copy.damage_dice, '10k6')
+
+        # 3. Vytvoření nového kouzla
+        res_create = self.client.post(reverse('dm_site_app:dm_create_spell'), {
+            'name_cz': 'Mrazivý paprsek',
+            'name_en': 'Ray of Frost',
+            'level': '0',
+            'is_cantrip': 'on',
+            'school': 'Evokace',
+            'damage_dice': '1k8',
+            'damage_type': 'chladné',
+            'classes': 'Kouzelník, Čaroděj',
+            'description': 'Paprsek mrazivého světla.',
+        })
+        self.assertEqual(res_create.status_code, 302)
+        new_spell = self.Spells_All_db.objects.filter(name_cz='Mrazivý paprsek').first()
+        self.assertIsNotNone(new_spell)
+        self.assertTrue(new_spell.is_cantrip)
+
+        # 4. Smazání kouzla
+        res_del = self.client.post(reverse('dm_site_app:dm_delete_spell', args=[new_spell.id]))
+        self.assertEqual(res_del.status_code, 302)
+        self.assertFalse(self.Spells_All_db.objects.filter(id=new_spell.id).exists())
+
+
+
 
 
 

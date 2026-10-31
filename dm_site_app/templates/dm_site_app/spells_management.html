@@ -1,0 +1,748 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}DnD Atarax - Databáze kouzel (DM){% endblock %}
+
+{% block extra_dm_head %}
+<style>
+.dm-spells-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 1.5rem;
+}
+
+.dm-spells-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.dm-spells-stat-pill {
+    background: var(--bg-card, #1a1625);
+    border: 1px solid var(--border-card, #332b46);
+    border-radius: var(--radius-md, 10px);
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    color: var(--text-silver, #cbd5e1);
+}
+
+.dm-spells-stat-pill strong {
+    color: var(--gold-400, #fbbf24);
+    font-weight: 800;
+}
+
+.dm-spells-filter-bar {
+    background: var(--bg-card, #1a1625);
+    border: 1px solid var(--border-card, #332b46);
+    border-radius: var(--radius-md, 10px);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: grid;
+    grid-template-columns: 2fr repeat(4, minmax(145px, 1fr)) auto;
+    gap: 12px;
+    align-items: end;
+}
+
+@media (max-width: 1200px) {
+    .dm-spells-filter-bar {
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+}
+
+.dm-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.dm-filter-group label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dm-filter-group select,
+.dm-filter-group input {
+    background: #120f1a;
+    border: 1px solid var(--border-card, #332b46);
+    border-radius: 8px;
+    padding: 8px 11px;
+    color: #f8fafc;
+    font-size: 0.88rem;
+}
+
+.dm-spells-table-card {
+    background: var(--bg-card, #1a1625);
+    border: 1px solid var(--border-card, #332b46);
+    border-radius: var(--radius-md, 10px);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.dm-spells-table-wrap {
+    overflow-x: auto;
+}
+
+.dm-spells-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+}
+
+.dm-spells-table th {
+    background: rgba(15, 12, 24, 0.95);
+    color: var(--gold-400, #fbbf24);
+    font-weight: 700;
+    text-align: left;
+    padding: 12px 12px;
+    border-bottom: 1px solid var(--border-card, #332b46);
+    white-space: nowrap;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dm-spells-table td {
+    padding: 11px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    vertical-align: top;
+    color: #e2e8f0;
+}
+
+.dm-spells-table tbody tr:hover {
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.spell-name-primary {
+    font-weight: 700;
+    color: #fff;
+    font-size: 0.95rem;
+    display: block;
+}
+
+.spell-name-secondary {
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.8rem;
+    display: block;
+}
+
+.spell-index-tag {
+    font-family: monospace;
+    font-size: 0.72rem;
+    color: #64748b;
+}
+
+.spell-lvl-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.spell-lvl-cantrip {
+    background: rgba(56, 189, 248, 0.16);
+    border: 1px solid rgba(56, 189, 248, 0.35);
+    color: #7dd3fc;
+}
+
+.spell-lvl-num {
+    background: rgba(245, 158, 11, 0.16);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    color: #fcd34d;
+}
+
+.spell-meta-line {
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: #cbd5e1;
+}
+
+.spell-meta-line strong {
+    color: #94a3b8;
+    font-weight: 600;
+}
+
+.spell-tag-mini {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-top: 3px;
+}
+
+.tag-conc {
+    background: rgba(168, 85, 247, 0.18);
+    color: #d8b4fe;
+    border: 1px solid rgba(168, 85, 247, 0.35);
+}
+
+.tag-ritual {
+    background: rgba(59, 130, 246, 0.18);
+    color: #93c5fd;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+}
+
+.tag-dmg {
+    background: rgba(239, 68, 68, 0.16);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+}
+
+.tag-heal {
+    background: rgba(16, 185, 129, 0.16);
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.spell-desc-box {
+    max-width: 380px;
+    max-height: 88px;
+    overflow-y: auto;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: #cbd5e1;
+    padding-right: 4px;
+}
+
+.spell-higher-note {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    color: #fde68a;
+    font-size: 0.76rem;
+}
+
+.spell-actions-cell {
+    white-space: nowrap;
+}
+
+.spell-actions-wrap {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+/* Modal pro úpravu / vytvoření kouzla */
+.dm-spell-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(7, 5, 12, 0.85);
+    backdrop-filter: blur(6px);
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.dm-spell-modal-backdrop.active {
+    display: flex;
+}
+
+.dm-spell-modal-dialog {
+    background: #181424;
+    border: 1px solid var(--gold-500, #f59e0b);
+    border-radius: 14px;
+    width: 100%;
+    max-width: 920px;
+    max-height: 92vh;
+    overflow-y: auto;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9);
+}
+
+.dm-spell-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 14px;
+    margin-bottom: 18px;
+}
+
+.dm-spell-modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: var(--gold-400, #fbbf24);
+}
+
+.dm-spell-form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .dm-spell-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.dm-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dm-form-field.span-2 {
+    grid-column: span 2;
+}
+
+.dm-form-field.span-3 {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 768px) {
+    .dm-form-field.span-2,
+    .dm-form-field.span-3 {
+        grid-column: 1 / -1;
+    }
+}
+
+.dm-form-field label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+}
+
+.dm-form-field input,
+.dm-form-field select,
+.dm-form-field textarea {
+    background: #0f0c18;
+    border: 1px solid #332b46;
+    border-radius: 8px;
+    padding: 8px 11px;
+    color: #f8fafc;
+    font-size: 0.9rem;
+    font-family: inherit;
+}
+
+.dm-form-checkboxes {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    padding: 8px 0;
+    flex-wrap: wrap;
+}
+
+.dm-form-checkboxes label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.9rem;
+    color: #e2e8f0;
+    cursor: pointer;
+    text-transform: none;
+}
+
+.dm-spell-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+</style>
+{% endblock %}
+
+{% block dm_content %}
+<div class="atarax-page-header dm-spells-header">
+    <div class="atarax-header-title-group">
+        <h1><span>📖</span> Databáze Kouzel (Kompendium)</h1>
+        <p class="atarax-header-subtitle">Tabulkový přehled všech kouzel v databázi se všemi parametry, rychlým filtrováním a přímou editací.</p>
+    </div>
+    <div class="dm-spells-header-actions">
+        <div class="dm-spells-stat-pill">
+            Zobrazeno: <strong id="visibleSpellsCount">{{ total_matching_spells }}</strong> / <strong>{{ total_all_spells }}</strong> kouzel
+        </div>
+        <button type="button" class="btn btn-gold btn-sm" onclick="openCreateSpellModal()">
+            + Přidat nové kouzlo
+        </button>
+        <a href="{% url 'dm_site_app:tools' %}" class="btn btn-outline-secondary btn-sm">
+            &larr; Zpět na Nástroje
+        </a>
+    </div>
+</div>
+
+<!-- Filtrační lišta -->
+<form method="get" action="{% url 'dm_site_app:spells_management' %}" class="dm-spells-filter-bar">
+    <div class="dm-filter-group">
+        <label for="spellQueryInput">Vyhledávání (název CZ/EN, popis, účinek, kostky)</label>
+        <input type="text" name="q" id="spellQueryInput" value="{{ query }}" placeholder="Hledat kouzlo..." oninput="instantFilterSpells()">
+    </div>
+
+    <div class="dm-filter-group">
+        <label for="spellLevelSelect">Úroveň kouzla</label>
+        <select name="level" id="spellLevelSelect" onchange="this.form.submit()">
+            <option value="">-- Všechny úrovně --</option>
+            <option value="0" {% if selected_level == '0' %}selected{% endif %}>0 - Triky (Cantrips)</option>
+            {% for lvl in level_choices %}
+                {% if lvl > 0 %}
+                <option value="{{ lvl }}" {% if selected_level == lvl|stringformat:'s' %}selected{% endif %}>{{ lvl }}. úroveň</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="dm-filter-group">
+        <label for="spellSchoolSelect">Magická škola</label>
+        <select name="school" id="spellSchoolSelect" onchange="this.form.submit()">
+            <option value="">-- Všechny školy --</option>
+            {% for sch in all_schools %}
+            <option value="{{ sch }}" {% if selected_school == sch %}selected{% endif %}>{{ sch }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="dm-filter-group">
+        <label for="spellClassSelect">Povolání</label>
+        <select name="char_class" id="spellClassSelect" onchange="this.form.submit()">
+            <option value="">-- Všechna povolání --</option>
+            {% for cls in class_options %}
+            <option value="{{ cls }}" {% if selected_class == cls %}selected{% endif %}>{{ cls }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="dm-filter-group">
+        <label for="spellSpecialSelect">Vlastnost</label>
+        <select name="special" id="spellSpecialSelect" onchange="this.form.submit()">
+            <option value="">-- Vše --</option>
+            <option value="concentration" {% if selected_special == 'concentration' %}selected{% endif %}>Soustředění</option>
+            <option value="ritual" {% if selected_special == 'ritual' %}selected{% endif %}>Rituál</option>
+            <option value="damage" {% if selected_special == 'damage' %}selected{% endif %}>Způsobuje zranění</option>
+            <option value="heal" {% if selected_special == 'heal' %}selected{% endif %}>Léčivé kouzlo</option>
+        </select>
+    </div>
+
+    <div class="dm-filter-actions" style="display:flex; gap:8px;">
+        <button type="submit" class="btn btn-gold btn-sm">Filtrovat</button>
+        {% if query or selected_level != '' or selected_school or selected_class or selected_special %}
+        <a href="{% url 'dm_site_app:spells_management' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Tabulka všech kouzel -->
+<div class="dm-spells-table-card">
+    <div class="dm-spells-table-wrap">
+        <table class="dm-spells-table" id="dmSpellsTable">
+            <thead>
+                <tr>
+                    <th>Kouzlo (CZ / EN)</th>
+                    <th>Úroveň & Škola</th>
+                    <th>Sesílání & Složky</th>
+                    <th>Boj / Zranění / Záchrana</th>
+                    <th>Povolání / Rasy / Zázemí</th>
+                    <th>Popis a vyšší úrovně</th>
+                    <th>Akce</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in spells %}
+                <tr class="dm-spell-row"
+                    id="dmSpellRow-{{ s.id }}"
+                    data-search="{{ s.name_cz|lower }} {{ s.name_en|lower }} {{ s.api_index|lower }} {{ s.school|default:''|lower }} {{ s.classes|default:''|lower }} {{ s.races|default:''|lower }} {{ s.damage_dice|default:''|lower }} {{ s.damage_type|default:''|lower }}">
+                    <td>
+                        <span class="spell-name-primary" id="rowNameCz-{{ s.id }}">{{ s.name_cz }}</span>
+                        <span class="spell-name-secondary" id="rowNameEn-{{ s.id }}">{{ s.name_en }}</span>
+                        <span class="spell-index-tag">#{{ s.id }} &bull; {{ s.api_index }}</span>
+                    </td>
+                    <td>
+                        {% if s.is_cantrip or s.level == 0 %}
+                        <span class="spell-lvl-badge spell-lvl-cantrip">Trik (0)</span>
+                        {% else %}
+                        <span class="spell-lvl-badge spell-lvl-num">Level {{ s.level }}</span>
+                        {% endif %}
+                        <div class="spell-meta-line">
+                            <strong>Škola:</strong> {{ s.school|default:"—" }}
+                            {% if s.school_en %}<small style="color:#64748b;">({{ s.school_en }})</small>{% endif %}
+                        </div>
+                        <div>
+                            {% if s.concentration %}<span class="spell-tag-mini tag-conc">🧠 Soustředění</span>{% endif %}
+                            {% if s.ritual %}<span class="spell-tag-mini tag-ritual">📜 Rituál</span>{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="spell-meta-line"><strong>Vyvolání:</strong> {{ s.casting_time|default:"—" }}</div>
+                        <div class="spell-meta-line"><strong>Dosah:</strong> {{ s.range|default:"—" }}</div>
+                        <div class="spell-meta-line"><strong>Trvání:</strong> {{ s.duration|default:"—" }}</div>
+                        <div class="spell-meta-line"><strong>Složky:</strong> {{ s.components|default:"—" }}</div>
+                        {% if s.material %}
+                        <div class="spell-meta-line" title="{{ s.material }}">
+                            <strong>Materiál:</strong> {{ s.material|truncatechars:45 }}
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if s.damage_dice or s.damage_type %}
+                        <div><span class="spell-tag-mini tag-dmg">💥 {{ s.damage_dice|default:"" }} {{ s.damage_type|default:"" }}</span></div>
+                        {% endif %}
+                        {% if s.heal_dice %}
+                        <div><span class="spell-tag-mini tag-heal">💚 {{ s.heal_dice }}</span></div>
+                        {% endif %}
+                        {% if s.saving_throw %}
+                        <div class="spell-meta-line"><strong>Záchrana:</strong> {{ s.saving_throw }}</div>
+                        {% endif %}
+                        {% if s.attack_type %}
+                        <div class="spell-meta-line"><strong>Útok:</strong> {{ s.attack_type }}</div>
+                        {% endif %}
+                        {% if not s.damage_dice and not s.damage_type and not s.heal_dice and not s.saving_throw and not s.attack_type %}
+                        <span style="color:#64748b;">—</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="spell-meta-line"><strong>Povolání:</strong> {{ s.classes|default:"—" }}</div>
+                        {% if s.races %}
+                        <div class="spell-meta-line"><strong>Rasy:</strong> {{ s.races }}</div>
+                        {% endif %}
+                        {% if s.backgrounds %}
+                        <div class="spell-meta-line"><strong>Zázemí:</strong> {{ s.backgrounds }}</div>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="spell-desc-box">
+                            {{ s.description|default:"Bez popisu" }}
+                            {% if s.higher_levels %}
+                            <div class="spell-higher-note">
+                                <strong>Na vyšších úrovních:</strong> {{ s.higher_levels }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="spell-actions-cell">
+                        <div class="spell-actions-wrap">
+                            <button type="button" class="btn btn-gold btn-sm" onclick="openEditSpellModal({{ s.id }})">
+                                ✏️ Upravit
+                            </button>
+                            <form method="post" action="{% url 'dm_site_app:dm_delete_spell' s.id %}" onsubmit="return confirm('Opravdu chcete smazat kouzlo {{ s.name_cz|escapejs }} z databáze?');" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm" title="Smazat kouzlo">
+                                    🗑️
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2.5rem; color: #94a3b8;">
+                        Žádná kouzla neodpovídají zadanému filtru.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modální okno pro úpravu / vytvoření kouzla -->
+<div class="dm-spell-modal-backdrop" id="dmSpellModalBackdrop" onclick="if(event.target===this) closeSpellModal()">
+    <div class="dm-spell-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="dmSpellModalTitle">
+        <div class="dm-spell-modal-header">
+            <h2 id="dmSpellModalTitle">✏️ Upravit kouzlo</h2>
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="closeSpellModal()">&times; Zavřít</button>
+        </div>
+
+        <form method="post" id="dmSpellForm" action="{% url 'dm_site_app:dm_create_spell' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+            <div class="dm-spell-form-grid">
+                <div class="dm-form-field">
+                    <label for="f_name_cz">Český název *</label>
+                    <input type="text" name="name_cz" id="f_name_cz" required>
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_name_en">Anglický název</label>
+                    <input type="text" name="name_en" id="f_name_en">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_api_index">API Index (unikátní klíč)</label>
+                    <input type="text" name="api_index" id="f_api_index" placeholder="Automaticky dle názvu">
+                </div>
+
+                <div class="dm-form-field">
+                    <label for="f_level">Úroveň kouzla (0 = Trik, 1–9)</label>
+                    <input type="number" name="level" id="f_level" min="0" max="9" value="0">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_school">Magická škola (CZ)</label>
+                    <input type="text" name="school" id="f_school" placeholder="Např. Evokace, Iluze...">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_school_en">Magická škola (EN)</label>
+                    <input type="text" name="school_en" id="f_school_en" placeholder="Evocation, Illusion...">
+                </div>
+
+                <div class="dm-form-field">
+                    <label for="f_casting_time">Doba vyvolání</label>
+                    <input type="text" name="casting_time" id="f_casting_time" placeholder="1 akce">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_range">Dosah</label>
+                    <input type="text" name="range" id="f_range" placeholder="120 stop / Dotyk / Na sebe">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_duration">Trvání</label>
+                    <input type="text" name="duration" id="f_duration" placeholder="Ihned / Až 1 minuta">
+                </div>
+
+                <div class="dm-form-field">
+                    <label for="f_components">Složky (V, S, M)</label>
+                    <input type="text" name="components" id="f_components" placeholder="V, S, M">
+                </div>
+                <div class="dm-form-field span-2">
+                    <label for="f_material">Materiální složka</label>
+                    <input type="text" name="material" id="f_material" placeholder="Špetka síry a netopýřího trusu...">
+                </div>
+
+                <div class="dm-form-field">
+                    <label for="f_damage_dice">Kostky poškození</label>
+                    <input type="text" name="damage_dice" id="f_damage_dice" placeholder="Např. 8k6">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_damage_type">Typ poškození</label>
+                    <input type="text" name="damage_type" id="f_damage_type" placeholder="Např. ohnivé, bleskové...">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_heal_dice">Kostky léčení</label>
+                    <input type="text" name="heal_dice" id="f_heal_dice" placeholder="Např. 1k8 + mod.">
+                </div>
+
+                <div class="dm-form-field">
+                    <label for="f_saving_throw">Záchranný hod</label>
+                    <input type="text" name="saving_throw" id="f_saving_throw" placeholder="Např. OBR, MDR, ODL...">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_attack_type">Typ útoku</label>
+                    <input type="text" name="attack_type" id="f_attack_type" placeholder="Na dálku / Na blízko">
+                </div>
+                <div class="dm-form-field">
+                    <label>Příznaky kouzla</label>
+                    <div class="dm-form-checkboxes">
+                        <label><input type="checkbox" name="is_cantrip" id="f_is_cantrip"> Je trik (Cantrip)</label>
+                        <label><input type="checkbox" name="concentration" id="f_concentration"> Soustředění</label>
+                        <label><input type="checkbox" name="ritual" id="f_ritual"> Rituál</label>
+                    </div>
+                </div>
+
+                <div class="dm-form-field">
+                    <label for="f_classes">Povolání (CZ)</label>
+                    <input type="text" name="classes" id="f_classes" placeholder="Kouzelník, Čaroděj, Klerik...">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_races">Rasy (CZ)</label>
+                    <input type="text" name="races" id="f_races" placeholder="Tiefling, Elf...">
+                </div>
+                <div class="dm-form-field">
+                    <label for="f_backgrounds">Zázemí (CZ)</label>
+                    <input type="text" name="backgrounds" id="f_backgrounds">
+                </div>
+
+                <div class="dm-form-field span-3">
+                    <label for="f_description">Popis a účinek kouzla</label>
+                    <textarea name="description" id="f_description" rows="5"></textarea>
+                </div>
+
+                <div class="dm-form-field span-3">
+                    <label for="f_higher_levels">Na vyšších úrovních</label>
+                    <textarea name="higher_levels" id="f_higher_levels" rows="2"></textarea>
+                </div>
+            </div>
+
+            <div class="dm-spell-modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeSpellModal()">Zrušit</button>
+                <button type="submit" class="btn btn-gold" id="dmSpellSubmitBtn">💾 Uložit změny</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{{ spells_json|json_script:"dmSpellsJsonData" }}
+
+<script>
+const DM_SPELLS_LIST = JSON.parse(document.getElementById('dmSpellsJsonData').textContent || '[]');
+const DM_SPELLS_MAP = {};
+DM_SPELLS_LIST.forEach(s => { DM_SPELLS_MAP[s.id] = s; });
+
+const CREATE_SPELL_URL = "{% url 'dm_site_app:dm_create_spell' %}";
+const EDIT_SPELL_URL_TEMPLATE = "{% url 'dm_site_app:dm_edit_spell' 999999 %}";
+
+function openEditSpellModal(spellId) {
+    const s = DM_SPELLS_MAP[spellId];
+    if (!s) return;
+
+    document.getElementById('dmSpellModalTitle').textContent = `✏️ Upravit kouzlo: ${s.name_cz}`;
+    document.getElementById('dmSpellForm').action = EDIT_SPELL_URL_TEMPLATE.replace('999999', String(s.id));
+
+    document.getElementById('f_name_cz').value = s.name_cz || '';
+    document.getElementById('f_name_en').value = s.name_en || '';
+    document.getElementById('f_api_index').value = s.api_index || '';
+    document.getElementById('f_level').value = s.level || 0;
+    document.getElementById('f_school').value = s.school || '';
+    document.getElementById('f_school_en').value = s.school_en || '';
+    document.getElementById('f_casting_time').value = s.casting_time || '';
+    document.getElementById('f_range').value = s.range || '';
+    document.getElementById('f_duration').value = s.duration || '';
+    document.getElementById('f_components').value = s.components || '';
+    document.getElementById('f_material').value = s.material || '';
+    document.getElementById('f_damage_dice').value = s.damage_dice || '';
+    document.getElementById('f_damage_type').value = s.damage_type || '';
+    document.getElementById('f_heal_dice').value = s.heal_dice || '';
+    document.getElementById('f_saving_throw').value = s.saving_throw || '';
+    document.getElementById('f_attack_type').value = s.attack_type || '';
+    document.getElementById('f_is_cantrip').checked = Boolean(s.is_cantrip);
+    document.getElementById('f_concentration').checked = Boolean(s.concentration);
+    document.getElementById('f_ritual').checked = Boolean(s.ritual);
+    document.getElementById('f_classes').value = s.classes || '';
+    document.getElementById('f_races').value = s.races || '';
+    document.getElementById('f_backgrounds').value = s.backgrounds || '';
+    document.getElementById('f_description').value = s.description || '';
+    document.getElementById('f_higher_levels').value = s.higher_levels || '';
+
+    document.getElementById('dmSpellModalBackdrop').classList.add('active');
+}
+
+function openCreateSpellModal() {
+    document.getElementById('dmSpellModalTitle').textContent = '✨ Přidat nové kouzlo do databáze';
+    const form = document.getElementById('dmSpellForm');
+    form.reset();
+    form.action = CREATE_SPELL_URL;
+    document.getElementById('f_level').value = 0;
+    document.getElementById('dmSpellModalBackdrop').classList.add('active');
+}
+
+function closeSpellModal() {
+    document.getElementById('dmSpellModalBackdrop').classList.remove('active');
+}
+
+function instantFilterSpells() {
+    const q = (document.getElementById('spellQueryInput').value || '').trim().toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('#dmSpellsTable .dm-spell-row').forEach(row => {
+        const text = row.getAttribute('data-search') || '';
+        if (!q || text.includes(q)) {
+            row.style.display = '';
+            visible++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    const counter = document.getElementById('visibleSpellsCount');
+    if (counter) counter.textContent = visible;
+}
+</script>
+{% endblock %}
+

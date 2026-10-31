@@ -1,0 +1,418 @@
+{% extends "dm_site_app/base_dm.html" %}
+
+{% block title %}DnD Atarax - Logy Aplikace{% endblock %}
+
+{% block extra_dm_head %}
+<style>
+.dm-logs-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 1.5rem;
+}
+
+.dm-logs-stats-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.dm-log-stat-pill {
+    background: var(--bg-card, #1a1625);
+    border: 1px solid var(--border-card, #332b46);
+    border-radius: var(--radius-md, 10px);
+    padding: 8px 14px;
+    font-size: 0.88rem;
+    color: var(--text-silver, #cbd5e1);
+}
+
+.dm-log-stat-pill strong {
+    color: var(--gold-400, #fbbf24);
+    font-weight: 800;
+}
+
+.dm-char-quick-filter {
+    background: var(--bg-card, #1a1625);
+    border: 1px solid var(--border-card, #332b46);
+    border-radius: var(--radius-md, 10px);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.dm-char-quick-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--gold-400, #fbbf24);
+    margin: 0 0 10px 0;
+}
+
+.dm-char-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dm-char-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-card, #332b46);
+    color: var(--text-silver, #cbd5e1);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.dm-char-pill:hover {
+    border-color: var(--gold-500, #f59e0b);
+    color: #fff;
+    background: rgba(245, 158, 11, 0.12);
+}
+
+.dm-char-pill.active {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(217, 119, 6, 0.28));
+    border-color: var(--gold-400, #fbbf24);
+    color: var(--gold-300, #fde68a);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+.dm-char-pill img {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.dm-logs-filter-bar {
+    background: var(--bg-card, #1a1625);
+    border: 1px solid var(--border-card, #332b46);
+    border-radius: var(--radius-md, 10px);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    align-items: end;
+}
+
+.dm-filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.dm-filter-group label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dm-filter-group select,
+.dm-filter-group input {
+    background: #120f1a;
+    border: 1px solid var(--border-card, #332b46);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #f8fafc;
+    font-size: 0.9rem;
+}
+
+.dm-filter-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.dm-logs-table-card {
+    background: var(--bg-card, #1a1625);
+    border: 1px solid var(--border-card, #332b46);
+    border-radius: var(--radius-md, 10px);
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.dm-logs-table-wrap {
+    overflow-x: auto;
+}
+
+.dm-logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.dm-logs-table th {
+    background: rgba(15, 12, 24, 0.9);
+    color: var(--gold-400, #fbbf24);
+    font-weight: 700;
+    text-align: left;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border-card, #332b46);
+    white-space: nowrap;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.dm-logs-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+    color: #e2e8f0;
+}
+
+.dm-logs-table tbody tr:hover {
+    background: rgba(245, 158, 11, 0.05);
+}
+
+.log-date-cell {
+    white-space: nowrap;
+    color: var(--text-muted, #94a3b8);
+    font-family: monospace;
+    font-size: 0.84rem;
+}
+
+.log-char-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #7dd3fc;
+    font-weight: 600;
+    font-size: 0.82rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.log-char-badge:hover {
+    background: rgba(56, 189, 248, 0.22);
+    color: #fff;
+}
+
+.log-char-none {
+    color: #64748b;
+    font-style: italic;
+    font-size: 0.82rem;
+}
+
+.log-player-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    color: #cbd5e1;
+    font-size: 0.82rem;
+    white-space: nowrap;
+}
+
+.log-msg-cell {
+    line-height: 1.45;
+    min-width: 280px;
+}
+
+.log-val-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.log-val-pos {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #6ee7b7;
+}
+
+.log-val-neg {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #fca5a5;
+}
+
+.log-val-zero {
+    background: rgba(148, 163, 184, 0.1);
+    color: #94a3b8;
+}
+</style>
+{% endblock %}
+
+{% block dm_content %}
+<div class="atarax-page-header dm-logs-header">
+    <div class="atarax-header-title-group">
+        <h1><span>📋</span> Logy Aplikace</h1>
+        <p class="atarax-header-subtitle">Kompletní historie všech událostí a změn u postav a hráčů v databázi.</p>
+    </div>
+    <div class="dm-logs-stats-row">
+        <div class="dm-log-stat-pill">
+            Zobrazeno: <strong id="visibleLogsCount">{{ logs|length }}</strong> z <strong>{{ total_matching_count }}</strong>
+        </div>
+        <div class="dm-log-stat-pill">
+            Celkem v DB: <strong>{{ total_all_logs_count }}</strong> záznamů
+        </div>
+        <a href="{% url 'dm_site_app:tools' %}" class="btn btn-outline-secondary btn-sm">
+            &larr; Zpět na Nástroje
+        </a>
+    </div>
+</div>
+
+<!-- Rychlá filtrace podle postav -->
+<div class="dm-char-quick-filter">
+    <div class="dm-char-quick-title">🧙 Rychlý filtr podle postavy:</div>
+    <div class="dm-char-pills">
+        <a href="{% url 'dm_site_app:logs_view' %}" class="dm-char-pill {% if not selected_char_id %}active{% endif %}">
+            Všechny postavy
+        </a>
+        {% for c in all_characters %}
+        <a href="{% url 'dm_site_app:logs_view' %}?char_id={{ c.id }}{% if selected_player_id %}&player_id={{ selected_player_id }}{% endif %}{% if query %}&q={{ query|urlencode }}{% endif %}&limit={{ selected_limit }}"
+           class="dm-char-pill {% if selected_char_id == c.id|stringformat:'s' %}active{% endif %}">
+            <img src="{{ c.profile_image_url }}" alt="{{ c.name }}">
+            <span>{{ c.name }}</span>
+        </a>
+        {% endfor %}
+        <a href="{% url 'dm_site_app:logs_view' %}?char_id=none"
+           class="dm-char-pill {% if selected_char_id == 'none' %}active{% endif %}">
+            Bez postavy (účty hráčů)
+        </a>
+    </div>
+</div>
+
+<!-- Formulář podrobného filtrování -->
+<form method="get" action="{% url 'dm_site_app:logs_view' %}" class="dm-logs-filter-bar">
+    <div class="dm-filter-group">
+        <label for="filterCharSelect">Postava</label>
+        <select name="char_id" id="filterCharSelect" onchange="this.form.submit()">
+            <option value="">-- Všechny postavy --</option>
+            <option value="none" {% if selected_char_id == 'none' %}selected{% endif %}>-- Bez postavy --</option>
+            {% for c in all_characters %}
+            <option value="{{ c.id }}" {% if selected_char_id == c.id|stringformat:'s' %}selected{% endif %}>
+                {{ c.name }} ({{ c.player.nickname|default:c.player.user.username }})
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="dm-filter-group">
+        <label for="filterPlayerSelect">Hráč</label>
+        <select name="player_id" id="filterPlayerSelect" onchange="this.form.submit()">
+            <option value="">-- Všichni hráči --</option>
+            {% for p in all_players %}
+            <option value="{{ p.id }}" {% if selected_player_id == p.id|stringformat:'s' %}selected{% endif %}>
+                {{ p.nickname|default:p.user.username }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="dm-filter-group">
+        <label for="filterQueryInput">Hledat v textu logu</label>
+        <input type="text" name="q" id="filterQueryInput" value="{{ query }}" placeholder="Např. zlaťáků, HP, kouzlo, předmět..." oninput="instantFilterLogs(this.value)">
+    </div>
+
+    <div class="dm-filter-group">
+        <label for="filterLimitSelect">Počet záznamů</label>
+        <select name="limit" id="filterLimitSelect" onchange="this.form.submit()">
+            <option value="50" {% if selected_limit == '50' %}selected{% endif %}>Posledních 50</option>
+            <option value="100" {% if selected_limit == '100' %}selected{% endif %}>Posledních 100</option>
+            <option value="200" {% if selected_limit == '200' %}selected{% endif %}>Posledních 200</option>
+            <option value="500" {% if selected_limit == '500' %}selected{% endif %}>Posledních 500</option>
+            <option value="all" {% if selected_limit == 'all' %}selected{% endif %}>Všechny záznamy</option>
+        </select>
+    </div>
+
+    <div class="dm-filter-actions">
+        <button type="submit" class="btn btn-gold btn-sm">Filtrovat</button>
+        {% if selected_char_id or selected_player_id or query %}
+        <a href="{% url 'dm_site_app:logs_view' %}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Tabulka logů -->
+<div class="dm-logs-table-card">
+    <div class="dm-logs-table-wrap">
+        <table class="dm-logs-table" id="dmLogsTable">
+            <thead>
+                <tr>
+                    <th>Datum a čas</th>
+                    <th>Postava</th>
+                    <th>Hráč</th>
+                    <th>Záznam události / Změna</th>
+                    <th>Hodnota</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr class="dm-log-row" data-search="{{ log.message|lower }} {{ log.character.name|default:''|lower }} {{ log.player.nickname|default:''|lower }}">
+                    <td class="log-date-cell">{{ log.created_at|date:"d.m.Y H:i:s" }}</td>
+                    <td>
+                        {% if log.character %}
+                        <a href="{% url 'player_site_app:char_overview' log.character.id %}" class="log-char-badge" title="Otevřít deník postavy {{ log.character.name }}">
+                            <span>🧙</span> {{ log.character.name }}
+                        </a>
+                        {% else %}
+                        <span class="log-char-none">— Bez postavy —</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="log-player-badge">
+                            {{ log.player.nickname|default:log.player.user.username }}
+                        </span>
+                    </td>
+                    <td class="log-msg-cell">{{ log.message }}</td>
+                    <td>
+                        {% if log.value is not None and log.value > 0 %}
+                        <span class="log-val-badge log-val-pos">+{{ log.value|floatformat:"-2" }}</span>
+                        {% elif log.value is not None and log.value < 0 %}
+                        <span class="log-val-badge log-val-neg">{{ log.value|floatformat:"-2" }}</span>
+                        {% else %}
+                        <span class="log-val-badge log-val-zero">0</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" style="text-align: center; padding: 2.5rem; color: #94a3b8;">
+                        Pro zadaná kritéria nebyly nalezeny žádné záznamy v logu.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function instantFilterLogs(val) {
+    const q = (val || '').trim().toLowerCase();
+    let visible = 0;
+    document.querySelectorAll('#dmLogsTable .dm-log-row').forEach(row => {
+        const text = row.getAttribute('data-search') || '';
+        if (!q || text.includes(q)) {
+            row.style.display = '';
+            visible++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    const counter = document.getElementById('visibleLogsCount');
+    if (counter) counter.textContent = visible;
+}
+</script>
+{% endblock %}
+

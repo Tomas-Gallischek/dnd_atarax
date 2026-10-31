@@ -12,7 +12,7 @@
 <div class="player-nav-container" id="playerNavContainer">
     {% if active_character %}
     <div class="player-nav-bar" id="playerNavBar">
-        <button type="button" class="player-nav-toggle-btn" id="playerNavToggleBtn" aria-label="Menu hráče" title="Otevřít nabídku hráče" aria-expanded="false" aria-haspopup="true">
+        <button type="button" class="player-nav-toggle-btn{% if active_character.has_new_inv or active_character.has_new_ach or player.has_new_kronika %} has-nav-notification{% endif %}" id="playerNavToggleBtn" aria-label="Menu hráče" title="Otevřít nabídku hráče" aria-expanded="false" aria-haspopup="true">
             <span class="char-avatar-wrap char-avatar-nav-xs">
                 <img src="{{ active_character.profile_image_url }}" alt="{{ active_character.name }}" class="char-avatar char-avatar-xs" id="navActiveCharAvatarXs">
                 {% if active_character.frame_url %}
@@ -20,13 +20,19 @@
                 {% endif %}
             </span>
             <span class="player-nav-name">{{ active_character.name }}</span>
+            {% if active_character.has_new_inv or active_character.has_new_ach or player.has_new_kronika %}
+            <span class="nav-toggle-notify-dot" title="Nová změna v nabídce" aria-hidden="true"></span>
+            {% endif %}
             <span class="player-nav-arrow" aria-hidden="true">&#9662;</span>
         </button>
     </div>
     {% else %}
-    <button type="button" class="player-nav-toggle-btn player-nav-toggle-btn-solo" id="playerNavToggleBtn" aria-label="Menu hráče" title="Otevřít nabídku hráče" aria-expanded="false" aria-haspopup="true">
+    <button type="button" class="player-nav-toggle-btn player-nav-toggle-btn-solo{% if player.has_new_kronika %} has-nav-notification{% endif %}" id="playerNavToggleBtn" aria-label="Menu hráče" title="Otevřít nabídku hráče" aria-expanded="false" aria-haspopup="true">
         <span class="player-nav-toggle-icon">&#9776;</span>
         <span class="player-nav-name">Nabídka</span>
+        {% if player.has_new_kronika %}
+        <span class="nav-toggle-notify-dot" title="Nová změna v nabídce" aria-hidden="true"></span>
+        {% endif %}
         <span class="player-nav-arrow" aria-hidden="true">&#9662;</span>
     </button>
     {% endif %}
@@ -61,8 +67,11 @@
 
             <!-- 2. inv.html -->
             <li class="player-nav-item">
-                <a href="{% url 'player_site_app:inv' %}" class="{% if current_page == 'inv' %}active{% endif %}">
+                <a href="{% url 'player_site_app:inv' %}" class="{% if current_page == 'inv' %}active{% endif %}{% if active_character.has_new_inv and current_page != 'inv' %} nav-item-notify{% endif %}">
                     <span>&#127890;</span> Inventář
+                    {% if active_character.has_new_inv and current_page != 'inv' %}
+                    <span class="nav-notify-badge" title="Nový předmět v inventáři">Nové</span>
+                    {% endif %}
                 </a>
             </li>
 
@@ -82,16 +91,22 @@
 
             <!-- 5. char_achivements.html -->
             <li class="player-nav-item">
-                <a href="{% url 'player_site_app:char_achivements' %}" class="{% if current_page == 'char_achivements' %}active{% endif %}">
+                <a href="{% url 'player_site_app:char_achivements' %}" class="{% if current_page == 'char_achivements' %}active{% endif %}{% if active_character.has_new_ach and current_page != 'char_achivements' %} nav-item-notify{% endif %}">
                     <span>&#127942;</span> Úspěchy (Achievements)
+                    {% if active_character.has_new_ach and current_page != 'char_achivements' %}
+                    <span class="nav-notify-badge" title="Nový posun v úspěších">Nové</span>
+                    {% endif %}
                 </a>
             </li>
 
 
             <!-- 6. kronika.html -->
             <li class="player-nav-item">
-                <a href="{% url 'player_site_app:kronika' %}" class="{% if current_page == 'kronika' %}active{% endif %}">
+                <a href="{% url 'player_site_app:kronika' %}" class="{% if current_page == 'kronika' %}active{% endif %}{% if player.has_new_kronika and current_page != 'kronika' %} nav-item-notify{% endif %}">
                     <span>&#128220;</span> Kronika
+                    {% if player.has_new_kronika and current_page != 'kronika' %}
+                    <span class="nav-notify-badge" title="Nový záznam v Kronice">Nové</span>
+                    {% endif %}
                 </a>
             </li>
 

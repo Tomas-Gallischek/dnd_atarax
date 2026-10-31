@@ -163,13 +163,20 @@ class Items_Active(models.Model):
         return f"{self.name_cz} ({self.category})"
 
     def save(self, *args, **kwargs):
-        from player_site_app.models import create_db_log
+        from player_site_app.models import create_db_log, Char_info
         skip_auto_log = getattr(self, '_skip_auto_log', False)
         is_new = self.pk is None
         old_item = None
-        if not is_new and not skip_auto_log:
+        old_char_own_id = None
+        if not is_new:
             old_item = Items_Active.objects.filter(pk=self.pk).first()
+            if old_item:
+                old_char_own_id = old_item.char_own_id
         super().save(*args, **kwargs)
+        if self.char_own_id and (is_new or old_char_own_id != self.char_own_id):
+            Char_info.objects.filter(pk=self.char_own_id).update(has_new_inv=True)
+            if self.char_own:
+                self.char_own.has_new_inv = True
         if not skip_auto_log and self.char_own:
             item_val = (self.cost_gold or 0) + ((self.cost_silver or 0) / 10.0)
             if is_new or (old_item and old_item.char_own_id != self.char_own_id):
@@ -487,6 +494,16 @@ class Kronika(models.Model):
 
     def __str__(self):
         return f"[{self.get_category_display()}] {self.nazev} ({'Odkryto' if self.odkryto_hracum else 'Skryto'})"
+
+    def save(self, *args, **kwargs):
+        from player_site_app.models import Player
+        is_new = self.pk is None
+        old_odkryto = False
+        if not is_new:
+            old_odkryto = bool(Kronika.objects.filter(pk=self.pk).values_list('odkryto_hracum', flat=True).first())
+        super().save(*args, **kwargs)
+        if self.odkryto_hracum and (is_new or not old_odkryto):
+            Player.objects.all().update(has_new_kronika=True)
 
 
 class Spells_All_db(models.Model):

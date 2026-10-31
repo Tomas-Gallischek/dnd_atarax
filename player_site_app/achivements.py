@@ -23,6 +23,7 @@ def zbohatlik_ach(char_id, amount):
     new_total_gold = (this_char.total_golds or 0) + amount
     current_achivement.current_value = new_total_gold
     current_achivement._skip_auto_log = True
+    current_achivement._is_passive_gold_check = True
     current_achivement.save()
 
     create_db_log(

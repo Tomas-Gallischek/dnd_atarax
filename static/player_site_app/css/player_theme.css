@@ -2733,189 +2733,18 @@
     background: #64748b;
 }
 
-/* Hlavní rozvržení: Levá stupnice (Ladder) + Pravý strom (Tiers) */
+/* Hlavní rozvržení: Strom kouzel (Tiers) na celou šířku */
 .rpg-spellbook-layout {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    gap: 24px;
-    align-items: flex-start;
-}
-
-@media (max-width: 900px) {
-    .rpg-spellbook-layout {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-
-    /* Na tabletech a mobilech nesmí být stupnice vysoký sticky sloupec přes celou obrazovku,
-       ale kompaktní horizontální posuvná lišta */
-    .rpg-level-ladder {
-        position: static;
-        padding: 12px 14px;
-    }
-
-    .ladder-header {
-        padding-bottom: 8px;
-        margin-bottom: 8px;
-    }
-
-    .ladder-title-text {
-        font-size: 0.92rem;
-    }
-
-    .ladder-nav {
-        flex-direction: row;
-        overflow-x: auto;
-        gap: 8px;
-        padding-bottom: 4px;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: thin;
-    }
-
-    .ladder-node {
-        flex: 0 0 auto;
-        padding: 7px 10px;
-        gap: 8px;
-        border: 1px solid rgba(255, 255, 255, 0.07);
-    }
-
-    .ladder-node:hover {
-        transform: translateY(-1px);
-    }
-
-    .ladder-node-badge {
-        width: 24px;
-        height: 24px;
-        font-size: 0.78rem;
-    }
-
-    .ladder-node-title {
-        font-size: 0.8rem;
-        white-space: nowrap;
-    }
-
-    .ladder-node-sub {
-        font-size: 0.68rem;
-        white-space: nowrap;
-    }
-
-    .rpg-spell-tier-section {
-        scroll-margin-top: 70px;
-    }
-}
-
-/* Levá stupnice levelů (Level Ladder) */
-.rpg-level-ladder {
-    position: sticky;
-    top: 90px;
-    background: rgba(22, 18, 31, 0.85);
-    border: 1px solid var(--border-gold, #d4af37);
-    border-radius: var(--radius-md);
-    padding: 16px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
-}
-
-.ladder-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-bottom: 12px;
-    margin-bottom: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.ladder-title-text {
-    font-family: var(--font-heading);
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--gold-300);
-}
-
-.ladder-nav {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.ladder-node {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 10px;
-    border-radius: var(--radius-sm);
-    text-decoration: none;
-    color: var(--text-primary);
-    background: rgba(13, 10, 20, 0.5);
-    border: 1px solid transparent;
-    transition: all 0.2s ease;
-}
-
-.ladder-node:hover {
-    background: rgba(35, 27, 44, 0.85);
-    border-color: var(--gold-500);
-    transform: translateX(3px);
-}
-
-.ladder-node-badge {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(245, 158, 11, 0.2);
-    border: 1px solid var(--gold-400);
-    color: var(--gold-300);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    font-weight: 800;
-    flex-shrink: 0;
-}
-
-.ladder-node.node-locked .ladder-node-badge {
-    background: rgba(100, 116, 139, 0.2);
-    border-color: #64748b;
-    color: #94a3b8;
-}
-
-.ladder-node-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.ladder-node-title {
     display: block;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    line-height: 1.2;
+    width: 100%;
 }
 
-.ladder-node-sub {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.72rem;
-    color: var(--text-muted);
-}
-
-.ladder-unlocked-tag {
-    color: #10b981;
-}
-
-.ladder-locked-tag {
-    color: #94a3b8;
-}
-
-.ladder-counter {
-    color: var(--gold-400);
-    margin-left: 2px;
-}
-
-/* Pravá část: Sekce úrovní kouzel */
+/* Sekce úrovní kouzel */
 .rpg-spell-tiers-container {
     display: flex;
     flex-direction: column;
     gap: 28px;
+    width: 100%;
 }
 
 .rpg-spell-tier-section {
@@ -6273,4 +6102,70 @@
     .login-welcome-card {
         padding: 24px 16px;
     }
+}
+
+/* =========================================================================
+   NOTIFIKAČNÍ ZVÝRAZNĚNÍ / JEMNÉ PULZOVÁNÍ V MENU HRÁČE
+   (Inventář, Úspěchy, Kronika)
+   ========================================================================= */
+@keyframes navItemSoftPulse {
+    0%, 100% {
+        background: rgba(245, 158, 11, 0.10);
+        border-color: rgba(245, 158, 11, 0.35);
+        box-shadow: inset 0 0 8px rgba(245, 158, 11, 0.08);
+    }
+    50% {
+        background: rgba(245, 158, 11, 0.24);
+        border-color: rgba(251, 191, 36, 0.75);
+        box-shadow: inset 0 0 14px rgba(245, 158, 11, 0.22), 0 0 10px rgba(245, 158, 11, 0.20);
+    }
+}
+
+@keyframes navDotBlink {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.45;
+        transform: scale(0.88);
+    }
+}
+
+.player-nav-item a.nav-item-notify {
+    position: relative;
+    color: var(--gold-300, #fde68a) !important;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    animation: navItemSoftPulse 2.4s ease-in-out infinite;
+    font-weight: 700;
+}
+
+.nav-notify-badge {
+    margin-left: auto;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #0f0a19;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.55);
+    animation: navDotBlink 2s ease-in-out infinite;
+}
+
+.player-nav-toggle-btn.has-nav-notification {
+    border-color: rgba(251, 191, 36, 0.75);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 0 12px rgba(245, 158, 11, 0.28);
+}
+
+.nav-toggle-notify-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #fbbf24;
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.9);
+    display: inline-block;
+    flex-shrink: 0;
+    animation: navDotBlink 1.8s ease-in-out infinite;
 }

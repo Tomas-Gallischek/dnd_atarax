@@ -9,7 +9,11 @@ from django.urls import reverse
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from .models import Locations, Npc, Monsters_All_db, Monsters_Active, Items_All_db, Items_Active, Kronika, DmNote
+from .models import (
+    Locations, Npc, Monsters_All_db, Monsters_Active,
+    Items_All_db, Items_Active, Kronika, DmNote,
+    Spells_All_db, Spells_Active
+)
 from player_site_app.models import (
     Player, Char_info, Logs, Achivements_database, Achivements_players,
     CharacterSpellSlot, CharacterFeature, create_db_log
@@ -2080,6 +2084,388 @@ def modify_spell_slots(request):
             messages.success(request, f"Sloty {lvl}. úrovně pro postavu {char.name} byly smazány.")
 
     return redirect('dm_site_app:spell_slots_management')
+
+
+# ==========================================
+# 9. PŘEHLED APLIKAČNÍCH LOGŮ (DM LOGS TOOL)
+# ==========================================
+
+@dm_required
+def logs_view(request):
+    """
+    Přehledný výpis všech aplikačních logů (model Logs) pro Pána jeskyně.
+    Umožňuje filtraci zejména podle postavy, dále podle hráče, textového hledání a limitu záznamů.
+    """
+    char_id = request.GET.get('char_id', '').strip()
+    player_id = request.GET.get('player_id', '').strip()
+    query = request.GET.get('q', '').strip()
+    limit_raw = request.GET.get('limit', '200').strip()
+
+    all_characters = Char_info.objects.select_related('player', 'player__user').order_by('name')
+    all_players = Player.objects.select_related('user').order_by('nickname', 'user__username')
+
+    logs_qs = Logs.objects.select_related('player', 'player__user', 'character').order_by('-created_at', '-id')
+
+    selected_char = None
+    if char_id == 'none':
+        logs_qs = logs_qs.filter(character__isnull=True)
+    elif char_id and char_id.isdigit():
+        selected_char = Char_info.objects.filter(id=int(char_id)).select_related('player').first()
+        if selected_char:
+            logs_qs = logs_qs.filter(character=selected_char)
+
+    selected_player = None
+    if player_id and player_id.isdigit():
+        selected_player = Player.objects.filter(id=int(player_id)).first()
+        if selected_player:
+            logs_qs = logs_qs.filter(player=selected_player)
+
+    if query:
+        logs_qs = logs_qs.filter(
+            Q(message__icontains=query) |
+            Q(character__name__icontains=query) |
+            Q(player__nickname__icontains=query) |
+            Q(player__user__username__icontains=query)
+        )
+
+    total_matching_count = logs_qs.count()
+    total_all_logs_count = Logs.objects.count()
+
+    if limit_raw != 'all':
+        try:
+            limit_val = max(1, min(2000, int(limit_raw)))
+        except (ValueError, TypeError):
+            limit_val = 200
+            limit_raw = '200'
+        logs_list = list(logs_qs[:limit_val])
+    else:
+        logs_list = list(logs_qs)
+
+    return render(request, 'dm_site_app/logs.html', {
+        'current_page': 'tools',
+        'logs': logs_list,
+        'total_matching_count': total_matching_count,
+        'total_all_logs_count': total_all_logs_count,
+        'all_characters': all_characters,
+        'all_players': all_players,
+        'selected_char_id': char_id,
+        'selected_char': selected_char,
+        'selected_player_id': player_id,
+        'selected_player': selected_player,
+        'query': query,
+        'selected_limit': limit_raw,
+    })
+
+
+# ==========================================
+# 10. DATABÁZE A SPRÁVA VŠECH KOUZEL (DM SPELLS TOOL)
+# ==========================================
+
+@dm_required
+def spells_management(request):
+    """
+    DM Tool zobrazující všechna kouzla v databázi (Spells_All_db) v přehledné tabulce
+    se všemi informacemi, možností vyhledávání, filtrace a editace.
+    """
+    query = request.GET.get('q', '').strip()
+    level_filter = request.GET.get('level', '').strip()
+    school_filter = request.GET.get('school', '').strip()
+    class_filter = request.GET.get('char_class', '').strip()
+    special_filter = request.GET.get('special', '').strip()
+
+    spells_qs = Spells_All_db.objects.all().order_by('level', 'name_cz')
+    total_all_spells = spells_qs.count()
+
+    if query:
+        spells_qs = spells_qs.filter(
+            Q(name_cz__icontains=query) |
+            Q(name_en__icontains=query) |
+            Q(api_index__icontains=query) |
+            Q(school__icontains=query) |
+            Q(classes__icontains=query) |
+            Q(races__icontains=query) |
+            Q(backgrounds__icontains=query) |
+            Q(description__icontains=query) |
+            Q(damage_type__icontains=query) |
+            Q(damage_dice__icontains=query) |
+            Q(saving_throw__icontains=query)
+        )
+
+    if level_filter != '' and level_filter.lstrip('-').isdigit():
+        lvl_int = int(level_filter)
+        if lvl_int == 0:
+            spells_qs = spells_qs.filter(Q(level=0) | Q(is_cantrip=True))
+        else:
+            spells_qs = spells_qs.filter(level=lvl_int)
+
+    if school_filter:
+        spells_qs = spells_qs.filter(school__iexact=school_filter)
+
+    if class_filter:
+        spells_qs = spells_qs.filter(classes__icontains=class_filter)
+
+    if special_filter == 'concentration':
+        spells_qs = spells_qs.filter(concentration=True)
+    elif special_filter == 'ritual':
+        spells_qs = spells_qs.filter(ritual=True)
+    elif special_filter == 'damage':
+        spells_qs = spells_qs.exclude(damage_dice__isnull=True).exclude(damage_dice='')
+    elif special_filter == 'heal':
+        spells_qs = spells_qs.exclude(heal_dice__isnull=True).exclude(heal_dice='')
+
+    all_schools = sorted(list(set(
+        Spells_All_db.objects.exclude(school__isnull=True).exclude(school='').values_list('school', flat=True)
+    )))
+    class_options = [
+        "Bard", "Čaroděj", "Černokněžník", "Druid", "Hraničář",
+        "Klerik", "Kouzelník", "Paladin", "Bojovník", "Tulák"
+    ]
+
+    spells_list = list(spells_qs)
+
+    spells_json = [
+        {
+            'id': s.id,
+            'api_index': s.api_index or '',
+            'name_cz': s.name_cz or '',
+            'name_en': s.name_en or '',
+            'level': s.level or 0,
+            'is_cantrip': bool(s.is_cantrip or s.level == 0),
+            'school': s.school or '',
+            'school_en': s.school_en or '',
+            'casting_time': s.casting_time or '',
+            'range': s.range or '',
+            'components': s.components or '',
+            'material': s.material or '',
+            'duration': s.duration or '',
+            'concentration': bool(s.concentration),
+            'ritual': bool(s.ritual),
+            'attack_type': s.attack_type or '',
+            'damage_type': s.damage_type or '',
+            'damage_dice': s.damage_dice or '',
+            'saving_throw': s.saving_throw or '',
+            'heal_dice': s.heal_dice or '',
+            'description': s.description or '',
+            'higher_levels': s.higher_levels or '',
+            'classes': s.classes or '',
+            'races': s.races or '',
+            'backgrounds': s.backgrounds or '',
+        }
+        for s in spells_list
+    ]
+
+    return render(request, 'dm_site_app/spells_management.html', {
+        'current_page': 'tools',
+        'spells': spells_list,
+        'spells_json': spells_json,
+        'total_matching_spells': len(spells_list),
+        'total_all_spells': total_all_spells,
+        'all_schools': all_schools,
+        'class_options': class_options,
+        'level_choices': list(range(0, 10)),
+        'query': query,
+        'selected_level': level_filter,
+        'selected_school': school_filter,
+        'selected_class': class_filter,
+        'selected_special': special_filter,
+    })
+
+
+def _extract_spell_fields_from_post(request, existing_spell=None):
+    """Pomocná funkce pro načtení a vyčištění polí kouzla z POST požadavku."""
+    name_cz = request.POST.get('name_cz', '').strip()
+    name_en = request.POST.get('name_en', '').strip() or name_cz
+
+    try:
+        level = max(0, min(9, int(request.POST.get('level', 0) or 0)))
+    except (ValueError, TypeError):
+        level = existing_spell.level if existing_spell else 0
+
+    is_cantrip_raw = request.POST.get('is_cantrip')
+    if is_cantrip_raw is not None:
+        is_cantrip = is_cantrip_raw in ('on', 'true', 'True', '1') or (level == 0)
+    else:
+        is_cantrip = (level == 0)
+
+    concentration = request.POST.get('concentration') in ('on', 'true', 'True', '1')
+    ritual = request.POST.get('ritual') in ('on', 'true', 'True', '1')
+
+    return {
+        'name_cz': name_cz,
+        'name_en': name_en,
+        'level': level,
+        'is_cantrip': is_cantrip,
+        'school': request.POST.get('school', '').strip() or None,
+        'school_en': request.POST.get('school_en', '').strip() or None,
+        'casting_time': request.POST.get('casting_time', '').strip() or None,
+        'range': request.POST.get('range', '').strip() or None,
+        'components': request.POST.get('components', '').strip() or None,
+        'material': request.POST.get('material', '').strip() or None,
+        'duration': request.POST.get('duration', '').strip() or None,
+        'concentration': concentration,
+        'ritual': ritual,
+        'attack_type': request.POST.get('attack_type', '').strip() or None,
+        'damage_type': request.POST.get('damage_type', '').strip() or None,
+        'damage_dice': request.POST.get('damage_dice', '').strip() or None,
+        'saving_throw': request.POST.get('saving_throw', '').strip() or None,
+        'heal_dice': request.POST.get('heal_dice', '').strip() or None,
+        'description': request.POST.get('description', '').strip() or None,
+        'higher_levels': request.POST.get('higher_levels', '').strip() or None,
+        'classes': request.POST.get('classes', '').strip() or None,
+        'races': request.POST.get('races', '').strip() or None,
+        'backgrounds': request.POST.get('backgrounds', '').strip() or None,
+    }
+
+
+@dm_required
+def dm_edit_spell(request, spell_id):
+    """Umožní DM upravit libovolné kouzlo v databázi Spells_All_db (a propsat změny do Spells_Active)."""
+    if request.method != 'POST':
+        return redirect('dm_site_app:spells_management')
+
+    spell = get_object_or_404(Spells_All_db, id=spell_id)
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1'
+
+    fields = _extract_spell_fields_from_post(request, existing_spell=spell)
+    if not fields['name_cz']:
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': 'Český název kouzla nesmí být prázdný.'}, status=400)
+        messages.error(request, "Český název kouzla nesmí být prázdný.")
+        return redirect('dm_site_app:spells_management')
+
+    api_index_post = request.POST.get('api_index', '').strip()
+    if api_index_post and api_index_post != spell.api_index:
+        if not Spells_All_db.objects.filter(api_index=api_index_post).exclude(id=spell.id).exists():
+            spell.api_index = api_index_post
+
+    for attr, val in fields.items():
+        setattr(spell, attr, val)
+    spell.save()
+
+    # Propsání změn šablony i do aktivních kouzel postav, které čerpají z této šablony
+    Spells_Active.objects.filter(template_spell=spell).update(
+        name_cz=spell.name_cz,
+        name_en=spell.name_en,
+        level=spell.level,
+        is_cantrip=spell.is_cantrip,
+        school=spell.school,
+        school_en=spell.school_en,
+        casting_time=spell.casting_time,
+        range=spell.range,
+        components=spell.components,
+        material=spell.material,
+        duration=spell.duration,
+        concentration=spell.concentration,
+        ritual=spell.ritual,
+        attack_type=spell.attack_type,
+        damage_type=spell.damage_type,
+        damage_dice=spell.damage_dice,
+        saving_throw=spell.saving_throw,
+        heal_dice=spell.heal_dice,
+        description=spell.description,
+        higher_levels=spell.higher_levels,
+        classes=spell.classes,
+        races=spell.races,
+        backgrounds=spell.backgrounds,
+    )
+
+    log_dm("Upraveno kouzlo v databázi", f"'{spell.name_cz}' (ID: {spell.id}, Lvl {spell.level})")
+
+    if is_ajax:
+        return JsonResponse({
+            'success': True,
+            'status': 'ok',
+            'message': f"Kouzlo '{spell.name_cz}' bylo úspěšně uloženo.",
+            'spell': {
+                'id': spell.id,
+                'api_index': spell.api_index or '',
+                'name_cz': spell.name_cz or '',
+                'name_en': spell.name_en or '',
+                'level': spell.level or 0,
+                'is_cantrip': bool(spell.is_cantrip or spell.level == 0),
+                'school': spell.school or '',
+                'school_en': spell.school_en or '',
+                'casting_time': spell.casting_time or '',
+                'range': spell.range or '',
+                'components': spell.components or '',
+                'material': spell.material or '',
+                'duration': spell.duration or '',
+                'concentration': bool(spell.concentration),
+                'ritual': bool(spell.ritual),
+                'attack_type': spell.attack_type or '',
+                'damage_type': spell.damage_type or '',
+                'damage_dice': spell.damage_dice or '',
+                'saving_throw': spell.saving_throw or '',
+                'heal_dice': spell.heal_dice or '',
+                'description': spell.description or '',
+                'higher_levels': spell.higher_levels or '',
+                'classes': spell.classes or '',
+                'races': spell.races or '',
+                'backgrounds': spell.backgrounds or '',
+            }
+        })
+
+    messages.success(request, f"Kouzlo '{spell.name_cz}' bylo úspěšně upraveno.")
+    next_url = request.POST.get('next') or request.META.get('HTTP_REFERER')
+    if next_url:
+        return redirect(next_url)
+    return redirect('dm_site_app:spells_management')
+
+
+@dm_required
+def dm_create_spell(request):
+    """Umožní DM vytvořit nové kouzlo v databázi Spells_All_db."""
+    if request.method != 'POST':
+        return redirect('dm_site_app:spells_management')
+
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1'
+    fields = _extract_spell_fields_from_post(request)
+
+    if not fields['name_cz']:
+        if is_ajax:
+            return JsonResponse({'success': False, 'error': 'Český název kouzla nesmí být prázdný.'}, status=400)
+        messages.error(request, "Český název kouzla nesmí být prázdný.")
+        return redirect('dm_site_app:spells_management')
+
+    api_index = request.POST.get('api_index', '').strip()
+    if not api_index:
+        base_slug = slugify(fields['name_en']) or slugify(fields['name_cz']) or 'custom-spell'
+        api_index = f"custom-{base_slug[:60]}"
+    if Spells_All_db.objects.filter(api_index=api_index).exists():
+        api_index = f"{api_index[:75]}-{uuid.uuid4().hex[:6]}"
+
+    spell = Spells_All_db.objects.create(api_index=api_index, **fields)
+    log_dm("Vytvořeno nové kouzlo v databázi", f"'{spell.name_cz}' (ID: {spell.id}, Lvl {spell.level})")
+
+    if is_ajax:
+        return JsonResponse({
+            'success': True,
+            'status': 'ok',
+            'message': f"Kouzlo '{spell.name_cz}' bylo vytvořeno.",
+            'spell_id': spell.id,
+        })
+
+    messages.success(request, f"Nové kouzlo '{spell.name_cz}' bylo přidáno do databáze.")
+    return redirect('dm_site_app:spells_management')
+
+
+@dm_required
+def dm_delete_spell(request, spell_id):
+    """Umožní DM smazat kouzlo z databáze Spells_All_db."""
+    if request.method != 'POST':
+        return redirect('dm_site_app:spells_management')
+
+    spell = get_object_or_404(Spells_All_db, id=spell_id)
+    name_cz = spell.name_cz
+    spell.delete()
+    log_dm("Smazáno kouzlo z databáze", f"'{name_cz}' (ID: {spell_id})")
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+        return JsonResponse({'success': True, 'status': 'ok', 'deleted_id': spell_id})
+
+    messages.info(request, f"Kouzlo '{name_cz}' bylo odstraněno z databáze.")
+    return redirect('dm_site_app:spells_management')
+
 
 
 

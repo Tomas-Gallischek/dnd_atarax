@@ -78,6 +78,7 @@ class Player(models.Model):
     )
 
     admin = models.BooleanField(default=False, verbose_name="Jsi administrátor", blank=True, null=True)
+    has_new_kronika = models.BooleanField(default=False, verbose_name="Nový záznam v Kronice")
 
     class Meta:
         verbose_name = "Hráč"
@@ -365,6 +366,8 @@ class Char_info(models.Model):
 
     # pracovní
     in_fight = models.BooleanField(default=False, verbose_name="V boji")
+    has_new_inv = models.BooleanField(default=False, verbose_name="Nový předmět v inventáři")
+    has_new_ach = models.BooleanField(default=False, verbose_name="Nový posun v úspěších")
 
     # Viditelnost pro ostatní hráče (DM kontrola)
     is_public = models.BooleanField(
@@ -993,20 +996,33 @@ class Achivements_players(models.Model):
 
     def save(self, *args, **kwargs):
         skip_auto_log = getattr(self, '_skip_auto_log', False)
+        is_passive_gold_check = getattr(self, '_is_passive_gold_check', False)
         is_new = self.pk is None
         old_val = None
-        if not is_new and not skip_auto_log:
+        old_status = None
+        if not is_new:
             try:
-                old_val = Achivements_players.objects.filter(pk=self.pk).values_list('current_value', flat=True).first()
+                old_row = Achivements_players.objects.filter(pk=self.pk).values('current_value', 'current_status').first()
+                if old_row:
+                    old_val = old_row['current_value']
+                    old_status = old_row['current_status']
             except Exception:
                 old_val = None
+                old_status = None
 
         self.update_achivement_status() # Spuštění funkce pro kontrolu achivementu
         super().save(*args, **kwargs)
 
+        target_char = self.char or (self.player.characters.first() if self.player else None)
+        if target_char:
+            status_changed = (old_status != self.current_status and bool(self.current_status))
+            value_progressed = (old_val is not None and (self.current_value or 0) > (old_val or 0))
+            if status_changed or (not is_passive_gold_check and (is_new or value_progressed)):
+                Char_info.objects.filter(pk=target_char.pk).update(has_new_ach=True)
+                target_char.has_new_ach = True
+
         if not skip_auto_log:
             ach_title = self.Achivement.name if self.Achivement else "Úspěch"
-            target_char = self.char or (self.player.characters.first() if self.player else None)
             char_label = target_char.name if target_char else (self.player.nickname if self.player else "Hráč")
             if is_new:
                 create_db_log(
@@ -1024,6 +1040,7 @@ class Achivements_players(models.Model):
                     value=float(delta)
                 )
         self._skip_auto_log = False
+        self._is_passive_gold_check = False
 
 class Logs(models.Model):
     player = models.ForeignKey(

@@ -62,5 +62,14 @@ urlpatterns = [
     # 8. Pozice pro kouzla (Spell Slots DM Tool)
     path('spell-slots/', views.spell_slots_management, name='spell_slots_management'),
     path('spell-slots/modify/', views.modify_spell_slots, name='modify_spell_slots'),
+
+    # 9. Přehled aplikačních logů (DM Logs Tool)
+    path('logs/', views.logs_view, name='logs_view'),
+
+    # 10. Databáze a správa všech kouzel (DM Spells Tool)
+    path('spells/', views.spells_management, name='spells_management'),
+    path('spells/create/', views.dm_create_spell, name='dm_create_spell'),
+    path('spells/<int:spell_id>/edit/', views.dm_edit_spell, name='dm_edit_spell'),
+    path('spells/<int:spell_id>/delete/', views.dm_delete_spell, name='dm_delete_spell'),
 ]
 

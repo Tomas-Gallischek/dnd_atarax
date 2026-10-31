@@ -267,11 +267,16 @@ def prehled_postav(request):
     all_players = Player.objects.select_related('user').order_by('nickname', 'user__username') if is_dm else None
     all_campaign_characters = Char_info.objects.select_related('player', 'player__user').order_by('name') if is_dm else None
 
+    session_char_id = request.session.get('active_char_id')
+    active_char = (
+        characters.filter(id=session_char_id).first() if session_char_id else None
+    ) or (characters.first() if characters.exists() else None)
+
     return render(request, 'player_site_app/prehled_postav.html', {
         'player': player,
         'characters': characters,
         'all_campaign_characters': all_campaign_characters,
-        'active_character': characters.first() if characters.exists() else None,
+        'active_character': active_char,
         'current_page': 'prehled_postav',
         'is_dm': is_dm,
         'all_players': all_players,
@@ -595,6 +600,10 @@ def toggle_favorite_note(request, note_id):
 def inv_view(request, char_id=None):
     """2. Inventář aktivní postavy."""
     player, character = get_player_and_character(request, char_id)
+
+    if character and character.has_new_inv and character.player_id == player.id:
+        Char_info.objects.filter(pk=character.pk).update(has_new_inv=False)
+        character.has_new_inv = False
 
     categories = []
     total_weight = 0.0
@@ -1227,6 +1236,10 @@ def char_achivements_view(request, char_id=None):
     """5. Úspěchy (Achievements) aktivní postavy a hráče."""
     player, character = get_player_and_character(request, char_id)
 
+    if character and character.has_new_ach and character.player_id == player.id:
+        Char_info.objects.filter(pk=character.pk).update(has_new_ach=False)
+        character.has_new_ach = False
+
     if character:
         achivements = Achivements_players.objects.filter(char=character).select_related('Achivement')
     else:
@@ -1454,6 +1467,10 @@ def kronika_view(request):
     """7. Kronika kampaně a dobrodružství - rozdělená na Info a Příběh."""
     player, character = get_player_and_character(request)
 
+    if player and player.has_new_kronika:
+        Player.objects.filter(pk=player.pk).update(has_new_kronika=False)
+        player.has_new_kronika = False
+
     info_entries = Kronika.objects.filter(odkryto_hracum=True, category='info').order_by('datum_vytvoreni')
     lore_entries = Kronika.objects.filter(odkryto_hracum=True, category='lore').order_by('datum_vytvoreni')
 
@@ -1471,6 +1488,9 @@ def kronika_view(request):
 def kronika_detail_view(request, entry_id):
     """Detail konkrétního zápisu z kroniky kampaně."""
     player, character = get_player_and_character(request)
+    if player and player.has_new_kronika:
+        Player.objects.filter(pk=player.pk).update(has_new_kronika=False)
+        player.has_new_kronika = False
     entry = get_object_or_404(Kronika, id=entry_id, odkryto_hracum=True)
 
     return render(request, 'player_site_app/kronika_detail.html', {

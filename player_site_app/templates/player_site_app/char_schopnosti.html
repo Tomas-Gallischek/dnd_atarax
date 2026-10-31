@@ -101,37 +101,9 @@
 </div>
 {% endif %}
 
-<!-- HLAVNÍ RPG ROZVRŽENÍ: Levá stupnice levelů + Pravý strom kouzel -->
+<!-- HLAVNÍ RPG ROZVRŽENÍ: Strom kouzel podle úrovní -->
 <div class="rpg-spellbook-layout">
-    <!-- Levá stupnice levelů (Level Ladder) -->
-    <aside class="rpg-level-ladder" aria-label="Stupnice úrovní magie">
-        <div class="ladder-header">
-            <span class="ladder-title-icon">📜</span>
-            <span class="ladder-title-text">Stupnice Úrovní</span>
-        </div>
-        <nav class="ladder-nav">
-            {% for tier in level_tiers %}
-            <a href="#tier-{{ tier.level }}" class="ladder-node {% if not tier.is_unlocked %}node-locked{% endif %}" id="ladderNode-{{ tier.level }}">
-                <div class="ladder-node-badge">
-                    {% if tier.is_cantrip %}0{% else %}{{ tier.level }}{% endif %}
-                </div>
-                <div class="ladder-node-info">
-                    <span class="ladder-node-title">{{ tier.short_title }}</span>
-                    <span class="ladder-node-sub">
-                        {% if tier.is_unlocked %}
-                            <span class="ladder-unlocked-tag">🔓 Odemčeno</span>
-                        {% else %}
-                            <span class="ladder-locked-tag">🔒 Zamčeno</span>
-                        {% endif %}
-                        <small class="ladder-counter">({{ tier.learned_count }}/{{ tier.total_count }})</small>
-                    </span>
-                </div>
-            </a>
-            {% endfor %}
-        </nav>
-    </aside>
-
-    <!-- Pravá část: Seznam kouzel rozdělený podle jednotlivých úrovní -->
+    <!-- Seznam kouzel rozdělený podle jednotlivých úrovní -->
     <main class="rpg-spell-tiers-container">
         {% for tier in level_tiers %}
         <section class="rpg-spell-tier-section {% if not tier.is_unlocked %}tier-locked{% endif %}" id="tier-{{ tier.level }}" data-tier-level="{{ tier.level }}" data-is-cantrip="{{ tier.is_cantrip|yesno:'1,0' }}">
@@ -321,7 +293,7 @@ SPELL_ITEMS_DATA.forEach(s => { SPELLS_MAP[s.id] = s; });
 const CURRENT_CHAR_ID = parseInt('{{ character.id }}', 10);
 const CSRF_TOKEN = '{{ csrf_token }}';
 
-// Obsluha kliknutí na karty kouzel a stupnici úrovní
+// Obsluha kliknutí na karty kouzel
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.rpg-spell-card').forEach(function(card) {
         card.addEventListener('click', function(e) {
@@ -329,20 +301,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (spellId) {
                 openSpellModal(parseInt(spellId, 10));
             }
-        });
-    });
-
-    document.querySelectorAll('.ladder-node').forEach(function(node) {
-        node.addEventListener('click', function(e) {
-            const href = this.getAttribute('href');
-            if (!href || !href.startsWith('#')) return;
-            const targetSection = document.querySelector(href);
-            if (!targetSection) return;
-            e.preventDefault();
-            if (targetSection.style.display === 'none') {
-                filterSpellbook('all');
-            }
-            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
 });
