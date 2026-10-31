@@ -75,6 +75,7 @@
     </div>
 
     <div class="rpg-spell-search-wrap">
+        <span class="rpg-search-icon" aria-hidden="true">🔍</span>
         <input type="text" id="spellSearchInput" class="rpg-spell-search-input" placeholder="Hledat kouzlo, školu nebo účinek..." oninput="searchSpellbook(this.value)">
     </div>
 </div>
@@ -320,7 +321,7 @@ SPELL_ITEMS_DATA.forEach(s => { SPELLS_MAP[s.id] = s; });
 const CURRENT_CHAR_ID = parseInt('{{ character.id }}', 10);
 const CSRF_TOKEN = '{{ csrf_token }}';
 
-// Obsluha kliknutí na karty kouzel bez inline onclick
+// Obsluha kliknutí na karty kouzel a stupnici úrovní
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.rpg-spell-card').forEach(function(card) {
         card.addEventListener('click', function(e) {
@@ -328,6 +329,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if (spellId) {
                 openSpellModal(parseInt(spellId, 10));
             }
+        });
+    });
+
+    document.querySelectorAll('.ladder-node').forEach(function(node) {
+        node.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            if (!href || !href.startsWith('#')) return;
+            const targetSection = document.querySelector(href);
+            if (!targetSection) return;
+            e.preventDefault();
+            if (targetSection.style.display === 'none') {
+                filterSpellbook('all');
+            }
+            targetSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     });
 });

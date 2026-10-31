@@ -2744,6 +2744,63 @@
 @media (max-width: 900px) {
     .rpg-spellbook-layout {
         grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    /* Na tabletech a mobilech nesmí být stupnice vysoký sticky sloupec přes celou obrazovku,
+       ale kompaktní horizontální posuvná lišta */
+    .rpg-level-ladder {
+        position: static;
+        padding: 12px 14px;
+    }
+
+    .ladder-header {
+        padding-bottom: 8px;
+        margin-bottom: 8px;
+    }
+
+    .ladder-title-text {
+        font-size: 0.92rem;
+    }
+
+    .ladder-nav {
+        flex-direction: row;
+        overflow-x: auto;
+        gap: 8px;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    .ladder-node {
+        flex: 0 0 auto;
+        padding: 7px 10px;
+        gap: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .ladder-node:hover {
+        transform: translateY(-1px);
+    }
+
+    .ladder-node-badge {
+        width: 24px;
+        height: 24px;
+        font-size: 0.78rem;
+    }
+
+    .ladder-node-title {
+        font-size: 0.8rem;
+        white-space: nowrap;
+    }
+
+    .ladder-node-sub {
+        font-size: 0.68rem;
+        white-space: nowrap;
+    }
+
+    .rpg-spell-tier-section {
+        scroll-margin-top: 70px;
     }
 }
 
@@ -3223,7 +3280,7 @@
     background: rgba(5, 3, 10, 0.88);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    z-index: 10000;
+    z-index: 10050;
     display: none;
     align-items: center;
     justify-content: center;
@@ -5578,4 +5635,642 @@
     display: flex;
     align-items: center;
     gap: 6px;
+}
+
+/* ==========================================================================
+   KOMPLETNÍ RESPONZIVITA PRO MOBILY A MENŠÍ DISPLEJE (Hráčská část aplikace)
+   Desktop (> 900px) zůstává beze změny.
+   ========================================================================== */
+
+@media (max-width: 768px) {
+    /* 1. Základní rozvržení stránky a plovoucí navigace */
+    .player-page-body {
+        padding: 62px 14px 40px 14px;
+    }
+
+    .player-nav-container {
+        top: 12px;
+        left: 12px;
+    }
+
+    .player-nav-dropdown {
+        width: min(280px, calc(100vw - 24px));
+        max-height: calc(100dvh - 70px);
+        overflow-y: auto;
+    }
+
+    /* 2. Hlavičky stránek s avatarem a akcemi */
+    .char-header-with-avatar {
+        gap: 14px;
+        align-items: center;
+    }
+
+    .char-header-with-avatar .char-avatar-hero,
+    .char-header-with-avatar .char-avatar-lg {
+        width: 68px;
+        height: 68px;
+    }
+
+    .char-header-title-flex {
+        flex: 1 1 calc(100% - 92px);
+        min-width: 170px;
+    }
+
+    .atarax-header-actions {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .essence-box {
+        width: 100%;
+        justify-content: space-between;
+        padding: 10px 16px;
+    }
+
+    /* 3. RPG Kniha kouzel & Schopnosti (char_schopnosti.html) */
+    .rpg-spellbook-summary-bar {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 12px;
+        margin-bottom: 1rem;
+    }
+
+    .rpg-summary-stat {
+        padding: 8px 6px;
+    }
+
+    .rpg-summary-stat.highlight-equipped {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 8px 14px;
+    }
+
+    .rpg-summary-stat.highlight-equipped .rpg-stat-label {
+        margin-bottom: 0;
+    }
+
+    .rpg-stat-label {
+        font-size: 0.68rem;
+    }
+
+    .rpg-stat-val {
+        font-size: 1.15rem;
+    }
+
+    .rpg-spellbook-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin-bottom: 1rem;
+    }
+
+    .rpg-spell-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+        width: 100%;
+    }
+
+    .rpg-tab-btn {
+        justify-content: center;
+        text-align: center;
+        padding: 8px 8px;
+        font-size: 0.78rem;
+        line-height: 1.25;
+        white-space: normal;
+    }
+
+    .rpg-spell-search-wrap {
+        min-width: 0;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .rpg-spell-search-input {
+        font-size: 16px;
+        padding: 10px 12px 10px 36px;
+    }
+
+    .rpg-states-legend {
+        gap: 8px 12px;
+        padding: 10px 12px;
+        font-size: 0.75rem;
+        margin-bottom: 1.1rem;
+    }
+
+    .rpg-spell-tiers-container {
+        gap: 18px;
+    }
+
+    .rpg-spell-tier-section {
+        padding: 14px 12px;
+    }
+
+    .tier-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding-bottom: 10px;
+        margin-bottom: 12px;
+    }
+
+    .tier-header-left {
+        width: 100%;
+        gap: 8px;
+    }
+
+    .tier-section-title {
+        font-size: 1.08rem;
+    }
+
+    .tier-header-right {
+        width: 100%;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .rpg-spells-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .rpg-spell-card {
+        padding: 12px;
+    }
+
+    .rpg-spell-card.state-equipped .spell-school-tag {
+        padding-right: 84px;
+    }
+
+    .spell-title-cz {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.25;
+        font-size: 1rem;
+        word-break: break-word;
+    }
+
+    .spell-title-en {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        line-height: 1.25;
+    }
+
+    /* 4. Modální okno detailu kouzla (char_schopnosti.html) */
+    .atarax-modal-backdrop {
+        padding: 10px;
+        align-items: flex-end;
+    }
+
+    .rpg-spell-modal-dialog {
+        padding: 18px 14px;
+        max-height: 90dvh;
+        border-radius: 14px 14px 10px 10px;
+    }
+
+    .modal-close-btn {
+        top: 10px;
+        right: 12px;
+        font-size: 1.65rem;
+        padding: 4px 8px;
+        z-index: 5;
+    }
+
+    .modal-spell-header {
+        gap: 12px;
+        align-items: flex-start;
+        padding-right: 32px;
+        padding-bottom: 12px;
+        margin-bottom: 12px;
+    }
+
+    .modal-spell-icon-wrap {
+        width: 52px;
+        height: 52px;
+    }
+
+    .modal-spell-title {
+        font-size: 1.22rem;
+        word-break: break-word;
+    }
+
+    .modal-spell-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .modal-spell-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .stat-box-val {
+        font-size: 0.86rem;
+        word-break: break-word;
+    }
+
+    .modal-spell-description {
+        max-height: none;
+        overflow-y: visible;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        padding-right: 0;
+    }
+
+    .modal-spell-actions-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        padding-top: 12px;
+        margin-top: 12px;
+    }
+
+    .modal-actions-left {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .modal-actions-left .btn,
+    .modal-spell-actions-footer > .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* 5. Přehled postavy & Detail člena družiny (char_over_view..html, all_chars_detail.html) */
+    .combat-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .combat-stat-pill {
+        padding: 12px 10px;
+    }
+
+    .combat-stat-pill:last-child {
+        grid-column: 1 / -1;
+    }
+
+    .combat-stat-pill .stat-value {
+        font-size: 1.45rem;
+    }
+
+    .hero-substats-row {
+        gap: 8px !important;
+    }
+
+    .hero-substat-box {
+        flex: 1 1 100% !important;
+        padding: 10px 12px !important;
+    }
+
+    .char-identity-label {
+        width: 115px;
+        font-size: 0.85rem;
+    }
+
+    .char-identity-table td {
+        padding: 8px 6px;
+        font-size: 0.9rem;
+        word-break: break-word;
+    }
+
+    .spell-slots-overview-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+        gap: 8px !important;
+    }
+
+    .dm-secret-character-banner {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px;
+    }
+
+    .dm-visibility-form,
+    .dm-visibility-form .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* 6. Inventář (inv.html) – přehledné mobilní karty místo široké tabulky */
+    .items-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .items-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 12px;
+    }
+
+    .items-toolbar > div,
+    .search-input-wrap,
+    .loot-filter-select {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .loot-input-search {
+        font-size: 16px;
+    }
+
+    .loot-table-responsive {
+        border: none;
+        background: transparent;
+        overflow-x: visible;
+    }
+
+    .items-table {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .items-table thead {
+        display: none;
+    }
+
+    .items-table tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .items-table tr.item-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding: 14px;
+        background: rgba(18, 15, 26, 0.85);
+        border: 1px solid var(--border-card);
+        border-radius: var(--radius-md);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+
+    .items-table tr.item-row td {
+        border: none;
+        padding: 0;
+    }
+
+    .items-table tr.item-row td.item-name-cell {
+        width: 100%;
+        padding-bottom: 8px;
+        margin-bottom: 2px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .items-table tr.item-row td:nth-child(2),
+    .items-table tr.item-row td:nth-child(3),
+    .items-table tr.item-row td:nth-child(5) {
+        width: auto;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .items-table tr.item-row td:nth-child(5) {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.04);
+        padding: 3px 8px;
+        border-radius: 6px;
+    }
+
+    .items-table tr.item-row td:nth-child(4) {
+        width: 100%;
+    }
+
+    .items-table tr.item-row td:nth-child(6) {
+        width: 100%;
+        padding-top: 4px;
+    }
+
+    .items-table tr.item-row td:nth-child(6) .item-desc-cell {
+        max-width: 100%;
+        font-size: 0.86rem;
+        color: var(--text-secondary);
+    }
+
+    .items-table tr.item-row td:nth-child(7) {
+        width: 100% !important;
+        padding-top: 8px;
+        margin-top: 4px;
+        border-top: 1px dashed rgba(255, 255, 255, 0.08);
+        text-align: right !important;
+    }
+
+    .items-table tr.item-row td:nth-child(7) .form-remove-item,
+    .items-table tr.item-row td:nth-child(7) .btn-item-drop {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* 7. Poznámky, Roleplay, Úspěchy a Kronika */
+    .notes-list-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .notes-section-header {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    .note-card-bottom,
+    .backstory-actions-left {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .achievement-card .atarax-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .achievement-progress-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .kronika-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .kronika-tab-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+        padding: 8px 10px;
+        font-size: 0.82rem;
+    }
+
+    .kronika-columns-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .kronika-detail-card {
+        padding: 18px 14px;
+    }
+
+    /* 8. Seznamy postav (prehled_postav.html, all_chars.html) */
+    .char-selection-item {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        padding: 14px;
+    }
+
+    .char-selection-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .char-selection-actions > a.btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .char-roster-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+
+    .char-roster-card {
+        padding: 16px 14px;
+    }
+
+    /* 9. Dungeon Shop & Shop Inventář (dungeon_shop.html, dungeon_shop_inv.html) */
+    .shop-nav-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+
+    .btn-shop-inv,
+    .btn-shop-back {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .fantasy-shop-grid {
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        gap: 14px;
+    }
+
+    .loot-award-card,
+    .reforge-confirm-card {
+        width: calc(100vw - 24px);
+        max-width: 420px;
+        padding: 20px 16px;
+    }
+
+    .reforge-actions-row {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .btn-reforge-cancel,
+    .btn-reforge-execute {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* 10. Nastavení & Přihlášení (nastaveni.html, login_index.html) */
+    .settings-player-badge {
+        width: 100%;
+    }
+
+    .settings-subtabs-nav {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .settings-subtab-btn {
+        flex: 1 1 auto;
+        justify-content: center;
+        font-size: 0.8rem;
+        padding: 8px 10px;
+    }
+
+    .settings-items-grid {
+        grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
+        gap: 10px;
+    }
+
+    .dm-modal-dialog {
+        width: calc(100vw - 20px);
+        max-height: 90dvh;
+        overflow-y: auto;
+        padding: 16px;
+    }
+
+    .dm-modal-footer {
+        flex-direction: column-reverse;
+        gap: 8px;
+    }
+
+    .dm-modal-footer .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .player-page-body {
+        padding: 58px 10px 32px 10px;
+    }
+
+    .char-header-with-avatar .char-avatar-hero,
+    .char-header-with-avatar .char-avatar-lg {
+        width: 56px;
+        height: 56px;
+    }
+
+    .ability-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    .ability-card {
+        padding: 10px 6px;
+    }
+
+    .ability-title {
+        font-size: 0.68rem;
+    }
+
+    .ability-score {
+        font-size: 1.35rem;
+    }
+
+    .fantasy-shop-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-items-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .login-pin-card,
+    .login-welcome-card {
+        padding: 24px 16px;
+    }
 }
