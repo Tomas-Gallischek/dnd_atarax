@@ -78,6 +78,11 @@
                 <input type="number" id="mob_dificulty" name="mob_dificulty" placeholder="např. 2" step="1" min="1" max="5" class="atarax-input" required>
             </div>
 
+            <div class="atarax-form-group">
+                <label for="random_mob_count">Počet monster k vygenerování (1–50):</label>
+                <input type="number" id="random_mob_count" name="count" value="1" min="1" max="50" step="1" class="atarax-input" required>
+            </div>
+
             <button type="submit" name="generate" class="btn btn-gold">
                 <span>⚡</span> Generovat náhodně
             </button>
@@ -104,6 +109,20 @@
                         </option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <div class="atarax-form-group">
+                <label for="specific_mob_count">Počet kusů k nasazení (1–50):</label>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <input type="number" id="specific_mob_count" name="count" value="1" min="1" max="50" step="1" class="atarax-input" style="max-width: 110px;" required>
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('specific_mob_count').value = 1">1×</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('specific_mob_count').value = 2">2×</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('specific_mob_count').value = 3">3×</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('specific_mob_count').value = 5">5×</button>
+                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('specific_mob_count').value = 10">10×</button>
+                    </div>
+                </div>
             </div>
 
             <button class="btn btn-emerald" type="submit">

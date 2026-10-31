@@ -697,6 +697,10 @@ def random_monster_gen(request):
     if request.method == 'POST':
         mob_lvl = int(request.POST.get('mob_lvl')) # 1-30 (v databázi 0-29)
         mob_dificulty = int(request.POST.get('mob_dificulty')) # Obtížnost v rámci daného levelu
+        try:
+            spawn_count = max(1, min(50, int(request.POST.get('count', 1) or 1)))
+        except (ValueError, TypeError):
+            spawn_count = 1
 
         final_dificulty = int(mob_dificulty - 3) # 1-2 = menší lvl než hráči, 3 = stejný lvl jak hráčí, 4-5 = větší lvl než hráčí
         final_lvl = float(mob_lvl + final_dificulty)
@@ -704,14 +708,17 @@ def random_monster_gen(request):
         final_lvl_max = min(30.0, final_lvl + 0.5)
 
         # Vyhledá všechny monstra které mají CR v daném rozsahu
-        monsters = Monsters_All_db.objects.filter(challenge_rating__gte=final_lvl_min, challenge_rating__lte=final_lvl_max)
-        count = monsters.count()
+        monsters = list(Monsters_All_db.objects.filter(challenge_rating__gte=final_lvl_min, challenge_rating__lte=final_lvl_max))
+        count = len(monsters)
 
-        # Vybere náhodné monstrum
+        # Vybere náhodné monstrum (případně více kusů)
         if count > 0:
-            random_mob = random.choice(monsters)
-            active_mob = active_mob_db_save(random_mob.id)
-            log_mob("Náhodný výběr monstra", f"CR {final_lvl_min}–{final_lvl_max} (nalezeno {count}x) -> Vybrán: {random_mob.name_cz or random_mob.name_en} (CR {random_mob.formatted_cr})")
+            spawned_names = []
+            for _ in range(spawn_count):
+                random_mob = random.choice(monsters)
+                active_mob = active_mob_db_save(random_mob.id)
+                spawned_names.append(f"{random_mob.name_cz or random_mob.name_en} (CR {random_mob.formatted_cr})")
+            log_mob("Náhodný výběr monstra", f"CR {final_lvl_min}–{final_lvl_max} (nalezeno {count}x, nasazeno {spawn_count}x) -> {', '.join(spawned_names)}")
             return redirect('dm_site_app:monster_gen_page') # Znova načte stránku s novým mobem
         else:
             log_warning("Náhodný výběr monstra", f"Žádné monstrum v databázi pro CR {final_lvl_min}–{final_lvl_max}")
@@ -722,9 +729,22 @@ def random_monster_gen(request):
 def specific_monster_gen(request):
     if request.method == 'POST':
         monster_id = request.POST.get('monster_id')
-        active_mob = active_mob_db_save(monster_id)
+        try:
+            count = max(1, min(50, int(request.POST.get('count', 1) or 1)))
+        except (ValueError, TypeError):
+            count = 1
+
+        active_mob = None
+        for _ in range(count):
+            active_mob = active_mob_db_save(monster_id)
+
         if active_mob:
-            log_mob("Výběr konkrétního monstra", f"Přidán: {active_mob.name_cz or active_mob.name_en} (CR {active_mob.formatted_cr})")
+            mob_name = active_mob.name_cz or active_mob.name_en
+            log_mob("Výběr konkrétního monstra", f"Přidáno {count}x: {mob_name} (CR {active_mob.formatted_cr})")
+            if count > 1:
+                messages.success(request, f"Do hry bylo nasazeno {count}× monstrum '{mob_name}'.")
+            else:
+                messages.success(request, f"Do hry bylo nasazeno monstrum '{mob_name}'.")
         return redirect('dm_site_app:monster_gen_page')
     else:
         log_warning("Výběr specifického monstra", "Neplatná metoda (očekáván POST)")
