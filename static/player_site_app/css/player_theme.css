@@ -2736,7 +2736,9 @@
 /* Hlavní rozvržení: Strom kouzel (Tiers) na celou šířku */
 .rpg-spellbook-layout {
     display: block;
+    grid-template-columns: none;
     width: 100%;
+    max-width: 100%;
 }
 
 /* Sekce úrovní kouzel */
@@ -2745,23 +2747,40 @@
     flex-direction: column;
     gap: 28px;
     width: 100%;
+    max-width: 100%;
 }
 
 .rpg-spell-tier-section {
-    background: rgba(22, 18, 31, 0.65);
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(22, 18, 31, 0.72);
     border: 1px solid var(--border-card);
     border-radius: var(--radius-md);
-    padding: 20px;
-    transition: border-color 0.25s ease;
+    padding: 22px;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.rpg-spell-tier-section.tier-cantrip-section {
+    background: linear-gradient(180deg, rgba(14, 25, 45, 0.78) 0%, rgba(18, 15, 28, 0.82) 100%);
+    border-color: rgba(56, 189, 248, 0.32);
+    border-left: 4px solid #38bdf8;
+}
+
+.rpg-spell-tier-section.tier-spell-section {
+    background: linear-gradient(180deg, rgba(28, 20, 16, 0.75) 0%, rgba(18, 15, 28, 0.82) 100%);
+    border-color: rgba(245, 158, 11, 0.28);
+    border-left: 4px solid #f59e0b;
 }
 
 .rpg-spell-tier-section:hover {
-    border-color: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 .rpg-spell-tier-section.tier-locked {
     background: rgba(17, 14, 25, 0.45);
     border-style: dashed;
+    border-left: 4px solid #64748b;
+    border-left-style: solid;
 }
 
 .tier-section-header {
@@ -2778,7 +2797,7 @@
 .tier-header-left {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .tier-level-badge {
@@ -2808,6 +2827,7 @@
 .tier-header-right {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 8px;
 }
 
@@ -2828,20 +2848,24 @@
     color: #94a3b8;
 }
 
-/* Mřížka karet kouzel */
+/* Mřížka karet kouzel (PC dlaždice vedle sebe) */
 .rpg-spells-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(285px, 1fr));
+    gap: 18px;
+    width: 100%;
+    align-items: stretch;
 }
 
 /* Karta schopnosti / kouzla (rpg-spell-card) */
 .rpg-spell-card {
     position: relative;
+    height: 100%;
+    box-sizing: border-box;
     background: rgba(16, 13, 23, 0.85);
     border: 1px solid var(--border-card);
     border-radius: var(--radius-md);
-    padding: 14px;
+    padding: 16px;
     cursor: pointer;
     overflow: hidden;
     display: flex;

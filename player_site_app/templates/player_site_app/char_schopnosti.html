@@ -2,6 +2,302 @@
 
 {% block title %}DnD Atarax - Kniha kouzel & Schopnosti ({{ character.name|default:"Postava" }}){% endblock %}
 
+{% block extra_player_head %}
+<style>
+/* ==========================================================================
+   PC DLAŽDICE & ROZLIŠENÍ TRIKŮ / KOUZEL / ÚROVNÍ (char_schopnosti.html)
+   Zajišťuje plnou šířku kontejneru a přehlednou mřížku dlaždic na PC
+   i při případné starší cache v prohlížeči, přičemž zachovává
+   vertikální scrollování na mobilu.
+   ========================================================================== */
+.rpg-spellbook-layout {
+    display: block !important;
+    grid-template-columns: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.rpg-spell-tiers-container {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 26px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+/* Rychlý horizontální filtr úrovní (0 až 9) */
+.rpg-level-pills-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 1.25rem;
+    padding: 10px 14px;
+    background: rgba(16, 13, 24, 0.72);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md, 10px);
+}
+
+.rpg-level-pills-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #94a3b8);
+    margin-right: 4px;
+}
+
+.rpg-level-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary, #cbd5e1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rpg-level-pill-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.rpg-level-pill-btn.pill-cantrip {
+    border-color: rgba(56, 189, 248, 0.35);
+    color: #bae6fd;
+}
+
+.rpg-level-pill-btn.pill-spell-lvl {
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #fde68a;
+}
+
+.rpg-level-pill-btn.pill-tier-locked {
+    opacity: 0.55;
+    border-style: dashed;
+}
+
+.rpg-level-pill-btn.active {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.28), rgba(217, 119, 6, 0.42));
+    border-color: #f59e0b;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.35);
+}
+
+.rpg-level-pill-btn.pill-cantrip.active {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.3), rgba(37, 99, 235, 0.45));
+    border-color: #38bdf8;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+
+.rpg-level-pill-count {
+    font-size: 0.68rem;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    color: rgba(255, 255, 255, 0.85);
+}
+
+/* Vizuální předěl mezi Triky (0. úroveň) a Kouzly 1.–9. úrovně */
+.rpg-spells-category-divider {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 4px 0 -6px 0;
+    padding: 0 4px;
+}
+
+.rpg-spells-category-divider::before,
+.rpg-spells-category-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(245, 158, 11, 0.05), rgba(245, 158, 11, 0.45), rgba(245, 158, 11, 0.05));
+}
+
+.rpg-category-divider-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 16px;
+    border-radius: 999px;
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fde68a;
+    background: rgba(24, 18, 10, 0.9);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.15);
+}
+
+/* Sekce jednotlivých úrovní kouzel */
+.rpg-spell-tier-section {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background: rgba(20, 16, 29, 0.78);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* Odlišení sekce Magických triků (Safírová / Arcane) vs Kouzel L1-L9 (Zlatá) */
+.rpg-spell-tier-section.tier-cantrip-section {
+    background: linear-gradient(180deg, rgba(14, 25, 45, 0.78) 0%, rgba(18, 15, 28, 0.82) 100%);
+    border-color: rgba(56, 189, 248, 0.32);
+    border-left: 4px solid #38bdf8;
+}
+
+.rpg-spell-tier-section.tier-spell-section {
+    background: linear-gradient(180deg, rgba(28, 20, 16, 0.75) 0%, rgba(18, 15, 28, 0.82) 100%);
+    border-color: rgba(245, 158, 11, 0.28);
+    border-left: 4px solid #f59e0b;
+}
+
+.rpg-spell-tier-section.tier-locked {
+    background: rgba(15, 12, 22, 0.5) !important;
+    border-color: rgba(100, 116, 139, 0.25) !important;
+    border-left: 4px solid #64748b !important;
+    border-style: dashed !important;
+    border-left-style: solid !important;
+}
+
+.tier-header-title-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tier-section-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.tier-learned-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.16);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    color: #93c5fd;
+}
+
+/* MŘÍŽKA DLAŽDIC KOUZEL NA PC (více sloupců vedle sebe) */
+.rpg-spells-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(285px, 1fr)) !important;
+    gap: 18px !important;
+    width: 100% !important;
+    align-items: stretch !important;
+}
+
+/* Karta kouzla jako úhledná RPG dlaždice */
+.rpg-spell-card {
+    height: 100%;
+    box-sizing: border-box;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    padding: 16px !important;
+    border-radius: 10px !important;
+}
+
+.rpg-spell-card[data-is-cantrip="1"] .spell-icon-wrap {
+    border-color: #38bdf8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
+}
+
+.rpg-spell-card[data-is-cantrip="0"] .spell-icon-wrap {
+    border-color: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+}
+
+.spell-meta-top-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.rpg-spell-card.state-equipped .spell-meta-top-row {
+    padding-right: 84px;
+}
+
+.spell-type-mini-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 4px;
+}
+
+.spell-type-mini-badge.mini-cantrip {
+    background: rgba(14, 165, 233, 0.2);
+    border: 1px solid rgba(56, 189, 248, 0.45);
+    color: #7dd3fc;
+}
+
+.spell-type-mini-badge.mini-spell {
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: #fcd34d;
+}
+
+/* Na mobilu (<= 768px) zachováme vertikální scrollování v 1 sloupci pod sebou */
+@media (max-width: 768px) {
+    .rpg-spells-grid {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+
+    .rpg-spell-tier-section {
+        padding: 14px 12px !important;
+    }
+
+    .rpg-level-pills-bar {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 8px 10px;
+        gap: 6px;
+    }
+
+    .rpg-level-pills-label {
+        display: none;
+    }
+
+    .rpg-level-pill-btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+        padding: 5px 10px;
+        font-size: 0.74rem;
+    }
+
+    .rpg-category-divider-badge {
+        font-size: 0.72rem;
+        padding: 4px 12px;
+        text-align: center;
+    }
+}
+</style>
+{% endblock %}
+
 {% block player_content %}
 {% if character %}
 <div class="atarax-page-header char-header-with-avatar">
@@ -80,6 +376,30 @@
     </div>
 </div>
 
+<!-- Horizontální filtr jednotlivých úrovní (0 až 9) pro rychlé přepínání na PC i mobilu -->
+<div class="rpg-level-pills-bar" aria-label="Filtr podle úrovně kouzla">
+    <span class="rpg-level-pills-label">Úroveň:</span>
+    <button type="button" class="rpg-level-pill-btn active" data-level-filter="all" onclick="filterBySpellLevel('all')">
+        Všechny úrovně
+    </button>
+    {% for tier in level_tiers %}
+        {% if tier.total_count > 0 %}
+        <button type="button"
+                class="rpg-level-pill-btn {% if tier.is_cantrip %}pill-cantrip{% else %}pill-spell-lvl{% endif %} {% if not tier.is_unlocked %}pill-tier-locked{% endif %}"
+                data-level-filter="{{ tier.level }}"
+                onclick="filterBySpellLevel('{{ tier.level }}')"
+                title="{{ tier.name }} ({{ tier.total_count }} kouzel)">
+            {% if tier.is_cantrip %}
+                <span>🪄 Triky (0)</span>
+            {% else %}
+                <span>✨ {{ tier.level }}. úroveň</span>
+            {% endif %}
+            <span class="rpg-level-pill-count">{{ tier.total_count }}</span>
+        </button>
+        {% endif %}
+    {% endfor %}
+</div>
+
 <!-- Legenda stavů -->
 <div class="rpg-states-legend">
     <div class="legend-item"><span class="legend-dot dot-equipped"></span> <strong>Vybaveno</strong> (připraveno k seslání)</div>
@@ -101,18 +421,34 @@
 </div>
 {% endif %}
 
-<!-- HLAVNÍ RPG ROZVRŽENÍ: Strom kouzel podle úrovní -->
+<!-- HLAVNÍ RPG ROZVRŽENÍ: Přehled kouzel v dlaždicích podle úrovní -->
 <div class="rpg-spellbook-layout">
-    <!-- Seznam kouzel rozdělený podle jednotlivých úrovní -->
     <main class="rpg-spell-tiers-container">
         {% for tier in level_tiers %}
-        <section class="rpg-spell-tier-section {% if not tier.is_unlocked %}tier-locked{% endif %}" id="tier-{{ tier.level }}" data-tier-level="{{ tier.level }}" data-is-cantrip="{{ tier.is_cantrip|yesno:'1,0' }}">
+        {% if tier.level == 1 %}
+        <div class="rpg-spells-category-divider" id="spellsMainCategoryDivider">
+            <span class="rpg-category-divider-badge">✨ Kouzla 1. až 9. úrovně (vyžadují kouzelné pozice)</span>
+        </div>
+        {% endif %}
+        <section class="rpg-spell-tier-section {% if tier.is_cantrip %}tier-cantrip-section{% else %}tier-spell-section{% endif %} {% if not tier.is_unlocked %}tier-locked{% endif %}"
+                 id="tier-{{ tier.level }}"
+                 data-tier-level="{{ tier.level }}"
+                 data-is-cantrip="{{ tier.is_cantrip|yesno:'1,0' }}">
             <div class="tier-section-header">
                 <div class="tier-header-left">
                     <span class="tier-level-badge {% if tier.is_cantrip %}badge-cantrip{% else %}badge-level-{{ tier.level }}{% endif %}">
-                        {% if tier.is_cantrip %}Trik{% else %}Lvl {{ tier.level }}{% endif %}
+                        {% if tier.is_cantrip %}🪄 Trik (0. úroveň){% else %}✨ {{ tier.level }}. úroveň{% endif %}
                     </span>
-                    <h2 class="tier-section-title">{{ tier.name }}</h2>
+                    <div class="tier-header-title-wrap">
+                        <h2 class="tier-section-title">{{ tier.name }}</h2>
+                        <span class="tier-section-subtitle">
+                            {% if tier.is_cantrip %}
+                                Základní magické triky — sesílají se neomezeně bez spotřeby kouzelných pozic
+                            {% else %}
+                                Kouzla {{ tier.level }}. kruhu — sesílání vyžaduje kouzelnou pozici {{ tier.level }}. nebo vyšší úrovně
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
                 <div class="tier-header-right">
                     {% if tier.is_unlocked %}
@@ -120,7 +456,12 @@
                     {% else %}
                         <span class="tier-status-pill pill-locked">🔒 Vyžaduje vyšší úroveň</span>
                     {% endif %}
-                    <span class="badge badge-sapphire tier-spells-count">{{ tier.total_count }} kouzel</span>
+                    <span class="tier-learned-pill" id="tierLearnedBadge-{{ tier.level }}">
+                        🎓 <span id="tierLearnedCount-{{ tier.level }}">{{ tier.learned_count }}</span> / {{ tier.total_count }} naučeno
+                    </span>
+                    <span class="badge badge-sapphire tier-spells-count">
+                        {{ tier.total_count }} {% if tier.is_cantrip %}triků{% else %}kouzel{% endif %}
+                    </span>
                 </div>
             </div>
 
@@ -157,7 +498,14 @@
                             </div>
 
                             <div class="spell-info-wrap">
-                                <div class="spell-school-tag">{{ s.school }}</div>
+                                <div class="spell-meta-top-row">
+                                    {% if s.is_cantrip %}
+                                        <span class="spell-type-mini-badge mini-cantrip">🪄 Trik</span>
+                                    {% else %}
+                                        <span class="spell-type-mini-badge mini-spell">✨ Lvl {{ s.level }}</span>
+                                    {% endif %}
+                                    <div class="spell-school-tag" style="margin-bottom:0;">{{ s.school }}</div>
+                                </div>
                                 <h3 class="spell-title-cz">{{ s.name_cz }}</h3>
                                 <span class="spell-title-en">{{ s.name_en }}{% if s.is_cantrip %} &bull; Trik 0. úrovně{% else %} &bull; Kouzlo {{ s.level }}. úrovně{% endif %}</span>
 
@@ -238,13 +586,13 @@
                 <span class="stat-box-label">Trvání</span>
                 <span class="stat-box-val" id="modalDuration">Ihned</span>
             </div>
-            <div class="modal-stat-box" id="modalBoxDamage">
-                <span class="stat-box-label">Zranění / Typ</span>
-                <span class="stat-box-val text-amber" id="modalDamage">-</span>
+            <div class="modal-stat-box" id="modalBoxDamage" style="display:none;">
+                <span class="stat-box-label">Zranění / Efekt</span>
+                <span class="stat-box-val text-emerald" id="modalDamage"></span>
             </div>
-            <div class="modal-stat-box" id="modalBoxSave">
+            <div class="modal-stat-box" id="modalBoxSave" style="display:none;">
                 <span class="stat-box-label">Záchranný hod</span>
-                <span class="stat-box-val text-sapphire" id="modalSavingThrow">-</span>
+                <span class="stat-box-val text-amber" id="modalSavingThrow"></span>
             </div>
         </div>
 
@@ -574,14 +922,18 @@ function updateSpellCardDOM(s) {
     }
 }
 
-// Aktualizace součtů v horní liště
+// Aktualizace součtů v horní liště i v jednotlivých úrovních
 function updateCounters() {
     let cantripsCount = 0;
     let spellsCount = 0;
     let equippedCount = 0;
+    const learnedPerLevel = {};
 
     Object.values(SPELLS_MAP).forEach(s => {
+        const lvl = s.level || 0;
+        if (learnedPerLevel[lvl] === undefined) learnedPerLevel[lvl] = 0;
         if (s.is_learned) {
+            learnedPerLevel[lvl]++;
             if (s.is_cantrip || s.level === 0) cantripsCount++;
             else spellsCount++;
         }
@@ -605,6 +957,11 @@ function updateCounters() {
 
     const countTabEquipped = document.getElementById('countTabEquipped');
     if (countTabEquipped) countTabEquipped.textContent = equippedCount;
+
+    Object.keys(learnedPerLevel).forEach(lvl => {
+        const tierCountEl = document.getElementById(`tierLearnedCount-${lvl}`);
+        if (tierCountEl) tierCountEl.textContent = learnedPerLevel[lvl];
+    });
 }
 
 // Zavření modálu
@@ -626,15 +983,48 @@ document.addEventListener('keydown', function(e) {
     }
 });
 
-// 4. Přepínání filtrů (Vše / Triky / Kouzla / Vybaveno)
+// 4. Přepínání filtrů (Vše / Triky / Kouzla / Vybaveno + Úrovně 0..9)
 let currentFilter = 'all';
+let currentLevelFilter = 'all';
 
 function filterSpellbook(filterType) {
     currentFilter = filterType;
 
+    // Pokud uživatel přepne hlavní záložku Triky nebo Kouzla, sjednotíme i filtr konkrétní úrovně
+    if (filterType === 'cantrips' && currentLevelFilter !== 'all' && currentLevelFilter !== '0') {
+        currentLevelFilter = 'all';
+    } else if (filterType === 'spells' && currentLevelFilter === '0') {
+        currentLevelFilter = 'all';
+    }
+
     document.querySelectorAll('.rpg-tab-btn').forEach(btn => {
         btn.classList.toggle('active', btn.getAttribute('data-filter') === filterType);
     });
+    document.querySelectorAll('.rpg-level-pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-level-filter') === currentLevelFilter);
+    });
+
+    applyFilters();
+}
+
+function filterBySpellLevel(levelVal) {
+    currentLevelFilter = String(levelVal);
+
+    document.querySelectorAll('.rpg-level-pill-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.getAttribute('data-level-filter') === currentLevelFilter);
+    });
+
+    // Pokud je aktivní záložka "Magické triky" a klikne na Lvl 1..9 (nebo naopak), přepneme záložku na "Všechny schopnosti"
+    if (currentLevelFilter !== 'all') {
+        if (currentLevelFilter === '0' && currentFilter === 'spells') {
+            currentFilter = 'all';
+        } else if (currentLevelFilter !== '0' && currentFilter === 'cantrips') {
+            currentFilter = 'all';
+        }
+        document.querySelectorAll('.rpg-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-filter') === currentFilter);
+        });
+    }
 
     applyFilters();
 }
@@ -645,10 +1035,15 @@ function searchSpellbook(query) {
 
 function applyFilters() {
     const query = (document.getElementById('spellSearchInput').value || '').trim().toLowerCase();
+    let anySpellLevelSectionVisible = false;
+    let cantripSectionVisible = false;
 
     document.querySelectorAll('.rpg-spell-tier-section').forEach(section => {
+        const tierLevel = section.getAttribute('data-tier-level');
         const isCantripTier = section.getAttribute('data-is-cantrip') === '1';
         let sectionHasVisibleSpells = false;
+
+        const levelMatch = (currentLevelFilter === 'all' || currentLevelFilter === tierLevel);
 
         const cards = section.querySelectorAll('.rpg-spell-card');
         cards.forEach(card => {
@@ -672,7 +1067,7 @@ function applyFilters() {
                 searchMatch = nameCz.includes(query) || nameEn.includes(query) || school.includes(query);
             }
 
-            if (tabMatch && searchMatch) {
+            if (levelMatch && tabMatch && searchMatch) {
                 card.style.display = '';
                 sectionHasVisibleSpells = true;
             } else {
@@ -683,10 +1078,17 @@ function applyFilters() {
         // Skrýt celou sekci úrovně, pokud v ní není žádné vyhovující kouzlo
         if (sectionHasVisibleSpells) {
             section.style.display = '';
+            if (isCantripTier) cantripSectionVisible = true;
+            else anySpellLevelSectionVisible = true;
         } else {
             section.style.display = 'none';
         }
     });
+
+    const divider = document.getElementById('spellsMainCategoryDivider');
+    if (divider) {
+        divider.style.display = (cantripSectionVisible && anySpellLevelSectionVisible) ? '' : 'none';
+    }
 }
 </script>
 
