@@ -14,7 +14,7 @@ from dm_site_app.models import Items_Active
 class ItemsActiveInline(admin.TabularInline):
     model = Items_Active
     extra = 0
-    fields = ('name_cz', 'category', 'cost_gold', 'cost_silver', 'damage', 'armor_class', 'properties')
+    fields = ('name_cz', 'quantity', 'category', 'cost_gold', 'cost_silver', 'damage', 'armor_class', 'properties')
     show_change_link = True
     verbose_name = "Vlastněný předmět"
     verbose_name_plural = "Vlastněné předměty (Inventář)"
@@ -192,7 +192,7 @@ class CharInfoAdmin(admin.ModelAdmin):
 
     @admin.display(description='Předměty')
     def items_count(self, obj):
-        return obj.items.count()
+        return sum(max(1, i.quantity or 1) for i in obj.items.all())
 
     fieldsets = (
         ('Hráč a identita postavy', {
@@ -212,10 +212,11 @@ class CharInfoAdmin(admin.ModelAdmin):
                 'inspiration',
             ),
         }),
-        ('Záchranné hody & Dovednosti', {
+        ('Záchranné hody, Dovednosti & Zdatnosti', {
             'fields': (
                 'saving_throws',
                 'skills',
+                'proficiencies',
             ),
         }),
         ('Základní vlastnosti (Ability Scores)', {

@@ -42,6 +42,7 @@ urlpatterns = [
     path('pvp_arena', views.pvp_arena, name='pvp_arena'),
     path('in_fight_switch', views.in_fight_switch, name='in_fight_switch'),
     path('api/update_hp/', views.api_update_hp, name='api_update_hp'),
+    path('api/update_initiative/', views.api_update_initiative, name='api_update_initiative'),
     path('mob_dead/', views.mob_dead, name='mob_dead'),
     path('loot_management/', views.loot_management, name='loot_management'),
     path('plus_loot_gold/', views.plus_loot_gold, name='plus_loot_gold'),

@@ -2,22 +2,216 @@
 
 {% block title %}DnD Atarax - Příprava na souboj{% endblock %}
 
+{% block extra_dm_head %}
+<style>
+.pre-header-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* Živý náhled pořadí iniciativy v přípravě */
+.init-preview-card {
+    margin-bottom: 1.5rem;
+    border-color: rgba(245, 158, 11, 0.35);
+    background: linear-gradient(180deg, rgba(28, 22, 38, 0.92), rgba(18, 14, 26, 0.92));
+}
+
+.init-preview-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.init-preview-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: rgba(15, 12, 22, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.88rem;
+}
+
+.init-preview-pill.is-mob {
+    border-left: 4px solid #ef4444;
+}
+
+.init-preview-pill.is-player {
+    border-left: 4px solid #3b82f6;
+}
+
+.init-preview-rank {
+    font-weight: 900;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.78rem;
+}
+
+.init-preview-score {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(245, 158, 11, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: #fde68a;
+    font-weight: 800;
+    font-size: 0.82rem;
+}
+
+/* Řádek bojovníka s ovládáním iniciativy */
+.combat-prep-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 10px;
+    background: rgba(16, 13, 24, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.combat-prep-row.row-in-fight {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(16, 30, 26, 0.55);
+}
+
+.combat-prep-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.combat-prep-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding-top: 8px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.init-stepper-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.init-stepper-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #fde68a;
+    margin-right: 2px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-init-step {
+    min-width: 38px;
+    min-height: 36px;
+    padding: 4px 8px;
+    border-radius: 7px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    transition: all 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-init-step:hover {
+    background: rgba(245, 158, 11, 0.22);
+    border-color: #f59e0b;
+    color: #ffffff;
+}
+
+.btn-init-step:active {
+    transform: scale(0.95);
+}
+
+.btn-init-roll {
+    background: rgba(59, 130, 246, 0.18);
+    border-color: rgba(59, 130, 246, 0.45);
+    color: #93c5fd;
+}
+
+.btn-init-roll:hover {
+    background: rgba(59, 130, 246, 0.35);
+    border-color: #60a5fa;
+    color: #ffffff;
+}
+
+.init-number-input {
+    width: 64px !important;
+    min-height: 36px;
+    text-align: center;
+    font-size: 0.98rem !important;
+    font-weight: 800;
+    color: #fde68a !important;
+    background: rgba(10, 8, 16, 0.9) !important;
+    border: 1px solid rgba(245, 158, 11, 0.45) !important;
+    border-radius: 7px;
+    padding: 4px 6px !important;
+}
+</style>
+{% endblock %}
+
 {% block dm_content %}
 <div class="atarax-page-header">
     <div class="atarax-header-title-group">
-        <h1><span>⚔️</span> Příprava na souboj</h1>
-        <p class="atarax-header-subtitle">Vyberte monstra a hrdiny, kteří se zúčastní nadcházejícího střetu v Aréně.</p>
+        <h1><span>⚔️</span> Příprava na souboj & Iniciativa</h1>
+        <p class="atarax-header-subtitle">Vyberte účastníky střetu a naklikejte nebo hoďte jejich iniciativu před vstupem do Arény.</p>
     </div>
 
-    <div class="atarax-header-actions">
-        <form action="{% url 'dm_site_app:pvp_arena' %}" method="post">
+    <div class="atarax-header-actions pre-header-actions">
+        <button type="button" class="btn btn-sapphire" onclick="rollAllMonstersInitiative()" title="Hodí 1k20 + bonus obratnosti všem aktivním monstrům">
+            <span>🎲</span> Hodit iniciativu monstrům
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetAllInitiative()" title="Vynuluje iniciativu všech postav a monster na 0">
+            <span>🔄</span> Reset iniciativy
+        </button>
+        <form action="{% url 'dm_site_app:pvp_arena' %}" method="post" id="enterArenaForm">
             {% csrf_token %}
+            <div id="enterArenaHiddenInputs"></div>
             <button type="submit" class="btn btn-gold btn-lg">
                 <span>⚔️</span> Vstoupit do Arény
             </button>
         </form>
     </div>
 </div>
+
+<!-- ŽIVÝ PŘEHLED POŘADÍ INICIATIVY (Bojovníci vybraní do boje) -->
+<section class="atarax-card init-preview-card">
+    <div class="atarax-card-header">
+        <h2 class="atarax-card-title">
+            <span>⚡</span> Pořadí tahů v nadcházejícím boji (dle iniciativy)
+        </h2>
+        <span class="badge badge-gold" id="initPreviewCountBadge">{{ initiative_order|length }} v boji</span>
+    </div>
+    <div class="init-preview-strip" id="initPreviewStrip">
+        <!-- Dynamicky aktualizováno v JS i serverově -->
+        {% for item in initiative_order %}
+        <div class="init-preview-pill {% if item.entity_type == 'mob' %}is-mob{% else %}is-player{% endif %}">
+            <span class="init-preview-rank">#{{ forloop.counter }}</span>
+            <span>{% if item.entity_type == 'mob' %}💀{% else %}🛡️{% endif %} <strong>{{ item.name }}</strong></span>
+            <span class="init-preview-score">⚡ {{ item.initiative }}</span>
+        </div>
+        {% empty %}
+        <span class="text-muted small">Zatím nejsou vybráni žádní bojovníci do souboje. Označte je níže tlačítkem „Vybrat do boje“.</span>
+        {% endfor %}
+    </div>
+</section>
 
 <div class="grid-2">
     <!-- Monstra -->
@@ -32,32 +226,61 @@
         {% if all_active_mobs %}
             <div class="combat-mobs-list">
                 {% for mob in all_active_mobs %}
-                <div class="combat-mob-row">
-                    <div>
-                        <div class="combat-mob-title">{{ mob.name_cz|default:mob.name_en }}</div>
-                        <span class="badge badge-gold">CR {{ mob.challenge_rating }}</span>
+                <div class="combat-prep-row {% if mob.in_fight %}row-in-fight{% endif %}"
+                     data-combatant-row="1"
+                     data-entity-type="mob"
+                     data-entity-id="{{ mob.id }}"
+                     data-entity-name="{{ mob.name_cz|default:mob.name_en }}"
+                     data-dex="{{ mob.dexterity|default:10 }}"
+                     data-in-fight="{{ mob.in_fight|yesno:'1,0' }}">
+                    <div class="combat-prep-top">
+                        <div>
+                            <div class="combat-mob-title">{{ mob.name_cz|default:mob.name_en }}</div>
+                            <span class="badge badge-gold">CR {{ mob.challenge_rating }}</span>
+                            <span class="badge badge-silver" title="Bonus obratnosti">OBR {{ mob.dex_mod }}</span>
+                            {% if mob.in_fight %}
+                                <span class="badge badge-emerald">V boji</span>
+                            {% endif %}
+                        </div>
+
                         {% if mob.in_fight %}
-                            <span class="badge badge-emerald">V boji</span>
+                            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" onsubmit="syncInitToSwitchForm(this, 'mob', {{ mob.id }})">
+                                {% csrf_token %}
+                                <input type="hidden" name="source_id" value="{{ mob.id }}">
+                                <input type="hidden" name="in_fight" value="False">
+                                <input type="hidden" name="source" value="mob">
+                                <input type="hidden" name="combat_initiative" value="{{ mob.combat_initiative|default:0 }}">
+                                <button type="submit" class="btn btn-ruby btn-sm">Odebrat</button>
+                            </form>
+                        {% else %}
+                            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" onsubmit="syncInitToSwitchForm(this, 'mob', {{ mob.id }})">
+                                {% csrf_token %}
+                                <input type="hidden" name="source_id" value="{{ mob.id }}">
+                                <input type="hidden" name="in_fight" value="True">
+                                <input type="hidden" name="source" value="mob">
+                                <input type="hidden" name="combat_initiative" value="{{ mob.combat_initiative|default:0 }}">
+                                <button type="submit" class="btn btn-emerald btn-sm">Vybrat do boje</button>
+                            </form>
                         {% endif %}
                     </div>
 
-                    {% if mob.in_fight %}
-                        <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="source_id" value="{{ mob.id }}">
-                            <input type="hidden" name="in_fight" value="False">
-                            <input type="hidden" name="source" value="mob">
-                            <button type="submit" class="btn btn-ruby btn-sm">Odebrat</button>
-                        </form>
-                    {% else %}
-                        <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="source_id" value="{{ mob.id }}">
-                            <input type="hidden" name="in_fight" value="True">
-                            <input type="hidden" name="source" value="mob">
-                            <button type="submit" class="btn btn-emerald btn-sm">Vybrat do boje</button>
-                        </form>
-                    {% endif %}
+                    <div class="combat-prep-bottom">
+                        <span class="init-stepper-label">⚡ Iniciativa:</span>
+                        <div class="init-stepper-group">
+                            <button type="button" class="btn-init-step" onclick="adjustPrepInitiative('mob', {{ mob.id }}, -5)">−5</button>
+                            <button type="button" class="btn-init-step" onclick="adjustPrepInitiative('mob', {{ mob.id }}, -1)">−1</button>
+                            <input type="number"
+                                   id="initInput_mob_{{ mob.id }}"
+                                   class="atarax-input init-number-input"
+                                   value="{{ mob.combat_initiative|default:0 }}"
+                                   oninput="onManualPrepInitiative('mob', {{ mob.id }}, this.value)">
+                            <button type="button" class="btn-init-step" onclick="adjustPrepInitiative('mob', {{ mob.id }}, 1)">+1</button>
+                            <button type="button" class="btn-init-step" onclick="adjustPrepInitiative('mob', {{ mob.id }}, 5)">+5</button>
+                            <button type="button" class="btn-init-step btn-init-roll" onclick="rollSingleInitiative('mob', {{ mob.id }}, {{ mob.dexterity|default:10 }})" title="Hodit 1k20 + bonus OBR ({{ mob.dex_mod }})">
+                                🎲 1k20
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -82,40 +305,69 @@
         {% if all_players %}
             <div class="combat-mobs-list">
                 {% for player_item in all_players %}
-                <div class="combat-mob-row">
-                    <div class="char-avatar-group">
-                        <span class="char-avatar-wrap">
-                            <img src="{{ player_item.profile_image_url }}" alt="{{ player_item.name }}" class="char-avatar char-avatar-sm">
-                            {% if player_item.frame_url %}
-                            <img src="{{ player_item.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
-                            {% endif %}
-                        </span>
-                        <div>
-                            <div class="combat-mob-title">{{ player_item.name }}</div>
-                            <span class="badge badge-silver">Úroveň {{ player_item.level }}</span>
-                            {% if player_item.in_fight %}
-                                <span class="badge badge-emerald">V boji</span>
-                            {% endif %}
+                <div class="combat-prep-row {% if player_item.in_fight %}row-in-fight{% endif %}"
+                     data-combatant-row="1"
+                     data-entity-type="player"
+                     data-entity-id="{{ player_item.id }}"
+                     data-entity-name="{{ player_item.name }}"
+                     data-dex="{{ player_item.dexterity|default:10 }}"
+                     data-in-fight="{{ player_item.in_fight|yesno:'1,0' }}">
+                    <div class="combat-prep-top">
+                        <div class="char-avatar-group">
+                            <span class="char-avatar-wrap">
+                                <img src="{{ player_item.profile_image_url }}" alt="{{ player_item.name }}" class="char-avatar char-avatar-sm">
+                                {% if player_item.frame_url %}
+                                <img src="{{ player_item.frame_url }}" alt="" class="char-avatar-frame" aria-hidden="true">
+                                {% endif %}
+                            </span>
+                            <div>
+                                <div class="combat-mob-title">{{ player_item.name }}</div>
+                                <span class="badge badge-silver">Úroveň {{ player_item.level }}</span>
+                                <span class="badge badge-silver" title="Bonus obratnosti">OBR {{ player_item.dex_mod }}</span>
+                                {% if player_item.in_fight %}
+                                    <span class="badge badge-emerald">V boji</span>
+                                {% endif %}
+                            </div>
                         </div>
+
+                        {% if player_item.in_fight %}
+                            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" onsubmit="syncInitToSwitchForm(this, 'player', {{ player_item.id }})">
+                                {% csrf_token %}
+                                <input type="hidden" name="source_id" value="{{ player_item.id }}">
+                                <input type="hidden" name="in_fight" value="False">
+                                <input type="hidden" name="source" value="player">
+                                <input type="hidden" name="combat_initiative" value="{{ player_item.combat_initiative|default:0 }}">
+                                <button type="submit" class="btn btn-ruby btn-sm">Odebrat</button>
+                            </form>
+                        {% else %}
+                            <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post" onsubmit="syncInitToSwitchForm(this, 'player', {{ player_item.id }})">
+                                {% csrf_token %}
+                                <input type="hidden" name="source_id" value="{{ player_item.id }}">
+                                <input type="hidden" name="in_fight" value="True">
+                                <input type="hidden" name="source" value="player">
+                                <input type="hidden" name="combat_initiative" value="{{ player_item.combat_initiative|default:0 }}">
+                                <button type="submit" class="btn btn-emerald btn-sm">Vybrat do boje</button>
+                            </form>
+                        {% endif %}
                     </div>
 
-                    {% if player_item.in_fight %}
-                        <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="source_id" value="{{ player_item.id }}">
-                            <input type="hidden" name="in_fight" value="False">
-                            <input type="hidden" name="source" value="player">
-                            <button type="submit" class="btn btn-ruby btn-sm">Odebrat</button>
-                        </form>
-                    {% else %}
-                        <form action="{% url 'dm_site_app:in_fight_switch' %}" method="post">
-                            {% csrf_token %}
-                            <input type="hidden" name="source_id" value="{{ player_item.id }}">
-                            <input type="hidden" name="in_fight" value="True">
-                            <input type="hidden" name="source" value="player">
-                            <button type="submit" class="btn btn-emerald btn-sm">Vybrat do boje</button>
-                        </form>
-                    {% endif %}
+                    <div class="combat-prep-bottom">
+                        <span class="init-stepper-label">⚡ Iniciativa:</span>
+                        <div class="init-stepper-group">
+                            <button type="button" class="btn-init-step" onclick="adjustPrepInitiative('player', {{ player_item.id }}, -5)">−5</button>
+                            <button type="button" class="btn-init-step" onclick="adjustPrepInitiative('player', {{ player_item.id }}, -1)">−1</button>
+                            <input type="number"
+                                   id="initInput_player_{{ player_item.id }}"
+                                   class="atarax-input init-number-input"
+                                   value="{{ player_item.combat_initiative|default:0 }}"
+                                   oninput="onManualPrepInitiative('player', {{ player_item.id }}, this.value)">
+                            <button type="button" class="btn-init-step" onclick="adjustPrepInitiative('player', {{ player_item.id }}, 1)">+1</button>
+                            <button type="button" class="btn-init-step" onclick="adjustPrepInitiative('player', {{ player_item.id }}, 5)">+5</button>
+                            <button type="button" class="btn-init-step btn-init-roll" onclick="rollSingleInitiative('player', {{ player_item.id }}, {{ player_item.dexterity|default:10 }})" title="Hodit 1k20 + bonus OBR ({{ player_item.dex_mod }})">
+                                🎲 1k20
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 {% endfor %}
             </div>
@@ -128,4 +380,181 @@
         {% endif %}
     </section>
 </div>
+
+<script>
+const UPDATE_INIT_URL = "{% url 'dm_site_app:api_update_initiative' %}";
+const CSRF_TOKEN_PREP = "{{ csrf_token }}";
+let initSaveTimers = {};
+
+function syncInitToSwitchForm(formEl, entityType, entityId) {
+    const input = document.getElementById(`initInput_${entityType}_${entityId}`);
+    const hidden = formEl.querySelector('input[name="combat_initiative"]');
+    if (input && hidden) {
+        hidden.value = parseInt(input.value, 10) || 0;
+    }
+}
+
+// Před odesláním formuláře "Vstoupit do Arény" přiložíme všechny aktuální hodnoty iniciativy
+const enterArenaForm = document.getElementById('enterArenaForm');
+if (enterArenaForm) {
+    enterArenaForm.addEventListener('submit', function() {
+        const container = document.getElementById('enterArenaHiddenInputs');
+        if (!container) return;
+        container.innerHTML = '';
+        document.querySelectorAll('[data-combatant-row="1"]').forEach(function(row) {
+            const type = row.getAttribute('data-entity-type');
+            const id = row.getAttribute('data-entity-id');
+            const input = document.getElementById(`initInput_${type}_${id}`);
+            if (input) {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = `init_${type}_${id}`;
+                hidden.value = parseInt(input.value, 10) || 0;
+                container.appendChild(hidden);
+            }
+        });
+    });
+}
+
+function saveInitiativeAjax(entityType, entityId, val) {
+    const key = `${entityType}_${entityId}`;
+    clearTimeout(initSaveTimers[key]);
+    initSaveTimers[key] = setTimeout(function() {
+        fetch(UPDATE_INIT_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN_PREP,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                entity_type: entityType,
+                entity_id: entityId,
+                combat_initiative: val
+            })
+        }).catch(function(err) {
+            console.error('Chyba při ukládání iniciativy:', err);
+        });
+    }, 220);
+}
+
+function adjustPrepInitiative(entityType, entityId, delta) {
+    const input = document.getElementById(`initInput_${entityType}_${entityId}`);
+    if (!input) return;
+    const current = parseInt(input.value, 10) || 0;
+    const nextVal = current + delta;
+    input.value = nextVal;
+    renderLiveInitiativePreview();
+    saveInitiativeAjax(entityType, entityId, nextVal);
+}
+
+function onManualPrepInitiative(entityType, entityId, rawVal) {
+    const val = parseInt(rawVal, 10) || 0;
+    renderLiveInitiativePreview();
+    saveInitiativeAjax(entityType, entityId, val);
+}
+
+function rollSingleInitiative(entityType, entityId, dexScore) {
+    const dexMod = Math.floor(((parseInt(dexScore, 10) || 10) - 10) / 2);
+    const d20 = Math.floor(Math.random() * 20) + 1;
+    const rolled = d20 + dexMod;
+    const input = document.getElementById(`initInput_${entityType}_${entityId}`);
+    if (input) {
+        input.value = rolled;
+    }
+    renderLiveInitiativePreview();
+    saveInitiativeAjax(entityType, entityId, rolled);
+}
+
+function rollAllMonstersInitiative() {
+    fetch(UPDATE_INIT_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN_PREP,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ action: 'roll_all_mobs', only_in_fight: false })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data && data.success && data.saved) {
+            data.saved.forEach(function(item) {
+                const input = document.getElementById(`initInput_mob_${item.id}`);
+                if (input) input.value = item.combat_initiative;
+            });
+            renderLiveInitiativePreview();
+        }
+    });
+}
+
+function resetAllInitiative() {
+    fetch(UPDATE_INIT_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN_PREP,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ action: 'reset_all' })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data && data.success) {
+            document.querySelectorAll('.init-number-input').forEach(function(inp) {
+                inp.value = 0;
+            });
+            renderLiveInitiativePreview();
+        }
+    });
+}
+
+function renderLiveInitiativePreview() {
+    const strip = document.getElementById('initPreviewStrip');
+    const badge = document.getElementById('initPreviewCountBadge');
+    if (!strip) return;
+
+    const combatants = [];
+    document.querySelectorAll('[data-combatant-row="1"]').forEach(function(row) {
+        if (row.getAttribute('data-in-fight') !== '1') return;
+        const type = row.getAttribute('data-entity-type');
+        const id = row.getAttribute('data-entity-id');
+        const name = row.getAttribute('data-entity-name') || '';
+        const dex = parseInt(row.getAttribute('data-dex'), 10) || 10;
+        const input = document.getElementById(`initInput_${type}_${id}`);
+        const initVal = input ? (parseInt(input.value, 10) || 0) : 0;
+        combatants.push({
+            type: type,
+            id: id,
+            name: name,
+            dex: dex,
+            initiative: initVal
+        });
+    });
+
+    combatants.sort(function(a, b) {
+        if (b.initiative !== a.initiative) return b.initiative - a.initiative;
+        if (b.dex !== a.dex) return b.dex - a.dex;
+        return a.name.localeCompare(b.name, 'cs');
+    });
+
+    if (badge) badge.textContent = `${combatants.length} v boji`;
+
+    if (combatants.length === 0) {
+        strip.innerHTML = '<span class="text-muted small">Zatím nejsou vybráni žádní bojovníci do souboje. Označte je níže tlačítkem „Vybrat do boje“.</span>';
+        return;
+    }
+
+    strip.innerHTML = combatants.map(function(c, idx) {
+        const isMob = c.type === 'mob';
+        const icon = isMob ? '💀' : '🛡️';
+        const cls = isMob ? 'is-mob' : 'is-player';
+        return `<div class="init-preview-pill ${cls}">
+            <span class="init-preview-rank">#${idx + 1}</span>
+            <span>${icon} <strong>${c.name}</strong></span>
+            <span class="init-preview-score">⚡ ${c.initiative}</span>
+        </div>`;
+    }).join('');
+}
+</script>
 {% endblock %}

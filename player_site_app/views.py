@@ -607,12 +607,15 @@ def inv_view(request, char_id=None):
 
     categories = []
     total_weight = 0.0
+    total_items_count = 0
     if character:
-        inv_all_items = Items_Active.objects.filter(char_own=character).order_by('name_cz', 'name_en')
+        Items_Active.consolidate_for_character(character)
+        inv_all_items = list(Items_Active.objects.filter(char_own=character).order_by('name_cz', 'name_en'))
         categories = sorted(list(set(item.category for item in inv_all_items if item.category)))
-        total_weight = sum((item.weight or 0.0) for item in inv_all_items)
+        total_weight = sum(item.total_weight for item in inv_all_items)
+        total_items_count = sum(max(1, item.quantity or 1) for item in inv_all_items)
     else:
-        inv_all_items = Items_Active.objects.none()
+        inv_all_items = []
 
     return render(request, 'player_site_app/inv.html', {
         'player': player,
@@ -622,13 +625,15 @@ def inv_view(request, char_id=None):
         'inv_all_items': inv_all_items,
         'categories': categories,
         'total_weight': round(total_weight, 2),
+        'total_items_count': total_items_count,
+        'unique_items_count': len(inv_all_items),
     })
 
 
 @login_required(login_url='player_site_app:index')
 def remove_inv_item(request, item_id):
     """
-    Umožňuje hráči odebrat (zahodit) předmět z inventáře své postavy.
+    Umožňuje hráči odebrat (zahodit) předmět nebo část stacku z inventáře své postavy.
     Striktně ověřuje, že předmět patří postavě přihlášeného hráče (nebo má uživatel DM práva).
     """
     if request.method != 'POST':
@@ -655,25 +660,87 @@ def remove_inv_item(request, item_id):
     char_name = char.name if char else "neznámá postava"
     char_id = char.id if char else None
 
+    current_qty = max(1, item.quantity or 1)
+    raw_amount = request.POST.get('amount')
+    remove_all = request.POST.get('remove_all') == '1'
+
+    def _compute_inv_totals(character_obj):
+        if not character_obj:
+            return 0.0, 0, 0
+        rem_items = list(Items_Active.objects.filter(char_own=character_obj))
+        t_weight = round(sum(i.total_weight for i in rem_items), 2)
+        t_pieces = sum(max(1, i.quantity or 1) for i in rem_items)
+        return t_weight, t_pieces, len(rem_items)
+
+    if raw_amount is not None and not remove_all:
+        try:
+            drop_qty = max(1, int(raw_amount))
+        except (ValueError, TypeError):
+            drop_qty = 1
+
+        if current_qty > drop_qty:
+            item.quantity = current_qty - drop_qty
+            item._skip_auto_log = True
+            item.save()
+
+            if char:
+                Logs.objects.create(
+                    player=char.player,
+                    character=char,
+                    message=f"Hráč {player.nickname} zahodil {drop_qty}× '{item_name}' z inventáře postavy {char_name} (zbývá {item.quantity}×)",
+                    value=float(-drop_qty)
+                )
+            log_player(f"Hráč '{player.nickname}' zahodil {drop_qty}× '{item_name}' (zbývá {item.quantity}×) z inventáře postavy '{char_name}'")
+            success_msg = f"Vyřazeno {drop_qty}× '{item_name}' z inventáře (zbývá {item.quantity}×)."
+            messages.success(request, success_msg)
+
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+                t_weight, t_pieces, u_count = _compute_inv_totals(char)
+                return JsonResponse({
+                    'status': 'ok',
+                    'action': 'updated',
+                    'item_id': item.id,
+                    'quantity': item.quantity,
+                    'row_weight': item.total_weight,
+                    'row_cost_gold': item.total_cost_gold,
+                    'row_cost_silver': item.total_cost_silver,
+                    'total_weight': t_weight,
+                    'total_items_count': t_pieces,
+                    'unique_items_count': u_count,
+                    'item_name': item_name,
+                    'message': success_msg,
+                })
+
+            if char_id:
+                return redirect('player_site_app:inv_detail', char_id=char_id)
+            return redirect('player_site_app:inv')
+
     item._skip_auto_log = True
     item.delete()
 
+    qty_suffix = f" ({current_qty}×)" if current_qty > 1 else ""
     if char:
         Logs.objects.create(
             player=char.player,
             character=char,
-            message=f"Hráč {player.nickname} zahodil předmět '{item_name}' z inventáře postavy {char_name}",
+            message=f"Hráč {player.nickname} zahodil předmět '{item_name}'{qty_suffix} z inventáře postavy {char_name}",
             value=0.0
         )
-    log_player(f"Hráč '{player.nickname}' zahodil předmět '{item_name}' (ID: {item_id}) z inventáře postavy '{char_name}'")
+    log_player(f"Hráč '{player.nickname}' zahodil předmět '{item_name}'{qty_suffix} (ID: {item_id}) z inventáře postavy '{char_name}'")
 
-    success_msg = f"Předmět '{item_name}' byl vyřazen z tvého inventáře."
+    success_msg = f"Předmět '{item_name}'{qty_suffix} byl vyřazen z tvého inventáře."
     messages.success(request, success_msg)
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+        t_weight, t_pieces, u_count = _compute_inv_totals(char)
         return JsonResponse({
             'status': 'ok',
+            'action': 'deleted',
             'deleted_id': item_id,
+            'quantity': 0,
+            'total_weight': t_weight,
+            'total_items_count': t_pieces,
+            'unique_items_count': u_count,
             'item_name': item_name,
             'message': success_msg
         })

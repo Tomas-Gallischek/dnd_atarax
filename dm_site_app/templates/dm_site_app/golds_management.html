@@ -2,16 +2,109 @@
 
 {% block title %}DnD Atarax - Správa zlaťáků{% endblock %}
 
+{% block extra_dm_head %}
+<style>
+.gold-mgmt-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 4px;
+}
+
+.gold-quick-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 12px 14px;
+    background: rgba(16, 13, 24, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md, 10px);
+}
+
+.gold-quick-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted, #94a3b8);
+}
+
+.gold-quick-btns {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.btn-quick-gold {
+    min-width: 78px;
+    min-height: 42px;
+    padding: 8px 14px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    transition: transform 0.12s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-quick-gold:active {
+    transform: scale(0.96);
+}
+
+.btn-quick-plus {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(5, 150, 105, 0.38));
+    border: 1px solid #10b981;
+    color: #6ee7b7;
+}
+
+.btn-quick-plus:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.38), rgba(5, 150, 105, 0.55));
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.35);
+}
+
+.btn-quick-minus {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(185, 28, 28, 0.35));
+    border: 1px solid #ef4444;
+    color: #fca5a5;
+}
+
+.btn-quick-minus:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.35), rgba(185, 28, 28, 0.55));
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+}
+
+.currency-pill.pill-flash {
+    animation: goldPillPulse 0.45s ease;
+}
+
+@keyframes goldPillPulse {
+    0% { transform: scale(1); }
+    40% { transform: scale(1.12); box-shadow: 0 0 16px rgba(251, 191, 36, 0.55); }
+    100% { transform: scale(1); }
+}
+</style>
+{% endblock %}
+
 {% block dm_content %}
 <div class="atarax-page-header">
     <div class="atarax-header-title-group">
         <h1><span>🪙</span> Správa zlaťáků a stříbrňáků</h1>
-        <p class="atarax-header-subtitle">Rychlé přidávání a odebírání měny postavám hráčů.</p>
+        <p class="atarax-header-subtitle">Rychlé přidávání a odebírání měny postavám hráčů (1 zl = 10 st, 0,5 zl = 5 st).</p>
     </div>
 </div>
 
 {% for char in all_chars %}
-    <div class="atarax-card">
+    <div class="atarax-card" id="charGoldCard_{{ char.id }}">
         <div class="atarax-card-header">
             <div class="char-avatar-group">
                 <span class="char-avatar-wrap">
@@ -32,28 +125,52 @@
                 </div>
             </div>
             <div class="currency-pill-group">
-                <span class="currency-pill currency-gold">💰 {{ char.gold }} zl</span>
-                <span class="currency-pill currency-silver">🪙 {{ char.silver }} st</span>
+                <span class="currency-pill currency-gold" id="goldPill_{{ char.id }}">💰 <span id="goldVal_{{ char.id }}">{{ char.gold }}</span> zl</span>
+                <span class="currency-pill currency-silver" id="silverPill_{{ char.id }}">🪙 <span id="silverVal_{{ char.id }}">{{ char.silver }}</span> st</span>
             </div>
         </div>
 
-        <form action="{% url 'dm_site_app:add_gold' %}" method="post" class="atarax-form-inline">
-            {% csrf_token %}
-            <label for="gold_{{ char.id }}">Zlaťáky:</label>
-            <input type="number" id="gold_{{ char.id }}" name="gold" value="0" class="atarax-input input-sm" min="0">
+        <div class="gold-mgmt-controls">
+            <!-- Rychlá tlačítka pro tablet (+0,5 / +1 a -0,5 / -1) -->
+            <form action="{% url 'dm_site_app:add_gold' %}" method="post" class="gold-quick-row" onsubmit="return handleQuickGoldForm(event, {{ char.id }})">
+                {% csrf_token %}
+                <input type="hidden" name="char_id" value="{{ char.id }}">
+                <span class="gold-quick-label">⚡ Rychlá úprava (1 klik):</span>
+                <div class="gold-quick-btns">
+                    <button type="submit" name="quick_delta" value="0.5" class="btn-quick-gold btn-quick-plus" onclick="this.form.dataset.delta='0.5'" title="Přidat 0,5 zlaťáku (5 stříbrňáků)">
+                        +0,5 <small>(5 st)</small>
+                    </button>
+                    <button type="submit" name="quick_delta" value="1" class="btn-quick-gold btn-quick-plus" onclick="this.form.dataset.delta='1'" title="Přidat 1 zlaťák">
+                        +1 <small>zl</small>
+                    </button>
+                    <button type="submit" name="quick_delta" value="-0.5" class="btn-quick-gold btn-quick-minus" onclick="this.form.dataset.delta='-0.5'" title="Ubrat 0,5 zlaťáku (5 stříbrňáků)">
+                        −0,5 <small>(5 st)</small>
+                    </button>
+                    <button type="submit" name="quick_delta" value="-1" class="btn-quick-gold btn-quick-minus" onclick="this.form.dataset.delta='-1'" title="Ubrat 1 zlaťák">
+                        −1 <small>zl</small>
+                    </button>
+                </div>
+            </form>
 
-            <label for="silver_{{ char.id }}">Stříbrňáky:</label>
-            <input type="number" id="silver_{{ char.id }}" name="silver" value="0" class="atarax-input input-sm" min="0">
+            <!-- Klasické ruční zadávání -->
+            <form action="{% url 'dm_site_app:add_gold' %}" method="post" class="atarax-form-inline" onsubmit="return handleManualGoldForm(event, {{ char.id }})">
+                {% csrf_token %}
+                <label for="gold_{{ char.id }}">Zlaťáky:</label>
+                <input type="number" id="gold_{{ char.id }}" name="gold" value="0" step="any" class="atarax-input input-sm" min="0">
 
-            <input type="hidden" name="char_id" value="{{ char.id }}">
+                <label for="silver_{{ char.id }}">Stříbrňáky:</label>
+                <input type="number" id="silver_{{ char.id }}" name="silver" value="0" step="1" class="atarax-input input-sm" min="0">
 
-            <button type="submit" name="action" value="plus" class="btn btn-emerald btn-sm">
-                <span>+</span> Přidat
-            </button>
-            <button type="submit" name="action" value="minus" class="btn btn-ruby btn-sm">
-                <span>−</span> Ubrat
-            </button>
-        </form>
+                <input type="hidden" name="char_id" value="{{ char.id }}">
+
+                <button type="submit" name="action" value="plus" class="btn btn-emerald btn-sm" onclick="this.form.dataset.action='plus'">
+                    <span>+</span> Přidat
+                </button>
+                <button type="submit" name="action" value="minus" class="btn btn-ruby btn-sm" onclick="this.form.dataset.action='minus'">
+                    <span>−</span> Ubrat
+                </button>
+            </form>
+        </div>
     </div>
 {% empty %}
     <div class="atarax-empty-state">
@@ -62,4 +179,79 @@
         <p class="atarax-empty-desc">V databázi zatím nejsou žádné vytvořené postavy pro správu mincí.</p>
     </div>
 {% endfor %}
+
+<script>
+function updateCharCurrencyDOM(charId, gold, silver) {
+    const goldVal = document.getElementById('goldVal_' + charId);
+    const silverVal = document.getElementById('silverVal_' + charId);
+    const goldPill = document.getElementById('goldPill_' + charId);
+    const silverPill = document.getElementById('silverPill_' + charId);
+
+    if (goldVal) goldVal.textContent = gold;
+    if (silverVal) silverVal.textContent = silver;
+
+    [goldPill, silverPill].forEach(function(pill) {
+        if (!pill) return;
+        pill.classList.remove('pill-flash');
+        void pill.offsetWidth;
+        pill.classList.add('pill-flash');
+    });
+}
+
+function handleQuickGoldForm(event, charId) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const delta = form.dataset.delta || '1';
+    const formData = new FormData(form);
+    formData.set('quick_delta', delta);
+    formData.set('ajax', '1');
+
+    fetch(form.action, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data && data.success) {
+            updateCharCurrencyDOM(charId, data.gold, data.silver);
+        } else {
+            form.submit();
+        }
+    })
+    .catch(function() {
+        form.submit();
+    });
+    return false;
+}
+
+function handleManualGoldForm(event, charId) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const action = form.dataset.action || 'plus';
+    const formData = new FormData(form);
+    formData.set('action', action);
+    formData.set('ajax', '1');
+
+    fetch(form.action, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+        if (data && data.success) {
+            updateCharCurrencyDOM(charId, data.gold, data.silver);
+            const gInput = document.getElementById('gold_' + charId);
+            const sInput = document.getElementById('silver_' + charId);
+            if (gInput) gInput.value = 0;
+            if (sInput) sInput.value = 0;
+        }
+    })
+    .catch(function() {
+        form.submit();
+    });
+    return false;
+}
+</script>
 {% endblock %}

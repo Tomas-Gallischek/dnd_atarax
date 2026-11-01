@@ -3,6 +3,61 @@
 {% block title %}DnD Atarax - Inventář{% endblock %}
 
 {% block player_content %}
+<style>
+.item-name-with-qty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.item-stack-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.24), rgba(217, 119, 6, 0.3));
+    color: #fde68a;
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+}
+.item-stack-badge.is-single {
+    background: rgba(148, 163, 184, 0.14);
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.28);
+}
+.inv-drop-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.btn-item-drop-one {
+    background: rgba(245, 158, 11, 0.16);
+    color: #fde68a;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-item-drop-one:hover {
+    background: rgba(245, 158, 11, 0.3);
+    color: #fff;
+}
+.item-unit-sub {
+    display: block;
+    font-size: 0.72rem;
+    color: var(--text-muted, #94a3b8);
+    margin-top: 2px;
+}
+</style>
 <div class="atarax-page-header char-header-with-avatar">
     {% if character %}
     <div class="char-header-avatar-wrap">
@@ -55,8 +110,8 @@
             <span>⚔️</span> Vybavení a předměty v batohu
         </h2>
         <div class="toolbar-actions">
-            <span class="header-stats-badge" title="Celkový počet předmětů v inventáři">
-                📦 <span id="totalItemsBadgeCount">{{ inv_all_items|length }}</span> <span id="totalItemsBadgeLabel">{% if inv_all_items|length == 1 %}předmět{% elif inv_all_items|length >= 2 and inv_all_items|length <= 4 %}předměty{% else %}předmětů{% endif %}</span>
+            <span class="header-stats-badge" title="Celkový počet kusů předmětů v inventáři">
+                📦 <span id="totalItemsBadgeCount">{{ total_items_count|default:inv_all_items|length }}</span> <span id="totalItemsBadgeLabel">{% if total_items_count == 1 %}předmět{% elif total_items_count >= 2 and total_items_count <= 4 %}předměty{% else %}předmětů{% endif %}</span>
             </span>
             <span class="header-stats-badge" title="Celková váha nesených předmětů">
                 ⚖️ Celková váha: <strong id="totalWeightBadgeValue">{{ total_weight }}</strong> lb
@@ -128,15 +183,24 @@
                 <tr class="item-row" 
                     id="item-row-{{ item.id }}"
                     data-id="{{ item.id }}"
+                    data-qty="{{ item.quantity|default:1 }}"
+                    data-unit-weight="{{ item.weight|default:0 }}"
+                    data-unit-gold="{{ item.cost_gold|default:0 }}"
+                    data-unit-silver="{{ item.cost_silver|default:0 }}"
                     data-name="{{ item.name_cz|default:''|lower }} {{ item.name_en|default:''|lower }}"
                     data-category="{{ item.category|default:'' }}"
-                    data-price="{{ item.cost_gold|default:0 }}.{{ item.cost_silver|default:0 }}"
-                    data-weight="{{ item.weight|default:0 }}"
+                    data-price="{{ item.total_cost_gold|default:0 }}.{{ item.total_cost_silver|default:0 }}"
+                    data-weight="{{ item.total_weight|default:0 }}"
                     data-name-sort="{{ item.name_cz|default:item.name_en|default:'' }}">
                     
-                    <!-- 1. Název -->
+                    <!-- 1. Název + Počet kusů -->
                     <td class="item-name-cell">
-                        <strong class="item-name-cz">{{ item.name_cz|default:item.name_en }}</strong>
+                        <div class="item-name-with-qty">
+                            <span class="item-stack-badge {% if item.quantity <= 1 %}is-single{% endif %}" id="item-qty-badge-{{ item.id }}" title="Počet kusů v inventáři">
+                                {{ item.quantity|default:1 }}×
+                            </span>
+                            <strong class="item-name-cz">{{ item.name_cz|default:item.name_en }}</strong>
+                        </div>
                         {% if item.name_en and item.name_en != item.name_cz %}
                         <span class="item-name-en">{{ item.name_en }}</span>
                         {% endif %}
@@ -149,11 +213,16 @@
 
                     <!-- 3. Cena -->
                     <td>
-                        <span class="badge-price">
-                            {% if item.cost_gold > 0 %}{{ item.cost_gold }} zl {% endif %}
-                            {% if item.cost_silver > 0 %}{{ item.cost_silver }} st{% endif %}
-                            {% if not item.cost_gold and not item.cost_silver %}0 zl{% endif %}
+                        <span class="badge-price" id="item-price-badge-{{ item.id }}">
+                            {% if item.total_cost_gold > 0 %}{{ item.total_cost_gold }} zl {% endif %}
+                            {% if item.total_cost_silver > 0 %}{{ item.total_cost_silver }} st{% endif %}
+                            {% if not item.total_cost_gold and not item.total_cost_silver %}0 zl{% endif %}
                         </span>
+                        {% if item.quantity > 1 and item.cost_gold or item.quantity > 1 and item.cost_silver %}
+                        <span class="item-unit-sub" id="item-price-sub-{{ item.id }}">
+                            ({% if item.cost_gold > 0 %}{{ item.cost_gold }} zl {% endif %}{% if item.cost_silver > 0 %}{{ item.cost_silver }} st{% endif %}/ks)
+                        </span>
+                        {% endif %}
                     </td>
 
                     <!-- 4. Bojové vlastnosti -->
@@ -176,7 +245,10 @@
 
                     <!-- 5. Váha -->
                     <td>
-                        {% if item.weight %}{{ item.weight }} lb{% else %}—{% endif %}
+                        <span id="item-weight-val-{{ item.id }}">{% if item.weight %}{{ item.total_weight }} lb{% else %}—{% endif %}</span>
+                        {% if item.quantity > 1 and item.weight %}
+                        <span class="item-unit-sub" id="item-weight-sub-{{ item.id }}">({{ item.weight }} lb/ks)</span>
+                        {% endif %}
                     </td>
 
                     <!-- 6. Popis -->
@@ -188,12 +260,22 @@
 
                     <!-- 7. Akce -->
                     <td style="text-align: center; vertical-align: middle;">
-                        <form action="{% url 'player_site_app:remove_inv_item' item.id %}" method="post" class="form-remove-item" onsubmit="return confirm('Opravdu chceš vyřadit předmět &quot;{{ item.name_cz|default:item.name_en }}&quot; ze svého inventáře?');">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-ruby btn-sm btn-item-drop" title="Zahodit předmět z batohu">
-                                <span>🗑️</span> Zahodit
-                            </button>
-                        </form>
+                        <div class="inv-drop-actions">
+                            <form action="{% url 'player_site_app:remove_inv_item' item.id %}" method="post" class="form-remove-item" data-mode="one" {% if item.quantity <= 1 %}style="display:none;"{% endif %}>
+                                {% csrf_token %}
+                                <input type="hidden" name="amount" value="1">
+                                <button type="submit" class="btn-item-drop-one" title="Odebrat 1 kus ze stacku">
+                                    −1 ks
+                                </button>
+                            </form>
+                            <form action="{% url 'player_site_app:remove_inv_item' item.id %}" method="post" class="form-remove-item" data-mode="all">
+                                {% csrf_token %}
+                                <input type="hidden" name="remove_all" value="1">
+                                <button type="submit" class="btn btn-ruby btn-sm btn-item-drop" title="Zahodit předmět z batohu">
+                                    <span>🗑️</span> <span class="drop-all-label">{% if item.quantity > 1 %}Vše{% else %}Zahodit{% endif %}</span>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -330,22 +412,30 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    // AJAX odebírání předmětů
+    // AJAX odebírání předmětů (1 ks nebo celý stack)
     document.querySelectorAll(".form-remove-item").forEach(form => {
         form.addEventListener("submit", function(e) {
             e.preventDefault();
             const row = form.closest(".item-row");
+            const mode = form.dataset.mode || "all";
             const itemNameEl = row ? row.querySelector(".item-name-cz") : null;
             const itemName = itemNameEl ? itemNameEl.textContent.trim() : "tento předmět";
+            const currentQty = row ? (parseInt(row.dataset.qty, 10) || 1) : 1;
 
-            if (!confirm(`Opravdu chceš vyřadit předmět "${itemName}" ze svého inventáře? Tuto akci nelze vrátit.`)) {
-                return;
+            if (mode === "all") {
+                const confirmText = currentQty > 1
+                    ? `Opravdu chceš vyřadit všech ${currentQty}× "${itemName}" ze svého inventáře? Tuto akci nelze vrátit.`
+                    : `Opravdu chceš vyřadit předmět "${itemName}" ze svého inventáře? Tuto akci nelze vrátit.`;
+                if (!confirm(confirmText)) {
+                    return;
+                }
             }
 
             const btn = form.querySelector("button");
+            const originalHtml = btn ? btn.innerHTML : "";
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<span>⏳</span> Mazání...';
+                btn.innerHTML = '<span>⏳</span>...';
             }
 
             const formData = new FormData(form);
@@ -359,7 +449,69 @@ document.addEventListener("DOMContentLoaded", function() {
             .then(res => res.json())
             .then(data => {
                 if (data.status === "ok") {
-                    if (row) {
+                    const totalBadge = document.getElementById("totalItemsBadgeCount");
+                    const totalLabel = document.getElementById("totalItemsBadgeLabel");
+                    const weightBadge = document.getElementById("totalWeightBadgeValue");
+
+                    if (totalBadge && data.total_items_count !== undefined) {
+                        totalBadge.textContent = data.total_items_count;
+                    }
+                    if (weightBadge && data.total_weight !== undefined) {
+                        weightBadge.textContent = parseFloat(data.total_weight).toFixed(2);
+                    }
+                    if (totalLabel && data.total_items_count !== undefined) {
+                        const count = data.total_items_count;
+                        if (count === 1) totalLabel.textContent = "předmět";
+                        else if (count >= 2 && count <= 4) totalLabel.textContent = "předměty";
+                        else totalLabel.textContent = "předmětů";
+                    }
+
+                    if (data.action === "updated" && row) {
+                        const newQty = data.quantity || 1;
+                        row.dataset.qty = newQty;
+                        row.dataset.weight = data.row_weight || 0;
+                        row.dataset.price = `${data.row_cost_gold || 0}.${data.row_cost_silver || 0}`;
+
+                        const qtyBadge = document.getElementById("item-qty-badge-" + data.item_id);
+                        if (qtyBadge) {
+                            qtyBadge.textContent = `${newQty}×`;
+                            qtyBadge.classList.toggle("is-single", newQty <= 1);
+                        }
+
+                        const unitWeight = parseFloat(row.dataset.unitWeight || 0);
+                        const weightValEl = document.getElementById("item-weight-val-" + data.item_id);
+                        const weightSubEl = document.getElementById("item-weight-sub-" + data.item_id);
+                        if (weightValEl && unitWeight > 0) {
+                            weightValEl.textContent = `${data.row_weight} lb`;
+                        }
+                        if (weightSubEl && newQty <= 1) {
+                            weightSubEl.style.display = "none";
+                        }
+
+                        const priceBadge = document.getElementById("item-price-badge-" + data.item_id);
+                        const priceSub = document.getElementById("item-price-sub-" + data.item_id);
+                        if (priceBadge) {
+                            let parts = [];
+                            if (data.row_cost_gold > 0) parts.push(`${data.row_cost_gold} zl`);
+                            if (data.row_cost_silver > 0) parts.push(`${data.row_cost_silver} st`);
+                            priceBadge.textContent = parts.length > 0 ? parts.join(" ") : "0 zl";
+                        }
+                        if (priceSub && newQty <= 1) {
+                            priceSub.style.display = "none";
+                        }
+
+                        if (newQty <= 1) {
+                            const oneForm = row.querySelector('.form-remove-item[data-mode="one"]');
+                            if (oneForm) oneForm.style.display = "none";
+                            const allLabel = row.querySelector(".drop-all-label");
+                            if (allLabel) allLabel.textContent = "Zahodit";
+                        }
+
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.innerHTML = originalHtml;
+                        }
+                    } else if (row) {
                         row.style.transition = "opacity 0.25s ease, transform 0.25s ease";
                         row.style.opacity = "0";
                         row.style.transform = "translateX(20px)";
@@ -367,26 +519,6 @@ document.addEventListener("DOMContentLoaded", function() {
                             row.remove();
                             const idx = allRows.indexOf(row);
                             if (idx > -1) allRows.splice(idx, 1);
-                            
-                            // Přepočet váhy a počtu
-                            let newWeight = 0;
-                            allRows.forEach(r => {
-                                newWeight += parseFloat(r.dataset.weight || 0);
-                            });
-                            
-                            const totalBadge = document.getElementById("totalItemsBadgeCount");
-                            const totalLabel = document.getElementById("totalItemsBadgeLabel");
-                            const weightBadge = document.getElementById("totalWeightBadgeValue");
-                            
-                            if (totalBadge) totalBadge.textContent = allRows.length;
-                            if (weightBadge) weightBadge.textContent = newWeight.toFixed(2);
-                            if (totalLabel) {
-                                const count = allRows.length;
-                                if (count === 1) totalLabel.textContent = "předmět";
-                                else if (count >= 2 && count <= 4) totalLabel.textContent = "předměty";
-                                else totalLabel.textContent = "předmětů";
-                            }
-                            
                             applyFilters();
 
                             if (allRows.length === 0) {
@@ -398,7 +530,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     alert(data.message || "Předmět se nepodařilo odebrat.");
                     if (btn) {
                         btn.disabled = false;
-                        btn.innerHTML = '<span>🗑️</span> Zahodit';
+                        btn.innerHTML = originalHtml;
                     }
                 }
             })

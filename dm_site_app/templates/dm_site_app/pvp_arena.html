@@ -5,6 +5,273 @@
 
 {% block extra_dm_head %}
 <link rel="stylesheet" href="{% static 'dm_site_app/css/pvp_arena.css' %}">
+<style>
+/* ==========================================================================
+   PŘEHLED INICIATIVY & SLEDOVÁNÍ TAHŮ V ARÉNĚ
+   ========================================================================== */
+.arena-initiative-panel {
+    background: linear-gradient(180deg, rgba(26, 20, 38, 0.94) 0%, rgba(16, 12, 24, 0.96) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
+
+.init-tracker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.init-tracker-title-wrap {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.init-tracker-title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #fde68a;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.init-round-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: #fcd34d;
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+
+.init-turn-controls {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.btn-init-turn {
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 800;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.18s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-init-turn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+}
+
+.btn-init-turn.btn-next-turn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-color: #fbbf24;
+    color: #110d18;
+    box-shadow: 0 0 14px rgba(245, 158, 11, 0.35);
+}
+
+.btn-init-turn.btn-next-turn:hover {
+    filter: brightness(1.08);
+    transform: translateY(-1px);
+}
+
+.arena-init-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+    gap: 12px;
+}
+
+.arena-init-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(14, 11, 22, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.arena-init-item.init-side-mob {
+    border-left: 4px solid #ef4444;
+}
+
+.arena-init-item.init-side-player {
+    border-left: 4px solid #3b82f6;
+}
+
+.arena-init-item.is-active-turn {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(20, 16, 30, 0.95));
+    border-color: #fbbf24;
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.38);
+    transform: translateY(-2px);
+}
+
+.arena-init-item.is-init-defeated {
+    opacity: 0.45;
+    filter: grayscale(75%);
+}
+
+.init-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.init-rank-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.init-rank-num {
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 2px 7px;
+    border-radius: 6px;
+}
+
+.arena-init-item.is-active-turn .init-rank-num {
+    background: #fbbf24;
+    color: #110d18;
+}
+
+.init-active-tag {
+    display: none;
+    font-size: 0.68rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #fde047;
+}
+
+.arena-init-item.is-active-turn .init-active-tag {
+    display: inline-block;
+}
+
+.init-score-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-mini-init {
+    width: 24px;
+    height: 24px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+    color: #cbd5e1;
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.btn-mini-init:hover {
+    background: rgba(245, 158, 11, 0.28);
+    border-color: #f59e0b;
+    color: #fff;
+}
+
+.init-score-pill {
+    font-size: 0.86rem;
+    font-weight: 900;
+    color: #fde68a;
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.init-item-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.init-item-name {
+    font-weight: 800;
+    font-size: 0.96rem;
+    color: #f8fafc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.init-item-sub {
+    font-size: 0.74rem;
+    color: #94a3b8;
+}
+
+.init-item-stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.78rem;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.init-hp-badge {
+    font-weight: 800;
+    color: #34d399;
+}
+
+.arena-init-item.is-init-defeated .init-hp-badge {
+    color: #f87171;
+}
+
+.character-card.is-turn-highlighted {
+    border-color: #fbbf24 !important;
+    box-shadow: 0 0 28px rgba(245, 158, 11, 0.45) !important;
+}
+
+.card-init-badge {
+    background: rgba(245, 158, 11, 0.18);
+    border: 1px solid rgba(245, 158, 11, 0.45);
+    color: #fde68a;
+    font-size: 0.76rem;
+    font-weight: 800;
+    padding: 3px 9px;
+    border-radius: 6px;
+}
+</style>
 {% endblock %}
 
 {% block dm_content %}
@@ -22,13 +289,78 @@
                 <span>●</span> Vše uloženo
             </span>
             <a href="{% url 'dm_site_app:pvp_pre' %}" class="btn-arena-link">
-                <span>⚙️</span> Správa bojovníků
+                <span>⚙️</span> Správa bojovníků &amp; Iniciativa
             </a>
             <a href="{% url 'dm_site_app:monster_gen_page' %}" class="btn-arena-link">
                 <span>👾</span> Generátor monster
             </a>
         </div>
     </header>
+
+    <!-- PŘEHLED INICIATIVY & SLEDOVÁNÍ TAHŮ -->
+    {% if initiative_order %}
+    <section class="arena-initiative-panel" aria-label="Přehled iniciativy v boji">
+        <div class="init-tracker-header">
+            <div class="init-tracker-title-wrap">
+                <h2 class="init-tracker-title">
+                    <span>⚡</span> Pořadí iniciativy
+                </h2>
+                <span class="init-round-pill" id="initRoundDisplay">
+                    🔄 Kolo <span id="initRoundNum">1</span>
+                </span>
+            </div>
+
+            <div class="init-turn-controls">
+                <button type="button" class="btn-init-turn" id="btnPrevTurn" title="Předchozí bojovník v pořadí">
+                    ⏮️ Předchozí
+                </button>
+                <button type="button" class="btn-init-turn btn-next-turn" id="btnNextTurn" title="Posunout tah na dalšího bojovníka">
+                    ⏭️ Další na tahu
+                </button>
+            </div>
+        </div>
+
+        <div class="arena-init-grid" id="arenaInitGrid">
+            {% for item in initiative_order %}
+            <div class="arena-init-item init-side-{{ item.entity_type }} {% if item.current_hp <= 0 %}is-init-defeated{% endif %} {% if forloop.first %}is-active-turn{% endif %}"
+                 id="init-item-{{ item.entity_type }}-{{ item.id }}"
+                 data-entity-type="{{ item.entity_type }}"
+                 data-entity-id="{{ item.id }}"
+                 data-initiative="{{ item.initiative }}"
+                 data-dex="{{ item.dex }}"
+                 data-name="{{ item.name }}">
+                <div class="init-item-top">
+                    <div class="init-rank-group">
+                        <span class="init-rank-num">#{{ forloop.counter }}</span>
+                        <span class="init-active-tag">▶ Na tahu</span>
+                    </div>
+                    <div class="init-score-controls">
+                        <button type="button" class="btn-mini-init" data-init-delta="-1" title="Snížit iniciativu o 1">&minus;</button>
+                        <span class="init-score-pill" title="Hodnota iniciativy">⚡ <span class="init-score-val">{{ item.initiative }}</span></span>
+                        <button type="button" class="btn-mini-init" data-init-delta="1" title="Zvýšit iniciativu o 1">+</button>
+                    </div>
+                </div>
+
+                <div class="init-item-main">
+                    <div style="min-width: 0;">
+                        <div class="init-item-name">
+                            {% if item.entity_type == 'player' %}🛡️{% else %}💀{% endif %} {{ item.name }}
+                        </div>
+                        <div class="init-item-sub">{{ item.subtitle }}</div>
+                    </div>
+                </div>
+
+                <div class="init-item-stats">
+                    <span>🛡️ AC {{ item.ac }}</span>
+                    <span class="init-hp-badge">
+                        ❤️ <span id="init-hp-{{ item.entity_type }}-{{ item.id }}">{{ item.current_hp }}</span> / {{ item.max_hp }} HP
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 
     <!-- 1. SEKCE: MONSTRA (NEPŘÁTELÉ) -->
     <section class="arena-section">
@@ -46,7 +378,9 @@
                      data-entity-type="mob"
                      data-entity-id="{{ mob.id }}"
                      data-current-hp="{{ mob.current_hp_val }}"
-                     data-max-hp="{{ mob.max_hp }}">
+                     data-max-hp="{{ mob.max_hp }}"
+                     data-initiative="{{ mob.combat_initiative|default:0 }}"
+                     data-dex="{{ mob.dexterity|default:10 }}">
 
                 <button type="button" 
                         class="defeated-banner defeated-banner-btn" 
@@ -68,6 +402,9 @@
                             </p>
                         </div>
                         <div class="card-header-actions">
+                            <div class="card-init-badge" title="Iniciativa v tomto souboji">
+                                ⚡ Init: <span id="card-init-val-mob-{{ mob.id }}">{{ mob.combat_initiative|default:0 }}</span>
+                            </div>
                             <div class="card-cr-badge" title="Nebezpečnost (Challenge Rating)">
                                 CR {{ mob.formatted_cr|default:mob.challenge_rating|default:"—" }}
                             </div>
@@ -388,7 +725,9 @@
                      data-entity-type="player"
                      data-entity-id="{{ player.id }}"
                      data-current-hp="{{ player.current_hp_val }}"
-                     data-max-hp="{{ player.max_hp }}">
+                     data-max-hp="{{ player.max_hp }}"
+                     data-initiative="{{ player.combat_initiative|default:0 }}"
+                     data-dex="{{ player.dexterity|default:10 }}">
 
                 <div class="defeated-banner">V bezvědomí</div>
 
@@ -403,6 +742,9 @@
                             </p>
                         </div>
                         <div class="card-header-actions">
+                            <div class="card-init-badge" title="Iniciativa v tomto souboji">
+                                ⚡ Init: <span id="card-init-val-player-{{ player.id }}">{{ player.combat_initiative|default:0 }}</span>
+                            </div>
                             <div class="card-cr-badge" title="Úroveň postavy">
                                 Úroveň {{ player.level }}
                             </div>
@@ -615,6 +957,21 @@
                             </div>
                         </div>
                     </div>
+
+                    {% if player.saving_throws_list or player.skills_list or player.proficiencies_list %}
+                    <div class="modal-block">
+                        <h4 class="modal-block-heading">Záchranné hody, dovednosti a zdatnosti</h4>
+                        {% if player.saving_throws_list %}
+                        <p class="modal-line"><span class="line-label">🎯 Záchranné hody:</span> <span class="line-val">{{ player.saving_throws_list|join:", " }}</span></p>
+                        {% endif %}
+                        {% if player.skills_list %}
+                        <p class="modal-line"><span class="line-label">⭐ Dovednosti:</span> <span class="line-val">{{ player.skills_list|join:", " }}</span></p>
+                        {% endif %}
+                        {% if player.proficiencies_list %}
+                        <p class="modal-line"><span class="line-label">🛠️ Zdatnosti:</span> <span class="line-val">{{ player.proficiencies_list|join:", " }}</span></p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
 
                 </div>
 
@@ -864,6 +1221,20 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
             card.classList.remove("is-defeated");
         }
+
+        // Synchronizace HP v horním přehledu iniciativy
+        const initHpSpan = document.getElementById(`init-hp-${entityType}-${entityId}`);
+        if (initHpSpan) {
+            initHpSpan.textContent = currentHp;
+        }
+        const initItem = document.getElementById(`init-item-${entityType}-${entityId}`);
+        if (initItem) {
+            if (currentHp <= 0) {
+                initItem.classList.add("is-init-defeated");
+            } else {
+                initItem.classList.remove("is-init-defeated");
+            }
+        }
     }
 
     // 4. Dávkové odeslání změn do databáze (AJAX POST)
@@ -1058,6 +1429,152 @@ document.addEventListener("DOMContentLoaded", () => {
             );
             if (!isContent) {
                 killModal.close();
+            }
+        });
+    }
+
+    // =========================================================================
+    // 7. PŘEHLED INICIATIVY & SLEDOVÁNÍ TAHŮ V ARÉNĚ
+    // =========================================================================
+    const arenaInitGrid = document.getElementById("arenaInitGrid");
+    const btnNextTurn = document.getElementById("btnNextTurn");
+    const btnPrevTurn = document.getElementById("btnPrevTurn");
+    const initRoundNum = document.getElementById("initRoundNum");
+    const updateInitApiUrl = "{% url 'dm_site_app:api_update_initiative' %}";
+    let currentRound = 1;
+
+    function getInitItems() {
+        if (!arenaInitGrid) return [];
+        return Array.from(arenaInitGrid.querySelectorAll(".arena-init-item"));
+    }
+
+    function syncTurnHighlightOnCards() {
+        document.querySelectorAll(".character-card.is-turn-highlighted").forEach(c => {
+            c.classList.remove("is-turn-highlighted");
+        });
+        if (!arenaInitGrid) return;
+        const activeItem = arenaInitGrid.querySelector(".arena-init-item.is-active-turn");
+        if (!activeItem) return;
+        const entityType = activeItem.dataset.entityType;
+        const entityId = activeItem.dataset.entityId;
+        const targetCard = document.getElementById(`card-${entityType}-${entityId}`);
+        if (targetCard) {
+            targetCard.classList.add("is-turn-highlighted");
+        }
+    }
+
+    function setActiveTurnItem(targetItem, scrollToCard = false) {
+        const items = getInitItems();
+        items.forEach(item => item.classList.remove("is-active-turn"));
+        if (targetItem) {
+            targetItem.classList.add("is-active-turn");
+        }
+        syncTurnHighlightOnCards();
+        if (scrollToCard && targetItem) {
+            const card = document.getElementById(`card-${targetItem.dataset.entityType}-${targetItem.dataset.entityId}`);
+            if (card) {
+                card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+            }
+        }
+    }
+
+    function stepTurn(direction) {
+        const items = getInitItems();
+        if (items.length === 0) return;
+
+        // Upřednostníme živé bojovníky, pokud aspoň jeden žije
+        const aliveItems = items.filter(it => !it.classList.contains("is-init-defeated"));
+        const pool = aliveItems.length > 0 ? aliveItems : items;
+
+        let activeIdx = pool.findIndex(it => it.classList.contains("is-active-turn"));
+        if (activeIdx === -1) {
+            activeIdx = 0;
+        } else {
+            activeIdx += direction;
+            if (activeIdx >= pool.length) {
+                activeIdx = 0;
+                currentRound += 1;
+                if (initRoundNum) initRoundNum.textContent = currentRound;
+            } else if (activeIdx < 0) {
+                activeIdx = pool.length - 1;
+                if (currentRound > 1) {
+                    currentRound -= 1;
+                    if (initRoundNum) initRoundNum.textContent = currentRound;
+                }
+            }
+        }
+        setActiveTurnItem(pool[activeIdx], false);
+    }
+
+    if (btnNextTurn) {
+        btnNextTurn.addEventListener("click", () => stepTurn(1));
+    }
+    if (btnPrevTurn) {
+        btnPrevTurn.addEventListener("click", () => stepTurn(-1));
+    }
+
+    function resortArenaInitGrid() {
+        if (!arenaInitGrid) return;
+        const items = getInitItems();
+        items.sort((a, b) => {
+            const initA = parseInt(a.dataset.initiative, 10) || 0;
+            const initB = parseInt(b.dataset.initiative, 10) || 0;
+            if (initB !== initA) return initB - initA;
+            const dexA = parseInt(a.dataset.dex, 10) || 10;
+            const dexB = parseInt(b.dataset.dex, 10) || 10;
+            if (dexB !== dexA) return dexB - dexA;
+            return (a.dataset.name || "").localeCompare(b.dataset.name || "", "cs");
+        });
+        items.forEach((item, idx) => {
+            const rankSpan = item.querySelector(".init-rank-num");
+            if (rankSpan) rankSpan.textContent = `#${idx + 1}`;
+            arenaInitGrid.appendChild(item);
+        });
+    }
+
+    if (arenaInitGrid) {
+        syncTurnHighlightOnCards();
+
+        arenaInitGrid.addEventListener("click", (e) => {
+            const miniBtn = e.target.closest(".btn-mini-init");
+            if (miniBtn) {
+                e.stopPropagation();
+                const item = miniBtn.closest(".arena-init-item");
+                if (!item) return;
+
+                const delta = parseInt(miniBtn.dataset.initDelta, 10) || 0;
+                const currentInit = parseInt(item.dataset.initiative, 10) || 0;
+                const newInit = Math.max(-20, Math.min(99, currentInit + delta));
+                item.dataset.initiative = newInit;
+
+                const scoreSpan = item.querySelector(".init-score-val");
+                if (scoreSpan) scoreSpan.textContent = newInit;
+
+                const entityType = item.dataset.entityType;
+                const entityId = item.dataset.entityId;
+                const cardInitSpan = document.getElementById(`card-init-val-${entityType}-${entityId}`);
+                if (cardInitSpan) cardInitSpan.textContent = newInit;
+
+                resortArenaInitGrid();
+
+                fetch(updateInitApiUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        entity_type: entityType,
+                        entity_id: entityId,
+                        initiative: newInit
+                    })
+                }).catch(err => console.error("Chyba ukládání iniciativy:", err));
+                return;
+            }
+
+            const clickedItem = e.target.closest(".arena-init-item");
+            if (clickedItem) {
+                setActiveTurnItem(clickedItem, true);
             }
         });
     }

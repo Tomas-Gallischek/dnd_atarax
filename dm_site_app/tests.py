@@ -220,10 +220,11 @@ class DMSiteAuthAndNavigationTests(TestCase):
         self.assertIsNone(template.damage)
         self.assertIsNone(template.armor_class)
 
-        # 2 záznamy v Items_Active pro postavu
+        # 1 stacknutý záznam v Items_Active pro postavu s quantity=2
         active_items = Items_Active.objects.filter(char_own=char, name_cz='Křupavý chléb')
-        self.assertEqual(active_items.count(), 2)
+        self.assertEqual(active_items.count(), 1)
         first_active = active_items.first()
+        self.assertEqual(first_active.quantity, 2)
         self.assertEqual(first_active.description, 'Čerstvě upečený chléb z místní pekárny.')
         self.assertEqual(first_active.cost_silver, 2)
 

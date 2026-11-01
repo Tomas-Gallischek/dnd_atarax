@@ -351,6 +351,13 @@ class Char_info(models.Model):
     hit_dice = models.CharField(max_length=50, default="1d8", blank=True, null=True, verbose_name="Kostka životů")
     saving_throws = models.JSONField(default=list, blank=True, verbose_name="Záchranné hody")
     skills = models.JSONField(default=list, blank=True, verbose_name="Dovednosti")
+    proficiencies = models.TextField(
+        blank=True,
+        null=True,
+        default="",
+        verbose_name="Zdatnosti (s čím je postava zdatná)",
+        help_text="Zbraně, zbroje, nástroje, pomůcky, jazyky apod. (můžete psát pod sebe na řádky nebo oddělovat čárkou)."
+    )
 
     # Základní vlastnosti (Ability Scores)
     strength = models.IntegerField(default=10, verbose_name="Síla (STR)")
@@ -366,6 +373,7 @@ class Char_info(models.Model):
 
     # pracovní
     in_fight = models.BooleanField(default=False, verbose_name="V boji")
+    combat_initiative = models.IntegerField(default=0, verbose_name="Iniciativa v boji")
     has_new_inv = models.BooleanField(default=False, verbose_name="Nový předmět v inventáři")
     has_new_ach = models.BooleanField(default=False, verbose_name="Nový posun v úspěších")
 
@@ -582,6 +590,13 @@ class Char_info(models.Model):
                         message=f"Změna dovedností postavy {self.name}: {', '.join(self.skills_list) or 'Žádné'}",
                         value=0.0
                     )
+                if (old_char.proficiencies or '') != (self.proficiencies or ''):
+                    create_db_log(
+                        character=self,
+                        player=self.player,
+                        message=f"Změna zdatností postavy {self.name}: {', '.join(self.proficiencies_list) or 'Žádné'}",
+                        value=0.0
+                    )
                 if old_char.in_fight != self.in_fight:
                     create_db_log(
                         character=self,
@@ -767,6 +782,20 @@ class Char_info(models.Model):
         if isinstance(self.skills, str) and self.skills:
             return [s.strip() for s in self.skills.split(',') if s.strip()]
         return []
+
+    @property
+    def proficiencies_list(self):
+        if not self.proficiencies:
+            return []
+        if isinstance(self.proficiencies, list):
+            return [str(p).strip() for p in self.proficiencies if str(p).strip()]
+        text = str(self.proficiencies).strip()
+        if not text:
+            return []
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        if len(lines) == 1 and ':' not in lines[0] and ',' in lines[0]:
+            return [part.strip() for part in lines[0].split(',') if part.strip()]
+        return lines
 
 # DATABÁZE EXISTUJÍCÍCH ACHIVEMENTŮ
 class Achivements_database(models.Model):

@@ -6,6 +6,92 @@
 
 {% block extra_dm_head %}
 <link rel="stylesheet" href="{% static 'dm_site_app/css/loot_management.css' %}">
+<style>
+.row-select-stack-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+.row-qty-stepper {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(15, 23, 42, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    padding: 2px;
+}
+.btn-row-qty {
+    width: 24px;
+    height: 24px;
+    border: none;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border-radius: 4px;
+    font-weight: 800;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+.btn-row-qty:hover {
+    background: rgba(245, 158, 11, 0.25);
+    color: #fcd34d;
+}
+.input-row-qty {
+    width: 42px;
+    height: 24px;
+    border: none;
+    background: transparent;
+    color: #fbbf24;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-align: center;
+    -moz-appearance: textfield;
+}
+.input-row-qty::-webkit-outer-spin-button,
+.input-row-qty::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.selected-chip-qty-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    padding-left: 6px;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+}
+.btn-chip-qty {
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    background: rgba(245, 158, 11, 0.14);
+    color: #fde68a;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-chip-qty:hover {
+    background: rgba(245, 158, 11, 0.3);
+    color: #fff;
+}
+.input-chip-qty {
+    width: 44px;
+    padding: 2px 4px;
+    border-radius: 4px;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    background: rgba(15, 23, 42, 0.85);
+    color: #fbbf24;
+    font-weight: 800;
+    font-size: 0.8rem;
+    text-align: center;
+}
+</style>
 {% endblock %}
 
 {% block dm_content %}
@@ -244,17 +330,24 @@
                         data-weight="{{ item.weight|default:0 }}"
                         data-name-sort="{{ item.name_cz|default:item.name_en|default:'' }}">
                         
-                        <!-- 1. Tlačítko Vybrat -->
+                        <!-- 1. Tlačítko Vybrat + Počet kusů -->
                         <td class="td-center">
-                            <button type="button" 
-                                    class="btn-row-select" 
-                                    data-action="toggle-select"
-                                    data-id="{{ item.id }}" 
-                                    data-name="{{ item.name_cz|default:item.name_en }}"
-                                    title="Přidat/odebrat předmět do výběru">
-                                <span class="select-icon">+</span>
-                                <span class="select-label">Vybrat</span>
-                            </button>
+                            <div class="row-select-stack-wrap">
+                                <button type="button" 
+                                        class="btn-row-select" 
+                                        data-action="toggle-select"
+                                        data-id="{{ item.id }}" 
+                                        data-name="{{ item.name_cz|default:item.name_en }}"
+                                        title="Přidat/odebrat předmět do výběru">
+                                    <span class="select-icon">+</span>
+                                    <span class="select-label">Vybrat</span>
+                                </button>
+                                <div class="row-qty-stepper" title="Počet kusů tohoto předmětu k připsání">
+                                    <button type="button" class="btn-row-qty" data-action="row-qty-step" data-id="{{ item.id }}" data-name="{{ item.name_cz|default:item.name_en }}" data-delta="-1">−</button>
+                                    <input type="number" class="input-row-qty" data-id="{{ item.id }}" data-name="{{ item.name_cz|default:item.name_en }}" value="1" min="1" max="999" aria-label="Počet kusů">
+                                    <button type="button" class="btn-row-qty" data-action="row-qty-step" data-id="{{ item.id }}" data-name="{{ item.name_cz|default:item.name_en }}" data-delta="1">+</button>
+                                </div>
+                            </div>
                         </td>
 
                         <!-- 2. Název -->
@@ -391,8 +484,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const submitBtn = document.getElementById("btnSubmitAssign");
     const charSelect = document.getElementById("targetCharacterSelect");
 
-    // Mapa vybraných předmětů: id -> name
+    // Mapa vybraných předmětů: id -> { name, qty }
     const selectedItems = new Map();
+
+    function getRowQty(id) {
+        const row = document.getElementById("item-row-" + id);
+        const inp = row ? row.querySelector(".input-row-qty") : null;
+        if (!inp) return 1;
+        return Math.max(1, Math.min(999, parseInt(inp.value, 10) || 1));
+    }
+
+    function setRowQty(id, qty) {
+        const row = document.getElementById("item-row-" + id);
+        const inp = row ? row.querySelector(".input-row-qty") : null;
+        if (inp) {
+            inp.value = Math.max(1, Math.min(999, qty));
+        }
+    }
 
     // 2. Filtrování a vyhledávání
     function applyFilters() {
@@ -465,13 +573,15 @@ document.addEventListener("DOMContentLoaded", () => {
         if (selectedItems.has(id)) {
             selectedItems.delete(id);
         } else {
-            selectedItems.set(id, name);
+            selectedItems.set(id, { name: name, qty: getRowQty(id) });
         }
         updateSelectionVisuals();
     }
 
-    function selectItem(id, name) {
-        selectedItems.set(id, name);
+    function selectItem(id, name, qty) {
+        const resolvedQty = qty !== undefined ? Math.max(1, Math.min(999, qty)) : getRowQty(id);
+        selectedItems.set(id, { name: name, qty: resolvedQty });
+        setRowQty(id, resolvedQty);
     }
 
     function deselectItem(id) {
@@ -481,6 +591,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Aktualizace stavu řádků, tlačítek, chipů a formuláře
     function updateSelectionVisuals() {
         const count = selectedItems.size;
+        let totalPieces = 0;
+        selectedItems.forEach((info) => {
+            totalPieces += (info.qty || 1);
+        });
 
         // Aktualizace řádků v tabulce
         allRows.forEach(row => {
@@ -489,10 +603,12 @@ document.addEventListener("DOMContentLoaded", () => {
             const isSel = selectedItems.has(id);
 
             if (isSel) {
+                const info = selectedItems.get(id);
+                setRowQty(id, info.qty);
                 row.classList.add("is-selected");
                 if (btn) {
                     btn.classList.add("is-selected");
-                    btn.innerHTML = `<span class="select-icon">✓</span> <span class="select-label">Vybráno</span>`;
+                    btn.innerHTML = `<span class="select-icon">✓</span> <span class="select-label">Vybráno (${info.qty}×)</span>`;
                 }
             } else {
                 row.classList.remove("is-selected");
@@ -509,10 +625,19 @@ document.addEventListener("DOMContentLoaded", () => {
             if (count === 0) {
                 chipsContainer.innerHTML = `<span class="no-selection-hint">Žádný předmět zatím nebyl vybrán. Vyberte předměty v tabulce výše stisknutím tlačítka „Vybrat“.</span>`;
             } else {
-                selectedItems.forEach((name, id) => {
+                selectedItems.forEach((info, id) => {
                     const chip = document.createElement("span");
                     chip.className = "selected-chip";
-                    chip.innerHTML = `<span>${name}</span> <button type="button" class="btn-chip-remove" data-id="${id}" title="Odebrat z výběru">✕</button>`;
+                    chip.innerHTML = `
+                        <span><strong>${info.qty}×</strong> ${info.name}</span>
+                        <span class="selected-chip-qty-controls">
+                            <button type="button" class="btn-chip-qty" data-action="chip-qty-step" data-id="${id}" data-delta="-1" title="Odebrat 1 ks">−1</button>
+                            <input type="number" class="input-chip-qty" data-id="${id}" value="${info.qty}" min="1" max="999" aria-label="Počet kusů">
+                            <button type="button" class="btn-chip-qty" data-action="chip-qty-step" data-id="${id}" data-delta="1" title="Přidat 1 ks">+1</button>
+                            <button type="button" class="btn-chip-qty" data-action="chip-qty-step" data-id="${id}" data-delta="5" title="Přidat 5 ks">+5</button>
+                        </span>
+                        <button type="button" class="btn-chip-remove" data-id="${id}" title="Odebrat z výběru">✕</button>
+                    `;
                     chipsContainer.appendChild(chip);
                 });
             }
@@ -521,18 +646,24 @@ document.addEventListener("DOMContentLoaded", () => {
         // Aktualizace skrytých políček ve formuláři
         if (hiddenInputsContainer) {
             hiddenInputsContainer.innerHTML = "";
-            selectedItems.forEach((_, id) => {
-                const input = document.createElement("input");
-                input.type = "hidden";
-                input.name = "item_ids";
-                input.value = id;
-                hiddenInputsContainer.appendChild(input);
+            selectedItems.forEach((info, id) => {
+                const inputId = document.createElement("input");
+                inputId.type = "hidden";
+                inputId.name = "item_ids";
+                inputId.value = id;
+                hiddenInputsContainer.appendChild(inputId);
+
+                const inputQty = document.createElement("input");
+                inputQty.type = "hidden";
+                inputQty.name = `item_qty_${id}`;
+                inputQty.value = info.qty || 1;
+                hiddenInputsContainer.appendChild(inputQty);
             });
         }
 
         // Počítadla
-        if (selectedCountEl) selectedCountEl.textContent = count;
-        if (submitCountBadge) submitCountBadge.textContent = count;
+        if (selectedCountEl) selectedCountEl.textContent = totalPieces;
+        if (submitCountBadge) submitCountBadge.textContent = totalPieces;
 
         // Tlačítko odeslat
         if (submitBtn) {
@@ -563,7 +694,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Kliknutí na tlačítko "Vybrat" v řádku tabulky
+    // Kliknutí na tlačítko "Vybrat" a ovládání počtu kusů
     document.addEventListener("click", (e) => {
         const selectBtn = e.target.closest("[data-action='toggle-select']");
         if (selectBtn) {
@@ -571,6 +702,40 @@ document.addEventListener("DOMContentLoaded", () => {
             const name = selectBtn.dataset.name;
             if (id) {
                 toggleItemSelection(id, name);
+            }
+            return;
+        }
+
+        const rowQtyBtn = e.target.closest("[data-action='row-qty-step']");
+        if (rowQtyBtn) {
+            const id = rowQtyBtn.dataset.id;
+            const name = rowQtyBtn.dataset.name;
+            const delta = parseInt(rowQtyBtn.dataset.delta, 10) || 0;
+            if (id) {
+                const current = getRowQty(id);
+                const nextQty = Math.max(1, Math.min(999, current + delta));
+                setRowQty(id, nextQty);
+                if (selectedItems.has(id)) {
+                    selectedItems.get(id).qty = nextQty;
+                    updateSelectionVisuals();
+                } else if (delta > 0) {
+                    selectItem(id, name, nextQty);
+                    updateSelectionVisuals();
+                }
+            }
+            return;
+        }
+
+        const chipQtyBtn = e.target.closest("[data-action='chip-qty-step']");
+        if (chipQtyBtn) {
+            const id = chipQtyBtn.dataset.id;
+            const delta = parseInt(chipQtyBtn.dataset.delta, 10) || 0;
+            if (id && selectedItems.has(id)) {
+                const info = selectedItems.get(id);
+                const nextQty = Math.max(1, Math.min(999, (info.qty || 1) + delta));
+                info.qty = nextQty;
+                setRowQty(id, nextQty);
+                updateSelectionVisuals();
             }
             return;
         }
@@ -584,6 +749,32 @@ document.addEventListener("DOMContentLoaded", () => {
                 updateSelectionVisuals();
             }
             return;
+        }
+    });
+
+    document.addEventListener("change", (e) => {
+        if (e.target.classList.contains("input-row-qty")) {
+            const id = e.target.dataset.id;
+            const name = e.target.dataset.name;
+            const nextQty = Math.max(1, Math.min(999, parseInt(e.target.value, 10) || 1));
+            e.target.value = nextQty;
+            if (id) {
+                if (selectedItems.has(id)) {
+                    selectedItems.get(id).qty = nextQty;
+                } else if (nextQty > 1) {
+                    selectedItems.set(id, { name: name, qty: nextQty });
+                }
+                updateSelectionVisuals();
+            }
+        } else if (e.target.classList.contains("input-chip-qty")) {
+            const id = e.target.dataset.id;
+            const nextQty = Math.max(1, Math.min(999, parseInt(e.target.value, 10) || 1));
+            e.target.value = nextQty;
+            if (id && selectedItems.has(id)) {
+                selectedItems.get(id).qty = nextQty;
+                setRowQty(id, nextQty);
+                updateSelectionVisuals();
+            }
         }
     });
 

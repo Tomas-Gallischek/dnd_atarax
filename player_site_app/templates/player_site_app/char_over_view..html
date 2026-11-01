@@ -249,6 +249,27 @@
     </section>
 </div>
 
+<!-- 4b. Zdatnosti postavy (zbraně, zbroje, nástroje, jazyky...) -->
+<section class="atarax-card mt-3" id="charProficienciesSection">
+    <div class="atarax-card-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 class="atarax-card-title">
+            <span>🛠️</span> Zdatnosti (S čím je postava zdatná)
+        </h2>
+        {% if character.proficiencies_list %}
+        <span class="badge badge-sapphire">{{ character.proficiencies_list|length }} {% if character.proficiencies_list|length == 1 %}položka{% elif character.proficiencies_list|length >= 2 and character.proficiencies_list|length <= 4 %}položky{% else %}položek{% endif %}</span>
+        {% endif %}
+    </div>
+    <div class="saves-skills-wrap" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0;">
+        {% for prof in character.proficiencies_list %}
+            <span class="badge badge-silver" style="font-size: 0.92rem; padding: 6px 12px; white-space: normal; text-align: left;">
+                🛠️ {{ prof }}
+            </span>
+        {% empty %}
+            <p class="text-muted" style="margin: 0; font-size: 0.88rem; color: #94a3b8;">Zatím nejsou zapsány žádné další zdatnosti (zbraně, zbroje, nástroje, jazyky apod.).</p>
+        {% endfor %}
+    </div>
+</section>
+
 <!-- 5. Volné pozice pro kouzla (Spell Sloty) -->
 <section class="atarax-card mt-3" id="charSpellSlotsSection">
     <div class="atarax-card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">

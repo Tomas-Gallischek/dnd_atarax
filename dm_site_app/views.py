@@ -636,30 +636,63 @@ def golds_management(request):
 
 @dm_required
 def add_gold(request):
-    """Přidání/odebrání zlaťáků postavě"""
+    """Přidání/odebrání zlaťáků postavě (ručně i pomocí rychlých tlačítek +/- 0.5 a +/- 1)."""
     if request.method == 'POST':
         char_id = request.POST.get('char_id')
         gold = request.POST.get('gold')
         silver = request.POST.get('silver')
         action = request.POST.get('action')
-        plus_total_golds = round(float(gold or 0) + (float(silver or 0) / 10), 1)
+        quick_delta = request.POST.get('quick_delta')
+
+        if quick_delta is not None and str(quick_delta).strip() != '':
+            try:
+                delta_val = float(str(quick_delta).replace(',', '.').strip())
+            except (ValueError, TypeError):
+                delta_val = 0.0
+            action = 'plus' if delta_val >= 0 else 'minus'
+            abs_val = abs(delta_val)
+            gold_int = int(abs_val)
+            silver_int = int(round((abs_val - gold_int) * 10))
+        else:
+            gold_raw = str(gold or 0).replace(',', '.').strip()
+            silver_raw = str(silver or 0).replace(',', '.').strip()
+            try:
+                gold_float = float(gold_raw or 0)
+            except (ValueError, TypeError):
+                gold_float = 0.0
+            try:
+                silver_int = int(float(silver_raw or 0))
+            except (ValueError, TypeError):
+                silver_int = 0
+            gold_int = int(gold_float)
+            silver_int += int(round((gold_float - gold_int) * 10))
+
+        plus_total_golds = round(float(gold_int) + (float(silver_int) / 10), 1)
 
         # Zapsání goldů
-        if char_id:
+        if char_id and plus_total_golds > 0:
             char = get_object_or_404(Char_info, id=char_id)
-            gold_int = int(gold or 0)
-            silver_int = int(silver or 0)
+            char.gold = char.gold or 0
+            char.silver = char.silver or 0
+            char.total_golds = char.total_golds or 0.0
+
             if action == 'plus':
                 zbohatlik_ach(char_id, plus_total_golds)  # kontrola achievementu
-                char.gold += gold_int
-                char.silver += silver_int
-                char.total_golds += plus_total_golds
+                total_silver = (char.gold * 10 + char.silver) + (gold_int * 10 + silver_int)
+                char.gold = total_silver // 10
+                char.silver = total_silver % 10
+                char.total_golds = round(char.total_golds + plus_total_golds, 1)
                 log_gold(f"+{gold_int} gp, +{silver_int} sp", f"Postava: {char.name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
                 log_msg = f"DM přidal postavě {char.name}: +{gold_int} zlaťáků a +{silver_int} stříbrňáků (nový stav: {char.gold} zl, {char.silver} st)"
                 log_val = plus_total_golds
             elif action == 'minus':
-                char.gold -= gold_int
-                char.silver -= silver_int
+                total_silver = (char.gold * 10 + char.silver) - (gold_int * 10 + silver_int)
+                if total_silver >= 0:
+                    char.gold = total_silver // 10
+                    char.silver = total_silver % 10
+                else:
+                    char.gold = -((-total_silver) // 10)
+                    char.silver = -((-total_silver) % 10)
                 log_gold(f"-{gold_int} gp, -{silver_int} sp", f"Postava: {char.name} (Hráč: {char.player.nickname}) -> Nový stav: {char.gold} gp, {char.silver} sp")
                 log_msg = f"DM odebral postavě {char.name}: -{gold_int} zlaťáků a -{silver_int} stříbrňáků (nový stav: {char.gold} zl, {char.silver} st)"
                 log_val = -plus_total_golds
@@ -676,6 +709,16 @@ def add_gold(request):
                 message=log_msg,
                 value=log_val
             )
+
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1':
+                return JsonResponse({
+                    'success': True,
+                    'char_id': char.id,
+                    'gold': char.gold,
+                    'silver': char.silver,
+                    'total_golds': char.total_golds,
+                    'message': log_msg,
+                })
 
     return redirect('dm_site_app:golds-management')
 
@@ -966,29 +1009,167 @@ def create_custom_monster(request):
         'current_page': 'monster_gen_page',
     })
         
+def _build_combat_initiative_list(mobs_qs, players_qs):
+    """Sestaví seřazený seznam bojovníků (od nejvyšší iniciativy po nejnižší) pro Přípravu i Arénu."""
+    combatants = []
+    for mob in mobs_qs:
+        dex_val = mob.dexterity if mob.dexterity is not None else 10
+        combatants.append({
+            'entity_type': 'mob',
+            'id': mob.id,
+            'name': mob.name_cz or mob.name_en or f"Monstrum #{mob.id}",
+            'subtitle': f"CR {mob.formatted_cr}",
+            'initiative': mob.combat_initiative or 0,
+            'dexterity': dex_val,
+            'dex_mod': mob.dex_mod,
+            'ac': mob.armor_class or 10,
+            'current_hp': mob.current_hp_val,
+            'max_hp': mob.max_hp,
+            'is_defeated': mob.current_hp_val <= 0,
+            'avatar_url': mob.image_url or '',
+            'in_fight': mob.in_fight,
+        })
+    for pl in players_qs:
+        dex_val = pl.dexterity if pl.dexterity is not None else 10
+        combatants.append({
+            'entity_type': 'player',
+            'id': pl.id,
+            'name': pl.name,
+            'subtitle': f"{pl.character_class or 'Dobrodruh'} (Úr. {pl.level})",
+            'initiative': pl.combat_initiative or 0,
+            'dexterity': dex_val,
+            'dex_mod': pl.dex_mod,
+            'ac': pl.armor_class or 10,
+            'current_hp': pl.current_hp_val,
+            'max_hp': pl.max_hp,
+            'is_defeated': pl.current_hp_val <= 0,
+            'avatar_url': pl.profile_image_url,
+            'in_fight': pl.in_fight,
+        })
+    combatants.sort(key=lambda c: (-c['initiative'], -c['dexterity'], c['name'].lower()))
+    return combatants
+
+
 @dm_required
 def pvp_pre(request):
     all_active_mobs = Monsters_Active.objects.all()
-    all_players = Char_info.objects.all()
+    all_players = Char_info.objects.all().select_related('player')
+
+    in_fight_mobs = [m for m in all_active_mobs if m.in_fight]
+    in_fight_players = [p for p in all_players if p.in_fight]
+    initiative_order = _build_combat_initiative_list(in_fight_mobs, in_fight_players)
 
     return render(request, 'dm_site_app/pvp_pre.html', {
         'current_page': 'pvp_pre',
         'all_active_mobs': all_active_mobs,
         'all_players': all_players,
+        'initiative_order': initiative_order,
     })
 
 
 @dm_required
 def pvp_arena(request):
+    # Pokud DM odeslal formulář "Vstoupit do Arény" s upravenými hodnotami iniciativy, uložíme je
+    if request.method == 'POST':
+        for key, val in request.POST.items():
+            if key.startswith('init_mob_'):
+                mob_id = key.replace('init_mob_', '')
+                try:
+                    Monsters_Active.objects.filter(id=int(mob_id)).update(combat_initiative=int(val or 0))
+                except (ValueError, TypeError):
+                    pass
+            elif key.startswith('init_player_'):
+                pl_id = key.replace('init_player_', '')
+                try:
+                    Char_info.objects.filter(id=int(pl_id)).update(combat_initiative=int(val or 0))
+                except (ValueError, TypeError):
+                    pass
+
     all_active_mobs = Monsters_Active.objects.filter(in_fight=True)
-    all_players = Char_info.objects.filter(in_fight=True)
+    all_players = Char_info.objects.filter(in_fight=True).select_related('player')
+    initiative_order = _build_combat_initiative_list(all_active_mobs, all_players)
     log_arena("Načtena aréna", f"{all_active_mobs.count()} monster vs {all_players.count()} hráčů v boji")
 
     return render(request, 'dm_site_app/pvp_arena.html', {
         'current_page': 'pvp_arena',
         'all_active_mobs': all_active_mobs,
         'all_players': all_players,
+        'initiative_order': initiative_order,
     })
+
+
+@dm_required
+def api_update_initiative(request):
+    """
+    API endpoint pro okamžitou úpravu iniciativy (combat_initiative) u monster i postav
+    v Přípravě na souboj i přímo v Aréně.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Pouze metoda POST'}, status=405)
+
+    try:
+        if request.content_type and 'application/json' in request.content_type:
+            data = json.loads(request.body)
+        else:
+            data = request.POST.dict()
+
+        action = data.get('action')
+        saved_records = []
+
+        if action == 'roll_all_mobs':
+            only_in_fight = data.get('only_in_fight', False)
+            qs = Monsters_Active.objects.filter(in_fight=True) if only_in_fight else Monsters_Active.objects.all()
+            for mob in qs:
+                dex_mod_int = ((mob.dexterity or 10) - 10) // 2
+                rolled = random.randint(1, 20) + dex_mod_int
+                mob.combat_initiative = rolled
+                mob.save(update_fields=['combat_initiative'])
+                saved_records.append({
+                    'entity_type': 'mob',
+                    'id': mob.id,
+                    'combat_initiative': rolled,
+                    'name': mob.name_cz or mob.name_en,
+                })
+            return JsonResponse({'success': True, 'saved': saved_records})
+
+        if action == 'reset_all':
+            Monsters_Active.objects.all().update(combat_initiative=0)
+            Char_info.objects.all().update(combat_initiative=0)
+            return JsonResponse({'success': True, 'reset': True})
+
+        updates = data.get('updates')
+        if updates is None:
+            updates = [data]
+
+        for item in updates:
+            entity_type = item.get('entity_type')
+            entity_id = item.get('entity_id')
+            new_init = int(item.get('combat_initiative', 0) or 0)
+
+            if entity_type == 'mob':
+                mob = Monsters_Active.objects.get(id=entity_id)
+                mob.combat_initiative = new_init
+                mob.save(update_fields=['combat_initiative'])
+                saved_records.append({
+                    'entity_type': 'mob',
+                    'id': mob.id,
+                    'combat_initiative': mob.combat_initiative,
+                })
+            elif entity_type == 'player':
+                player = Char_info.objects.get(id=entity_id)
+                player.combat_initiative = new_init
+                player._skip_auto_log = True
+                player.save(update_fields=['combat_initiative'])
+                saved_records.append({
+                    'entity_type': 'player',
+                    'id': player.id,
+                    'combat_initiative': player.combat_initiative,
+                })
+
+        return JsonResponse({'success': True, 'saved': saved_records})
+    except Exception as e:
+        log_error("Chyba při aktualizaci iniciativy", str(e))
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
 
 @dm_required
 def api_update_hp(request):
@@ -1045,18 +1226,38 @@ def in_fight_switch(request):
         source_id = request.POST.get('source_id') # ID
         action = request.POST.get('in_fight') # True / False
         source = request.POST.get('source') # mob/ player
+        init_raw = request.POST.get('combat_initiative')
+        is_ajax = (request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1')
 
         if source == "mob":
             mob = get_object_or_404(Monsters_Active, id=source_id)
             mob.in_fight = (action == 'True') # Musí být takto, jinak to python vždycky zapíše jako "True"
+            if init_raw is not None and str(init_raw).strip() != '':
+                try:
+                    mob.combat_initiative = int(init_raw)
+                except (ValueError, TypeError):
+                    pass
             mob.save()
             action_desc = "VSTUPUJE DO BOJE ⚔️" if mob.in_fight else "ODCHÁZÍ Z BOJE 🏳️"
             log_arena(f"Monstrum: {action_desc}", f"{mob.name_cz or mob.name_en} [ID: {mob.id}]")
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'source': 'mob',
+                    'id': mob.id,
+                    'in_fight': mob.in_fight,
+                    'combat_initiative': mob.combat_initiative,
+                })
             return redirect('dm_site_app:pvp_pre')
         elif source == "player":
             player = Char_info.objects.get(id=source_id)
             old_in_fight = player.in_fight
             player.in_fight = (action == 'True') # Musí být takto, jinak to python vždycky zapíše jako "True"
+            if init_raw is not None and str(init_raw).strip() != '':
+                try:
+                    player.combat_initiative = int(init_raw)
+                except (ValueError, TypeError):
+                    pass
             player._skip_auto_log = True
             player.save()
             action_desc = "VSTUPUJE DO BOJE ⚔️" if player.in_fight else "ODCHÁZÍ Z BOJE 🏳️"
@@ -1069,6 +1270,14 @@ def in_fight_switch(request):
                     message=state_msg,
                     value=1.0 if player.in_fight else 0.0
                 )
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'source': 'player',
+                    'id': player.id,
+                    'in_fight': player.in_fight,
+                    'combat_initiative': player.combat_initiative,
+                })
             return redirect('dm_site_app:pvp_pre')
     else:
         log_warning("Přepnutí stavu v boji", "Neplatná metoda požadavku (očekáván POST)")
@@ -1315,41 +1524,50 @@ def assign_loot_items(request):
         messages.error(request, "Vybraná postava neexistuje.")
         return redirect('dm_site_app:loot_management')
 
-    added_names = []
-    for item_id in item_ids:
+    # Nejprve sloučíme případné starší duplicitní záznamy v inventáři postavy
+    Items_Active.consolidate_for_character(character)
+
+    # Seskupení item_id a zjištění požadovaného množství kusů
+    item_counts = {}
+    for raw_id in item_ids:
         try:
-            item_id_int = int(item_id)
+            iid = int(raw_id)
         except (ValueError, TypeError):
             continue
+        item_counts[iid] = item_counts.get(iid, 0) + 1
 
+    for iid in list(item_counts.keys()):
+        raw_qty = request.POST.get(f'item_qty_{iid}')
+        if raw_qty is not None:
+            try:
+                qty_val = max(1, min(999, int(raw_qty)))
+                item_counts[iid] = qty_val
+            except (ValueError, TypeError):
+                pass
+
+    added_names = []
+    total_pieces_added = 0
+    for item_id_int, qty in item_counts.items():
         item_template = Items_All_db.objects.filter(id=item_id_int).first()
         if item_template:
-            active_item = Items_Active(
-                char_own=character,
-                api_index=item_template.api_index,
-                name_cz=item_template.name_cz,
-                name_en=item_template.name_en,
-                category=item_template.category,
-                cost_gold=item_template.cost_gold,
-                cost_silver=item_template.cost_silver,
-                weight=item_template.weight,
-                damage=item_template.damage,
-                armor_class=item_template.armor_class,
-                properties=item_template.properties,
-                description=item_template.description,
+            active_item, _ = Items_Active.add_or_stack(
+                character=character,
+                item_template=item_template,
+                quantity=qty,
+                skip_auto_log=True,
             )
-            active_item._skip_auto_log = True
-            active_item.save()
-            added_names.append(active_item.name_cz or active_item.name_en or f"Předmět #{active_item.id}")
+            item_title = active_item.name_cz or active_item.name_en or f"Předmět #{active_item.id}"
+            added_names.append(f"{qty}× {item_title}" if qty > 1 else item_title)
+            total_pieces_added += qty
 
     if added_names:
         items_summary = ", ".join(added_names)
-        messages.success(request, f"Postavě {character.name} bylo připsáno {len(added_names)} předmětů: {items_summary}")
+        messages.success(request, f"Postavě {character.name} bylo připsáno {total_pieces_added} ks předmětů: {items_summary}")
         log = Logs(
             player=character.player,
             character=character,
-            message=f"Postava {character.name} získala {len(added_names)} předmětů ({items_summary})",
-            value=float(len(added_names))
+            message=f"Postava {character.name} získala {total_pieces_added} předmětů ({items_summary})",
+            value=float(total_pieces_added)
         )
         log.save()
         log_success("Předměty připsány", f"Postava {character.name} získala: {items_summary}")
@@ -1452,25 +1670,15 @@ def create_custom_item(request):
             description=description,
         )
 
-        # 2. Vytvoření instancí v Items_Active pro vybraného hráče
+        # 2. Vytvoření / nastackování instance v Items_Active pro vybraného hráče
         if character:
-            for _ in range(quantity):
-                active_item = Items_Active(
-                    char_own=character,
-                    api_index=item_template.api_index,
-                    name_cz=item_template.name_cz,
-                    name_en=item_template.name_en,
-                    category=item_template.category,
-                    cost_gold=item_template.cost_gold,
-                    cost_silver=item_template.cost_silver,
-                    weight=item_template.weight,
-                    damage=item_template.damage,
-                    armor_class=item_template.armor_class,
-                    properties=item_template.properties,
-                    description=item_template.description,
-                )
-                active_item._skip_auto_log = True
-                active_item.save()
+            Items_Active.consolidate_for_character(character)
+            Items_Active.add_or_stack(
+                character=character,
+                item_template=item_template,
+                quantity=quantity,
+                skip_auto_log=True,
+            )
 
             log_msg = f"DM vytvořil a připsal předmět '{name_cz}' ({quantity}x) postavě {character.name}"
             log = Logs(
@@ -1508,7 +1716,7 @@ def create_custom_item(request):
 def player_inventory_management(request):
     """
     DM nástroj pro správu inventářů všech hráčských postav.
-    Umožňuje DM prohlížet batoh jakéhokoliv hrdiny a mazat libovolné předměty (jednotlivě i hromadně).
+    Umožňuje DM prohlížet batoh jakéhokoliv hrdiny a mazat či upravovat počty předmětů.
     """
     all_chars = Char_info.objects.all().select_related('player').order_by('name')
 
@@ -1526,10 +1734,13 @@ def player_inventory_management(request):
     items = []
     categories = []
     total_weight = 0.0
+    total_items_count = 0
     if selected_char:
-        items = Items_Active.objects.filter(char_own=selected_char).order_by('name_cz', 'name_en')
+        Items_Active.consolidate_for_character(selected_char)
+        items = list(Items_Active.objects.filter(char_own=selected_char).order_by('name_cz', 'name_en'))
         categories = sorted(list(set(i.category for i in items if i.category)))
-        total_weight = sum((i.weight or 0.0) for i in items)
+        total_weight = sum(i.total_weight for i in items)
+        total_items_count = sum(max(1, i.quantity or 1) for i in items)
 
     context = {
         'all_chars': all_chars,
@@ -1537,7 +1748,8 @@ def player_inventory_management(request):
         'items': items,
         'categories': categories,
         'total_weight': round(total_weight, 2),
-        'total_items_count': len(items),
+        'total_items_count': total_items_count,
+        'unique_items_count': len(items),
         'current_page': 'tools',
     }
     return render(request, 'dm_site_app/player_inventory_management.html', context)
@@ -1546,7 +1758,7 @@ def player_inventory_management(request):
 @dm_required
 def dm_delete_player_item(request, item_id):
     """
-    Umožňuje DM smazat jakýkoliv předmět z inventáře libovolné postavy.
+    Umožňuje DM smazat předmět nebo upravit počet kusů (stack) v inventáři libovolné postavy.
     """
     if request.method != 'POST':
         messages.warning(request, "Smazání předmětu vyžaduje potvrzení formuláře.")
@@ -1558,25 +1770,134 @@ def dm_delete_player_item(request, item_id):
     item_name = item.name_cz or item.name_en or f"Předmět #{item.id}"
     char_name = char.name if char else "neznámá postava"
 
+    action = request.POST.get('action', '').strip()
+    raw_amount = request.POST.get('amount')
+    current_qty = max(1, item.quantity or 1)
+
+    def _compute_char_totals(character_obj):
+        if not character_obj:
+            return 0.0, 0, 0
+        rem_items = list(Items_Active.objects.filter(char_own=character_obj))
+        t_weight = round(sum(i.total_weight for i in rem_items), 2)
+        t_pieces = sum(max(1, i.quantity or 1) for i in rem_items)
+        return t_weight, t_pieces, len(rem_items)
+
+    # 1. Navýšení počtu kusů ve stacku (+1 apod.)
+    if action == 'increment':
+        try:
+            inc = max(1, min(999, int(raw_amount or 1)))
+        except (ValueError, TypeError):
+            inc = 1
+        item.quantity = current_qty + inc
+        item._skip_auto_log = True
+        item.save()
+
+        if char:
+            Logs.objects.create(
+                player=char.player,
+                character=char,
+                message=f"DM přidal {inc}× '{item_name}' postavě {char_name} (celkem {item.quantity}×)",
+                value=float(inc)
+            )
+            Char_info.objects.filter(pk=char.pk).update(has_new_inv=True)
+        log_dm(f"DM navýšil počet předmětu '{item_name}' o {inc}× (na {item.quantity}×) u postavy '{char_name}'")
+        success_msg = f"Počet předmětu '{item_name}' u postavy {char_name} byl navýšen na {item.quantity} ks."
+
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+            t_weight, t_pieces, u_count = _compute_char_totals(char)
+            return JsonResponse({
+                'status': 'ok',
+                'action': 'updated',
+                'item_id': item.id,
+                'quantity': item.quantity,
+                'row_weight': item.total_weight,
+                'row_cost_gold': item.total_cost_gold,
+                'row_cost_silver': item.total_cost_silver,
+                'total_weight': t_weight,
+                'total_items_count': t_pieces,
+                'unique_items_count': u_count,
+                'item_name': item_name,
+                'message': success_msg,
+            })
+
+        messages.success(request, success_msg)
+        redirect_url = reverse('dm_site_app:player_inventory_management')
+        if char_id:
+            redirect_url += f'?char_id={char_id}'
+        return redirect(redirect_url)
+
+    # 2. Odebrání části stacku (-1 apod.), pokud zbude alespoň 1 kus
+    if action == 'decrement' or (raw_amount is not None and action != 'delete_all'):
+        try:
+            dec = max(1, int(raw_amount or 1))
+        except (ValueError, TypeError):
+            dec = 1
+
+        if current_qty > dec:
+            item.quantity = current_qty - dec
+            item._skip_auto_log = True
+            item.save()
+
+            if char:
+                Logs.objects.create(
+                    player=char.player,
+                    character=char,
+                    message=f"DM odebral {dec}× '{item_name}' postavě {char_name} (zbývá {item.quantity}×)",
+                    value=float(-dec)
+                )
+            log_dm(f"DM odebral {dec}× '{item_name}' (zbývá {item.quantity}×) z inventáře postavy '{char_name}'")
+            success_msg = f"Odebráno {dec} ks předmětu '{item_name}' (zbývá {item.quantity} ks)."
+
+            if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+                t_weight, t_pieces, u_count = _compute_char_totals(char)
+                return JsonResponse({
+                    'status': 'ok',
+                    'action': 'updated',
+                    'item_id': item.id,
+                    'quantity': item.quantity,
+                    'row_weight': item.total_weight,
+                    'row_cost_gold': item.total_cost_gold,
+                    'row_cost_silver': item.total_cost_silver,
+                    'total_weight': t_weight,
+                    'total_items_count': t_pieces,
+                    'unique_items_count': u_count,
+                    'item_name': item_name,
+                    'message': success_msg,
+                })
+
+            messages.success(request, success_msg)
+            redirect_url = reverse('dm_site_app:player_inventory_management')
+            if char_id:
+                redirect_url += f'?char_id={char_id}'
+            return redirect(redirect_url)
+
+    # 3. Smazání celého záznamu předmětu
     item._skip_auto_log = True
     item.delete()
 
+    qty_suffix = f" ({current_qty}×)" if current_qty > 1 else ""
     if char:
         Logs.objects.create(
             player=char.player,
             character=char,
-            message=f"DM odebral předmět '{item_name}' postavě {char_name}",
+            message=f"DM odebral předmět '{item_name}'{qty_suffix} postavě {char_name}",
             value=0.0
         )
-    log_dm(f"DM smazal předmět '{item_name}' (ID: {item_id}) z inventáře postavy '{char_name}'")
+    log_dm(f"DM smazal předmět '{item_name}'{qty_suffix} (ID: {item_id}) z inventáře postavy '{char_name}'")
 
-    success_msg = f"Předmět '{item_name}' byl smazán z inventáře postavy {char_name}."
+    success_msg = f"Předmět '{item_name}'{qty_suffix} byl smazán z inventáře postavy {char_name}."
     messages.success(request, success_msg)
 
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+        t_weight, t_pieces, u_count = _compute_char_totals(char)
         return JsonResponse({
             'status': 'ok',
+            'action': 'deleted',
             'deleted_id': item_id,
+            'quantity': 0,
+            'total_weight': t_weight,
+            'total_items_count': t_pieces,
+            'unique_items_count': u_count,
             'item_name': item_name,
             'message': success_msg
         })
@@ -1612,13 +1933,16 @@ def dm_bulk_delete_player_items(request):
         character = Char_info.objects.filter(id=char_id).first()
 
     deleted_names = []
+    total_deleted_pieces = 0
     qs = Items_Active.objects.filter(id__in=item_ids)
     if character:
         qs = qs.filter(char_own=character)
 
     for item in qs:
         name = item.name_cz or item.name_en or f"Předmět #{item.id}"
-        deleted_names.append(name)
+        qty = max(1, item.quantity or 1)
+        deleted_names.append(f"{qty}× {name}" if qty > 1 else name)
+        total_deleted_pieces += qty
         item._skip_auto_log = True
         item.delete()
 
@@ -1629,11 +1953,11 @@ def dm_bulk_delete_player_items(request):
             Logs.objects.create(
                 player=character.player,
                 character=character,
-                message=f"DM hromadně odebral {len(deleted_names)} předmětů ({summary}) postavě {char_name}",
-                value=float(len(deleted_names))
+                message=f"DM hromadně odebral {total_deleted_pieces} předmětů ({summary}) postavě {char_name}",
+                value=float(total_deleted_pieces)
             )
-        log_dm(f"DM hromadně smazal {len(deleted_names)} předmětů postavě {char_name}: {summary}")
-        messages.success(request, f"Úspěšně smazáno {len(deleted_names)} předmětů z inventáře postavy {char_name}: {summary}")
+        log_dm(f"DM hromadně smazal {total_deleted_pieces} předmětů postavě {char_name}: {summary}")
+        messages.success(request, f"Úspěšně smazáno {total_deleted_pieces} ks předmětů z inventáře postavy {char_name}: {summary}")
     else:
         messages.warning(request, "Nebyly nalezeny žádné odpovídající předměty ke smazání.")
 

@@ -139,6 +139,7 @@ class Items_Active(models.Model):
     api_index = models.CharField(max_length=100, verbose_name="API Index", blank=True, null=True)
     name_cz = models.CharField(max_length=150, verbose_name="Český název", blank=True, null=True)
     name_en = models.CharField(max_length=150, verbose_name="Anglický název", blank=True, null=True)
+    quantity = models.IntegerField(default=1, verbose_name="Množství (ks)")
     
     # Kategorizace a nákup
     category = models.CharField(max_length=100, verbose_name="Kategorie", blank=True, null=True)
@@ -160,10 +161,115 @@ class Items_Active(models.Model):
         ordering = ['name_cz']
 
     def __str__(self):
-        return f"{self.name_cz} ({self.category})"
+        qty_str = f" ({self.quantity}×)" if (self.quantity or 1) > 1 else ""
+        return f"{self.name_cz}{qty_str} ({self.category})"
+
+    @property
+    def total_weight(self):
+        qty = max(1, self.quantity or 1)
+        return round((self.weight or 0.0) * qty, 2)
+
+    @property
+    def total_cost_gold(self):
+        qty = max(1, self.quantity or 1)
+        total_silver = ((self.cost_gold or 0) * 10 + (self.cost_silver or 0)) * qty
+        return total_silver // 10
+
+    @property
+    def total_cost_silver(self):
+        qty = max(1, self.quantity or 1)
+        total_silver = ((self.cost_gold or 0) * 10 + (self.cost_silver or 0)) * qty
+        return total_silver % 10
+
+    def stack_signature(self):
+        """Klíč pro rozpoznání totožného předmětu v inventáři jedné postavy."""
+        return (
+            (self.api_index or '').strip().lower(),
+            (self.name_cz or '').strip().lower(),
+            (self.name_en or '').strip().lower(),
+            (self.category or '').strip().lower(),
+            int(self.cost_gold or 0),
+            int(self.cost_silver or 0),
+            round(float(self.weight or 0.0), 3),
+            (self.damage or '').strip().lower(),
+            self.armor_class,
+            (self.properties or '').strip().lower(),
+        )
+
+    @classmethod
+    def add_or_stack(cls, character, item_template=None, quantity=1, skip_auto_log=False, **fields):
+        """
+        Přidá předmět do inventáře postavy se stackováním:
+        Pokud postava již vlastní totožný předmět, navýší jeho `quantity` o `quantity`.
+        Jinak vytvoří 1 nový záznam s daným `quantity`.
+        """
+        qty = max(1, int(quantity or 1))
+        if item_template is not None:
+            data = {
+                'api_index': item_template.api_index,
+                'name_cz': item_template.name_cz,
+                'name_en': item_template.name_en,
+                'category': item_template.category,
+                'cost_gold': item_template.cost_gold,
+                'cost_silver': item_template.cost_silver,
+                'weight': item_template.weight,
+                'damage': item_template.damage,
+                'armor_class': item_template.armor_class,
+                'properties': item_template.properties,
+                'description': item_template.description,
+            }
+        else:
+            data = dict(fields)
+
+        candidate = cls(char_own=character, quantity=qty, **data)
+        target_sig = candidate.stack_signature()
+
+        if character and character.pk:
+            existing_items = list(cls.objects.filter(char_own=character).order_by('id'))
+            for existing in existing_items:
+                if existing.stack_signature() == target_sig:
+                    existing.quantity = max(1, existing.quantity or 1) + qty
+                    if skip_auto_log:
+                        existing._skip_auto_log = True
+                    existing.save()
+                    return existing, False
+
+        if skip_auto_log:
+            candidate._skip_auto_log = True
+        candidate.save()
+        return candidate, True
+
+    @classmethod
+    def consolidate_for_character(cls, character):
+        """
+        Sloučí případné duplicitní záznamy totožných předmětů u dané postavy do jednoho stacku.
+        """
+        if not character or not character.pk:
+            return
+        items = list(cls.objects.filter(char_own=character).order_by('id'))
+        if len(items) <= 1:
+            return
+        seen = {}
+        for item in items:
+            sig = item.stack_signature()
+            if sig not in seen:
+                if (item.quantity or 0) < 1:
+                    item.quantity = 1
+                    item._skip_auto_log = True
+                    item.save(update_fields=['quantity'])
+                seen[sig] = item
+            else:
+                primary = seen[sig]
+                primary.quantity = max(1, primary.quantity or 1) + max(1, item.quantity or 1)
+                primary._skip_auto_log = True
+                primary.save(update_fields=['quantity'])
+                item._skip_auto_log = True
+                item.delete()
 
     def save(self, *args, **kwargs):
         from player_site_app.models import create_db_log, Char_info
+        if not self.quantity or self.quantity < 1:
+            self.quantity = 1
         skip_auto_log = getattr(self, '_skip_auto_log', False)
         is_new = self.pk is None
         old_item = None
@@ -173,18 +279,28 @@ class Items_Active(models.Model):
             if old_item:
                 old_char_own_id = old_item.char_own_id
         super().save(*args, **kwargs)
-        if self.char_own_id and (is_new or old_char_own_id != self.char_own_id):
+        qty_increased = bool(old_item and (self.quantity or 1) > (old_item.quantity or 1))
+        if self.char_own_id and (is_new or old_char_own_id != self.char_own_id or qty_increased):
             Char_info.objects.filter(pk=self.char_own_id).update(has_new_inv=True)
             if self.char_own:
                 self.char_own.has_new_inv = True
         if not skip_auto_log and self.char_own:
-            item_val = (self.cost_gold or 0) + ((self.cost_silver or 0) / 10.0)
+            unit_val = (self.cost_gold or 0) + ((self.cost_silver or 0) / 10.0)
             if is_new or (old_item and old_item.char_own_id != self.char_own_id):
+                qty_prefix = f"{self.quantity}× " if (self.quantity or 1) > 1 else ""
                 create_db_log(
                     character=self.char_own,
                     player=self.char_own.player,
-                    message=f"Postava {self.char_own.name} získala předmět do inventáře: '{self.name_cz}' ({self.category or 'Ostatní'})",
-                    value=float(item_val)
+                    message=f"Postava {self.char_own.name} získala předmět do inventáře: {qty_prefix}'{self.name_cz}' ({self.category or 'Ostatní'})",
+                    value=float(round(unit_val * (self.quantity or 1), 2))
+                )
+            elif old_item and (old_item.quantity or 1) != (self.quantity or 1):
+                delta_q = (self.quantity or 1) - (old_item.quantity or 1)
+                create_db_log(
+                    character=self.char_own,
+                    player=self.char_own.player,
+                    message=f"Změna počtu kusů předmětu '{self.name_cz}' u postavy {self.char_own.name}: {old_item.quantity or 1}× -> {self.quantity}×",
+                    value=float(round(unit_val * delta_q, 2))
                 )
             elif old_item and (
                 old_item.name_cz != self.name_cz
@@ -197,7 +313,7 @@ class Items_Active(models.Model):
                     character=self.char_own,
                     player=self.char_own.player,
                     message=f"Upraven předmět v inventáři postavy {self.char_own.name}: '{self.name_cz}'",
-                    value=float(item_val)
+                    value=float(unit_val)
                 )
         self._skip_auto_log = False
 
@@ -206,14 +322,16 @@ class Items_Active(models.Model):
         skip_auto_log = getattr(self, '_skip_auto_log', False)
         char = self.char_own
         name_cz = self.name_cz
-        item_val = (self.cost_gold or 0) + ((self.cost_silver or 0) / 10.0)
+        qty = max(1, self.quantity or 1)
+        unit_val = (self.cost_gold or 0) + ((self.cost_silver or 0) / 10.0)
         res = super().delete(*args, **kwargs)
         if not skip_auto_log and char:
+            qty_prefix = f"{qty}× " if qty > 1 else ""
             create_db_log(
                 character=char,
                 player=char.player,
-                message=f"Předmět '{name_cz}' byl odebrán z inventáře postavy {char.name}",
-                value=float(-item_val)
+                message=f"Předmět {qty_prefix}'{name_cz}' byl odebrán z inventáře postavy {char.name}",
+                value=float(-round(unit_val * qty, 2))
             )
         return res
 
@@ -380,6 +498,7 @@ class Monsters_Active(models.Model):
 
     # pracovní
     in_fight = models.BooleanField(default=False, verbose_name="V boji")
+    combat_initiative = models.IntegerField(default=0, verbose_name="Iniciativa v boji")
     is_dead = models.BooleanField(default=False, verbose_name="Je mrtvý")
 
     # loot

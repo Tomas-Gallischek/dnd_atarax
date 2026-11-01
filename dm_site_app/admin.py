@@ -21,7 +21,8 @@ class CommonAdmin(admin.ModelAdmin):
 
 @admin.register(Items_Active)
 class Items_ActiveAdmin(admin.ModelAdmin):
-    list_display = ('name_cz', 'category', 'char_own', 'cost_gold', 'cost_silver', 'damage', 'armor_class')
+    list_display = ('name_cz', 'quantity', 'category', 'char_own', 'cost_gold', 'cost_silver', 'damage', 'armor_class')
+    list_editable = ('quantity',)
     list_filter = ('category', 'char_own')
     search_fields = ('name_cz', 'name_en', 'char_own__name', 'category')
     autocomplete_fields = ('char_own',)
