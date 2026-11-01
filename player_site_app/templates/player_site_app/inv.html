@@ -57,6 +57,56 @@
     color: var(--text-muted, #94a3b8);
     margin-top: 2px;
 }
+.item-row.is-equipped-row {
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.14), rgba(245, 158, 11, 0.10)) !important;
+    box-shadow: inset 4px 0 0 #10b981;
+}
+.item-row.is-equipped-row td {
+    border-bottom-color: rgba(16, 185, 129, 0.28) !important;
+}
+.item-equipped-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.35));
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.5);
+}
+.btn-item-equip {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.3));
+    color: #6ee7b7;
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+}
+.btn-item-equip:hover {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.45));
+    color: #fff;
+    transform: translateY(-1px);
+}
+.btn-item-equip.is-equipped {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: #fff;
+    border-color: #34d399;
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+.btn-item-equip.is-equipped:hover {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    border-color: #fbbf24;
+}
 </style>
 <div class="atarax-page-header char-header-with-avatar">
     {% if character %}
@@ -110,6 +160,12 @@
             <span>⚔️</span> Vybavení a předměty v batohu
         </h2>
         <div class="toolbar-actions">
+            <span class="header-stats-badge" title="Aktuální třída zbroje (AC) postavy">
+                🛡️ AC: <strong id="invHeaderAcValue">{{ character.armor_class }}</strong>
+            </span>
+            <span class="header-stats-badge" title="Kostka poškození nasazených zbraní">
+                ⚔️ Útok: <strong id="invHeaderDmgValue">{{ character.equipped_damage_dice_display }}</strong>
+            </span>
             <span class="header-stats-badge" title="Celkový počet kusů předmětů v inventáři">
                 📦 <span id="totalItemsBadgeCount">{{ total_items_count|default:inv_all_items|length }}</span> <span id="totalItemsBadgeLabel">{% if total_items_count == 1 %}předmět{% elif total_items_count >= 2 and total_items_count <= 4 %}předměty{% else %}předmětů{% endif %}</span>
             </span>
@@ -175,14 +231,15 @@
                     <th>Bojové vlastnosti</th>
                     <th>Váha</th>
                     <th>Popis</th>
-                    <th style="text-align: center; width: 105px;">Akce</th>
+                    <th style="text-align: center; width: 175px;">Akce</th>
                 </tr>
             </thead>
             <tbody id="itemsTableBody">
                 {% for item in inv_all_items %}
-                <tr class="item-row" 
+                <tr class="item-row {% if item.is_equipped %}is-equipped-row{% endif %}" 
                     id="item-row-{{ item.id }}"
                     data-id="{{ item.id }}"
+                    data-equipped="{% if item.is_equipped %}1{% else %}0{% endif %}"
                     data-qty="{{ item.quantity|default:1 }}"
                     data-unit-weight="{{ item.weight|default:0 }}"
                     data-unit-gold="{{ item.cost_gold|default:0 }}"
@@ -193,13 +250,16 @@
                     data-weight="{{ item.total_weight|default:0 }}"
                     data-name-sort="{{ item.name_cz|default:item.name_en|default:'' }}">
                     
-                    <!-- 1. Název + Počet kusů -->
+                    <!-- 1. Název + Počet kusů + Stav nasazení -->
                     <td class="item-name-cell">
                         <div class="item-name-with-qty">
                             <span class="item-stack-badge {% if item.quantity <= 1 %}is-single{% endif %}" id="item-qty-badge-{{ item.id }}" title="Počet kusů v inventáři">
                                 {{ item.quantity|default:1 }}×
                             </span>
                             <strong class="item-name-cz">{{ item.name_cz|default:item.name_en }}</strong>
+                            <span class="item-equipped-badge" id="item-equipped-badge-{{ item.id }}" {% if not item.is_equipped %}style="display:none;"{% endif %}>
+                                ⚔️ Nasazeno
+                            </span>
                         </div>
                         {% if item.name_en and item.name_en != item.name_cz %}
                         <span class="item-name-en">{{ item.name_en }}</span>
@@ -261,6 +321,15 @@
                     <!-- 7. Akce -->
                     <td style="text-align: center; vertical-align: middle;">
                         <div class="inv-drop-actions">
+                            {% if item.equip_able %}
+                            <form action="{% url 'player_site_app:toggle_equip_inv_item' item.id %}" method="post" class="form-equip-item">
+                                {% csrf_token %}
+                                <button type="submit" class="btn-item-equip {% if item.is_equipped %}is-equipped{% endif %}" title="{% if item.is_equipped %}Sundat nasazený předmět{% else %}Nasadit předmět do výbavy{% endif %}">
+                                    <span class="equip-btn-icon">{% if item.is_equipped %}✓{% else %}⚔️{% endif %}</span>
+                                    <span class="equip-btn-label">{% if item.is_equipped %}Sundat{% else %}Nasadit{% endif %}</span>
+                                </button>
+                            </form>
+                            {% endif %}
                             <form action="{% url 'player_site_app:remove_inv_item' item.id %}" method="post" class="form-remove-item" data-mode="one" {% if item.quantity <= 1 %}style="display:none;"{% endif %}>
                                 {% csrf_token %}
                                 <input type="hidden" name="amount" value="1">
@@ -360,6 +429,13 @@ document.addEventListener("DOMContentLoaded", function() {
         const sortVal = sortSelect ? sortSelect.value : "name_asc";
 
         allRows.sort((a, b) => {
+            // Nasazené předměty (data-equipped="1") jsou vždy úplně nahoře
+            const eqA = parseInt(a.dataset.equipped || "0", 10);
+            const eqB = parseInt(b.dataset.equipped || "0", 10);
+            if (eqA !== eqB) {
+                return eqB - eqA;
+            }
+
             if (sortVal === "name_asc") {
                 const nameA = a.dataset.nameSort || "";
                 const nameB = b.dataset.nameSort || "";
@@ -393,6 +469,66 @@ document.addEventListener("DOMContentLoaded", function() {
             tableBody.appendChild(noResultsRow);
         }
     }
+
+    // AJAX nasazení / sundání předmětu (Equip / Unequip)
+    document.querySelectorAll(".form-equip-item").forEach(form => {
+        form.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const row = form.closest(".item-row");
+            const btn = form.querySelector(".btn-item-equip");
+            if (btn) btn.disabled = true;
+
+            const formData = new FormData(form);
+            fetch(form.action, {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (btn) btn.disabled = false;
+                if (data.status === "ok" && row) {
+                    const isEq = Boolean(data.is_equipped);
+                    row.dataset.equipped = isEq ? "1" : "0";
+                    row.classList.toggle("is-equipped-row", isEq);
+
+                    const eqBadge = document.getElementById("item-equipped-badge-" + data.item_id);
+                    if (eqBadge) {
+                        eqBadge.style.display = isEq ? "" : "none";
+                    }
+
+                    if (btn) {
+                        btn.classList.toggle("is-equipped", isEq);
+                        btn.title = isEq ? "Sundat nasazený předmět" : "Nasadit předmět do výbavy";
+                        const iconEl = btn.querySelector(".equip-btn-icon");
+                        const labelEl = btn.querySelector(".equip-btn-label");
+                        if (iconEl) iconEl.textContent = isEq ? "✓" : "⚔️";
+                        if (labelEl) labelEl.textContent = isEq ? "Sundat" : "Nasadit";
+                    }
+
+                    const acBadge = document.getElementById("invHeaderAcValue");
+                    if (acBadge && data.armor_class !== undefined) {
+                        acBadge.textContent = data.armor_class;
+                    }
+                    const dmgBadge = document.getElementById("invHeaderDmgValue");
+                    if (dmgBadge && data.equipped_damage_dice !== undefined) {
+                        dmgBadge.textContent = data.equipped_damage_dice;
+                    }
+
+                    // Přesun nasazeného předmětu nahoru
+                    applySorting();
+                } else {
+                    alert(data.message || "Nepodařilo se změnit stav nasazení předmětu.");
+                }
+            })
+            .catch(err => {
+                console.error("Chyba při nasazování předmětu:", err);
+                form.submit();
+            });
+        });
+    });
 
     if (searchInput) {
         searchInput.addEventListener("input", applyFilters);
@@ -452,6 +588,15 @@ document.addEventListener("DOMContentLoaded", function() {
                     const totalBadge = document.getElementById("totalItemsBadgeCount");
                     const totalLabel = document.getElementById("totalItemsBadgeLabel");
                     const weightBadge = document.getElementById("totalWeightBadgeValue");
+                    const acBadge = document.getElementById("invHeaderAcValue");
+                    const dmgBadge = document.getElementById("invHeaderDmgValue");
+
+                    if (acBadge && data.armor_class !== undefined) {
+                        acBadge.textContent = data.armor_class;
+                    }
+                    if (dmgBadge && data.equipped_damage_dice !== undefined) {
+                        dmgBadge.textContent = data.equipped_damage_dice;
+                    }
 
                     if (totalBadge && data.total_items_count !== undefined) {
                         totalBadge.textContent = data.total_items_count;

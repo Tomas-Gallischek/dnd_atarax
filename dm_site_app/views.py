@@ -1647,6 +1647,16 @@ def create_custom_item(request):
 
         properties = request.POST.get('properties', '').strip() or None
 
+        from dm_site_app.models import infer_equip_able
+        if request.POST.get('equip_able_submitted') == '1':
+            equip_able = bool(request.POST.get('equip_able') in ('on', '1', 'true', 'True'))
+        else:
+            raw_eq = request.POST.get('equip_able')
+            if raw_eq is not None:
+                equip_able = bool(raw_eq in ('on', '1', 'true', 'True'))
+            else:
+                equip_able = infer_equip_able(category, damage, armor_class, name_cz, name_en)
+
         # Generování unikátního api_index pro Items_All_db
         base_slug = slugify(name_cz)
         if not base_slug:
@@ -1656,7 +1666,7 @@ def create_custom_item(request):
             api_index = f"{api_index[:75]}-{uuid.uuid4().hex[:6]}"
 
         # 1. Uložení šablony předmětu do Items_All_db (Kompendium)
-        item_template = Items_All_db.objects.create(
+        item_template = Items_All_db(
             api_index=api_index,
             name_cz=name_cz,
             name_en=name_en,
@@ -1668,7 +1678,10 @@ def create_custom_item(request):
             armor_class=armor_class,
             properties=properties,
             description=description,
+            equip_able=equip_able,
         )
+        item_template._explicit_equip_able = True
+        item_template.save()
 
         # 2. Vytvoření / nastackování instance v Items_Active pro vybraného hráče
         if character:
@@ -1678,6 +1691,7 @@ def create_custom_item(request):
                 item_template=item_template,
                 quantity=quantity,
                 skip_auto_log=True,
+                equip_able=equip_able,
             )
 
             log_msg = f"DM vytvořil a připsal předmět '{name_cz}' ({quantity}x) postavě {character.name}"
@@ -1737,7 +1751,7 @@ def player_inventory_management(request):
     total_items_count = 0
     if selected_char:
         Items_Active.consolidate_for_character(selected_char)
-        items = list(Items_Active.objects.filter(char_own=selected_char).order_by('name_cz', 'name_en'))
+        items = list(Items_Active.objects.filter(char_own=selected_char).order_by('-is_equipped', 'name_cz', 'name_en'))
         categories = sorted(list(set(i.category for i in items if i.category)))
         total_weight = sum(i.total_weight for i in items)
         total_items_count = sum(max(1, i.quantity or 1) for i in items)

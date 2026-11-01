@@ -69,7 +69,13 @@
     <div class="combat-stat-pill stat-ac">
         <div class="stat-label">Třída zbroje (AC)</div>
         <div class="stat-value">{{ target_char.armor_class }}</div>
-        <div class="stat-sub">Obranné číslo</div>
+        <div class="stat-sub">{% if target_char.equipped_armor_names %}🛡️ {{ target_char.equipped_armor_names }}{% else %}Obranné číslo{% endif %}</div>
+    </div>
+
+    <div class="combat-stat-pill stat-dmg">
+        <div class="stat-label">Kostka poškození</div>
+        <div class="stat-value">{{ target_char.equipped_damage_dice_display }}</div>
+        <div class="stat-sub">{% if target_char.equipped_weapons_names %}⚔️ {{ target_char.equipped_weapons_names }}{% else %}Útok zbraní{% endif %}</div>
     </div>
 
     <div class="combat-stat-pill stat-init">

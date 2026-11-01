@@ -229,6 +229,22 @@
                             Tato pole můžete nechat prázdná, pokud vytváříte běžné vybavení, jídlo, cennost nebo surovinu.
                         </p>
 
+                        <!-- Nasaditelnost (Equipable) -->
+                        <div class="form-group-custom" style="margin-bottom: 14px;">
+                            <input type="hidden" name="equip_able_submitted" value="1">
+                            <label for="equipAbleInput" style="display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 8px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.35); cursor: pointer;">
+                                <input type="checkbox"
+                                       name="equip_able"
+                                       id="equipAbleInput"
+                                       style="width: 18px; height: 18px; cursor: pointer;"
+                                       onchange="window._equipManualOverride = true; updateLivePreview();">
+                                <div>
+                                    <div style="font-weight: 700; color: #6ee7b7; font-size: 0.92rem;">⚔️ Předmět lze nasadit do výbavy (Equipable)</div>
+                                    <div style="font-size: 0.78rem; color: #94a3b8;">Hráč si bude moci tento předmět v inventáři nasadit (automaticky se zaškrtne u zbraní a brnění).</div>
+                                </div>
+                            </label>
+                        </div>
+
                         <!-- Poškození a AC -->
                         <div class="form-grid-2 form-group-custom">
                             <div>
@@ -418,6 +434,21 @@
             catText = customCategory || 'Vlastní kategorie';
         }
         previewCategory.textContent = catText;
+
+        // Automatické zaškrtnutí equip_able pokud uživatel ručně nezměnil stav
+        const equipAbleInput = document.getElementById('equipAbleInput');
+        if (equipAbleInput && !window._equipManualOverride) {
+            const catLow = (catText || '').toLowerCase();
+            const isEquipCat = (
+                catLow.includes('zbra') ||
+                catLow.includes('brně') ||
+                catLow.includes('zbroj') ||
+                catLow.includes('štít') ||
+                catLow.includes('weapon') ||
+                catLow.includes('armor')
+            );
+            equipAbleInput.checked = Boolean(isEquipCat || damage || (ac && parseInt(ac, 10) > 0));
+        }
 
         // Cena
         let priceStr = '';

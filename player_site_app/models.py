@@ -407,6 +407,10 @@ class Char_info(models.Model):
         if self.silver < 0:
             self.silver = 0
 
+        from dm_site_app.models import _parse_ac_value
+        parsed_ac = _parse_ac_value(self.armor_class)
+        self.armor_class = parsed_ac if parsed_ac is not None else 10
+
         skip_auto_log = getattr(self, '_skip_auto_log', False)
         is_new = self.pk is None
         old_char = None
@@ -796,6 +800,85 @@ class Char_info(models.Model):
         if len(lines) == 1 and ':' not in lines[0] and ',' in lines[0]:
             return [part.strip() for part in lines[0].split(',') if part.strip()]
         return lines
+
+    def recalculate_ac_from_equipment(self, force_reset_if_empty=False, skip_auto_log=False):
+        """
+        Spočítá AC postavy podle nasazených předmětů (is_equipped=True) a propíše jej do databáze.
+        Např. brnění 12 AC + štít 5 AC -> 17 AC.
+        """
+        if not self.pk:
+            return self.armor_class
+        from dm_site_app.models import _parse_ac_value
+        equipped_items = list(self.items.filter(is_equipped=True))
+        ac_values = []
+        for it in equipped_items:
+            ac_val = _parse_ac_value(it.armor_class)
+            if ac_val is not None and ac_val > 0:
+                ac_values.append(ac_val)
+
+        if ac_values:
+            new_ac = sum(ac_values)
+        elif force_reset_if_empty:
+            new_ac = 10
+        else:
+            return self.armor_class
+
+        old_ac = self.armor_class if self.armor_class is not None else 10
+        if old_ac != new_ac:
+            self.armor_class = new_ac
+            Char_info.objects.filter(pk=self.pk).update(armor_class=new_ac)
+            if not skip_auto_log:
+                create_db_log(
+                    character=self,
+                    player=self.player,
+                    message=f"Přepočet třídy zbroje (AC) postavy {self.name} dle nasazené výbavy: {old_ac} -> {new_ac}",
+                    value=float(new_ac - old_ac)
+                )
+        return self.armor_class
+
+    @property
+    def equipped_damage_dice_list(self):
+        """
+        Vrátí seznam kostek poškození ze všech nasazených zbraní (např. ['2d4', '1d8', '1d6']).
+        """
+        if not self.pk:
+            return []
+        dice_list = []
+        for item in self.items.filter(is_equipped=True).order_by('name_cz', 'name_en', 'id'):
+            d = item.damage_dice_only
+            if d:
+                dice_list.append(d)
+        return dice_list
+
+    @property
+    def equipped_damage_dice_display(self):
+        """
+        Vrátí textový výpis kostek poškození nasazených zbraní oddělený čárkou (např. '2d4, 1d8, 1d6' nebo '—').
+        """
+        dice = self.equipped_damage_dice_list
+        return ", ".join(dice) if dice else "—"
+
+    @property
+    def equipped_weapons_names(self):
+        """Vrátí čárkou oddělené názvy nasazených zbraní (předmětů s poškozením)."""
+        if not self.pk:
+            return ""
+        names = []
+        for item in self.items.filter(is_equipped=True).order_by('name_cz', 'name_en', 'id'):
+            if item.damage_dice_only:
+                names.append(item.name_cz or item.name_en or f"Zbraň #{item.id}")
+        return ", ".join(names)
+
+    @property
+    def equipped_armor_names(self):
+        """Vrátí čárkou oddělené názvy nasazených předmětů dávajících AC."""
+        if not self.pk:
+            return ""
+        names = []
+        for item in self.items.filter(is_equipped=True).order_by('name_cz', 'name_en', 'id'):
+            if item.armor_class and item.armor_class > 0:
+                names.append(f"{item.name_cz or item.name_en} ({item.armor_class})")
+        return ", ".join(names)
 
 # DATABÁZE EXISTUJÍCÍCH ACHIVEMENTŮ
 class Achivements_database(models.Model):

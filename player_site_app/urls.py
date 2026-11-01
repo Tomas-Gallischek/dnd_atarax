@@ -21,6 +21,7 @@ urlpatterns = [
     path('inventar/', views.inv_view, name='inv'),
     path('inventar/<int:char_id>/', views.inv_view, name='inv_detail'),
     path('inventar/odebrat/<int:item_id>/', views.remove_inv_item, name='remove_inv_item'),
+    path('inventar/nasadit/<int:item_id>/', views.toggle_equip_inv_item, name='toggle_equip_inv_item'),
 
     # 3. char_schopnosti.html
     path('schopnosti/', views.char_schopnosti_view, name='char_schopnosti'),

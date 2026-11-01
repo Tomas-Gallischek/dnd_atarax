@@ -99,22 +99,60 @@ class DmNote(models.Model):
         return self.title
 
 
+def _parse_ac_value(val):
+    """Bezpečně převede hodnotu AC (int, float nebo string jako '+2', '12') na celé číslo nebo None."""
+    if val is None or val == "" or isinstance(val, bool):
+        return None
+    if isinstance(val, (int, float)):
+        return int(val)
+    import re
+    m = re.search(r'-?\d+', str(val))
+    return int(m.group(0)) if m else None
+
+
+def infer_equip_able(category=None, damage=None, armor_class=None, name_cz=None, name_en=None):
+    """
+    Určí, zda je předmět z logiky věci nasaditelný (zbraň, zbroj, štít, prsten, hůl apod.).
+    """
+    if damage and str(damage).strip() and str(damage).strip() not in ("—", "-"):
+        return True
+    ac_int = _parse_ac_value(armor_class)
+    if ac_int is not None and ac_int > 0:
+        return True
+    cat_low = (category or "").strip().lower()
+    equip_keywords = (
+        "zbraň", "zbran", "zbraně", "zbrane", "weapon",
+        "zbroj", "brnění", "brneni", "armor",
+        "štít", "stit", "štíty", "stity", "shield",
+        "prsten", "ring", "amulet", "plášť", "plast", "cloak",
+        "hůl", "hul", "hole", "staff", "wand", "žezl", "zezl", "rod",
+    )
+    if any(kw in cat_low for kw in equip_keywords):
+        return True
+    n_cz = (name_cz or "").strip().lower()
+    n_en = (name_en or "").strip().lower()
+    if n_cz in ("štít", "stit") or n_en == "shield":
+        return True
+    return False
+
+
 class Items_All_db(models.Model):
     # Identifikátory
     api_index = models.CharField(max_length=100, unique=True, verbose_name="API Index")
     name_cz = models.CharField(max_length=150, verbose_name="Český název")
     name_en = models.CharField(max_length=150, verbose_name="Anglický název")
     
-# Kategorizace a nákup
+    # Kategorizace a nákup
     category = models.CharField(max_length=100, verbose_name="Kategorie")
     cost_gold = models.IntegerField(default=0, verbose_name="Cena (Zlaťáky)")
-    cost_silver = models.IntegerField(default=0, verbose_name="Cena (Stříbrňáky)") # NOVÝ ŘÁDEK
+    cost_silver = models.IntegerField(default=0, verbose_name="Cena (Stříbrňáky)")
     weight = models.FloatField(default=0.0, verbose_name="Váha (libry)")
     
     # Bojové statistiky (zploštěné do textu pro maximální jednoduchost)
     damage = models.CharField(max_length=100, blank=True, null=True, verbose_name="Poškození (Kostky a typ)")
     armor_class = models.IntegerField(blank=True, null=True, verbose_name="Obranné číslo (AC)")
     properties = models.CharField(max_length=255, blank=True, null=True, verbose_name="Vlastnosti zbraně")
+    equip_able = models.BooleanField(default=False, verbose_name="Lze nasadit (Equipable)")
     
     # Dodatečné informace
     description = models.TextField(blank=True, null=True, verbose_name="Popis")
@@ -123,6 +161,18 @@ class Items_All_db(models.Model):
         verbose_name = "Předmět z Kompendia"
         verbose_name_plural = "Předměty z Kompendia"
         ordering = ['name_cz']
+
+    def save(self, *args, **kwargs):
+        self.armor_class = _parse_ac_value(self.armor_class)
+        if not self.equip_able and not getattr(self, '_explicit_equip_able', False) and self.pk is None:
+            self.equip_able = infer_equip_able(
+                category=self.category,
+                damage=self.damage,
+                armor_class=self.armor_class,
+                name_cz=self.name_cz,
+                name_en=self.name_en,
+            )
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.name_cz} ({self.category})"
@@ -144,13 +194,15 @@ class Items_Active(models.Model):
     # Kategorizace a nákup
     category = models.CharField(max_length=100, verbose_name="Kategorie", blank=True, null=True)
     cost_gold = models.IntegerField(default=0, verbose_name="Cena (Zlaťáky)", blank=True, null=True)
-    cost_silver = models.IntegerField(default=0, verbose_name="Cena (Stříbrňáky)", blank=True, null=True) # NOVÝ ŘÁDEK
+    cost_silver = models.IntegerField(default=0, verbose_name="Cena (Stříbrňáky)", blank=True, null=True)
     weight = models.FloatField(default=0.0, verbose_name="Váha (libry)", blank=True, null=True)
     
     # Bojové statistiky (zploštěné do textu pro maximální jednoduchost)
     damage = models.CharField(max_length=100, blank=True, null=True, verbose_name="Poškození (Kostky a typ)")
     armor_class = models.IntegerField(blank=True, null=True, verbose_name="Obranné číslo (AC)")
     properties = models.CharField(max_length=255, blank=True, null=True, verbose_name="Vlastnosti zbraně")
+    equip_able = models.BooleanField(default=False, verbose_name="Lze nasadit (Equipable)")
+    is_equipped = models.BooleanField(default=False, verbose_name="Nasazeno (Equipped)")
     
     # Dodatečné informace
     description = models.TextField(blank=True, null=True, verbose_name="Popis")
@@ -158,11 +210,28 @@ class Items_Active(models.Model):
     class Meta:
         verbose_name = "Aktivní předmět"
         verbose_name_plural = "Aktivní předměty"
-        ordering = ['name_cz']
+        ordering = ['-is_equipped', 'name_cz']
 
     def __str__(self):
         qty_str = f" ({self.quantity}×)" if (self.quantity or 1) > 1 else ""
-        return f"{self.name_cz}{qty_str} ({self.category})"
+        eq_str = " [Nasazeno]" if self.is_equipped else ""
+        return f"{self.name_cz}{qty_str}{eq_str} ({self.category})"
+
+    @property
+    def damage_dice_only(self):
+        """
+        Vrátí samotný zápis kostky poškození (např. '1d8' z '1d8 Sečné', nebo '2d4' z '2d4 bodné').
+        """
+        if not self.damage:
+            return ""
+        raw = str(self.damage).strip()
+        if not raw or raw in ("—", "-"):
+            return ""
+        import re
+        matches = re.findall(r'\d+\s*[dDkK]\s*\d+(?:\s*[+-]\s*\d+)?', raw)
+        if matches:
+            return "+".join(re.sub(r'\s+', '', m).lower().replace('k', 'd') for m in matches)
+        return raw.split()[0] if raw else ""
 
     @property
     def total_weight(self):
@@ -192,7 +261,7 @@ class Items_Active(models.Model):
             int(self.cost_silver or 0),
             round(float(self.weight or 0.0), 3),
             (self.damage or '').strip().lower(),
-            self.armor_class,
+            _parse_ac_value(self.armor_class),
             (self.properties or '').strip().lower(),
         )
 
@@ -205,6 +274,16 @@ class Items_Active(models.Model):
         """
         qty = max(1, int(quantity or 1))
         if item_template is not None:
+            is_eq_able = bool(
+                getattr(item_template, 'equip_able', False)
+                or infer_equip_able(
+                    item_template.category,
+                    item_template.damage,
+                    item_template.armor_class,
+                    item_template.name_cz,
+                    item_template.name_en,
+                )
+            )
             data = {
                 'api_index': item_template.api_index,
                 'name_cz': item_template.name_cz,
@@ -214,12 +293,23 @@ class Items_Active(models.Model):
                 'cost_silver': item_template.cost_silver,
                 'weight': item_template.weight,
                 'damage': item_template.damage,
-                'armor_class': item_template.armor_class,
+                'armor_class': _parse_ac_value(item_template.armor_class),
                 'properties': item_template.properties,
                 'description': item_template.description,
+                'equip_able': is_eq_able,
             }
         else:
             data = dict(fields)
+            if 'armor_class' in data:
+                data['armor_class'] = _parse_ac_value(data['armor_class'])
+            if 'equip_able' not in data:
+                data['equip_able'] = infer_equip_able(
+                    data.get('category'),
+                    data.get('damage'),
+                    data.get('armor_class'),
+                    data.get('name_cz'),
+                    data.get('name_en'),
+                )
 
         candidate = cls(char_own=character, quantity=qty, **data)
         target_sig = candidate.stack_signature()
@@ -229,6 +319,8 @@ class Items_Active(models.Model):
             for existing in existing_items:
                 if existing.stack_signature() == target_sig:
                     existing.quantity = max(1, existing.quantity or 1) + qty
+                    if candidate.equip_able and not existing.equip_able:
+                        existing.equip_able = True
                     if skip_auto_log:
                         existing._skip_auto_log = True
                     existing.save()
@@ -242,34 +334,70 @@ class Items_Active(models.Model):
     @classmethod
     def consolidate_for_character(cls, character):
         """
-        Sloučí případné duplicitní záznamy totožných předmětů u dané postavy do jednoho stacku.
+        Sloučí případné duplicitní záznamy totožných předmětů u dané postavy do jednoho stacku
+        a zároveň automaticky doplní `equip_able=True` u zbraní a zbrojí.
         """
         if not character or not character.pk:
             return
         items = list(cls.objects.filter(char_own=character).order_by('id'))
-        if len(items) <= 1:
+        if not items:
             return
         seen = {}
+        any_equipped = False
         for item in items:
+            inferred_eq = infer_equip_able(
+                item.category, item.damage, item.armor_class, item.name_cz, item.name_en
+            )
+            needs_save_fields = []
+            if inferred_eq and not item.equip_able:
+                item.equip_able = True
+                needs_save_fields.append('equip_able')
+            if item.is_equipped:
+                any_equipped = True
+                if not item.equip_able:
+                    item.equip_able = True
+                    if 'equip_able' not in needs_save_fields:
+                        needs_save_fields.append('equip_able')
+
             sig = item.stack_signature()
             if sig not in seen:
                 if (item.quantity or 0) < 1:
                     item.quantity = 1
+                    needs_save_fields.append('quantity')
+                if needs_save_fields:
                     item._skip_auto_log = True
-                    item.save(update_fields=['quantity'])
+                    item.save(update_fields=needs_save_fields)
                 seen[sig] = item
             else:
                 primary = seen[sig]
                 primary.quantity = max(1, primary.quantity or 1) + max(1, item.quantity or 1)
+                update_cols = ['quantity']
+                if item.equip_able and not primary.equip_able:
+                    primary.equip_able = True
+                    update_cols.append('equip_able')
+                if item.is_equipped and not primary.is_equipped:
+                    primary.is_equipped = True
+                    update_cols.append('is_equipped')
                 primary._skip_auto_log = True
-                primary.save(update_fields=['quantity'])
+                primary.save(update_fields=update_cols)
                 item._skip_auto_log = True
                 item.delete()
+
+        if any_equipped and hasattr(character, 'recalculate_ac_from_equipment'):
+            character.recalculate_ac_from_equipment(force_reset_if_empty=False, skip_auto_log=True)
 
     def save(self, *args, **kwargs):
         from player_site_app.models import create_db_log, Char_info
         if not self.quantity or self.quantity < 1:
             self.quantity = 1
+        self.armor_class = _parse_ac_value(self.armor_class)
+        if not self.equip_able and not getattr(self, '_explicit_equip_able', False) and self.pk is None:
+            self.equip_able = infer_equip_able(
+                self.category, self.damage, self.armor_class, self.name_cz, self.name_en
+            )
+        if self.is_equipped and not self.equip_able:
+            self.equip_able = True
+
         skip_auto_log = getattr(self, '_skip_auto_log', False)
         is_new = self.pk is None
         old_item = None
@@ -284,6 +412,18 @@ class Items_Active(models.Model):
             Char_info.objects.filter(pk=self.char_own_id).update(has_new_inv=True)
             if self.char_own:
                 self.char_own.has_new_inv = True
+
+        # Přepočet AC postavy při změně nasazení nebo hodnoty AC předmětu
+        if self.char_own and hasattr(self.char_own, 'recalculate_ac_from_equipment'):
+            was_equipped_ac = bool(old_item and old_item.is_equipped and (old_item.armor_class or 0) > 0)
+            now_equipped_ac = bool(self.is_equipped and (self.armor_class or 0) > 0)
+            ac_changed = bool(old_item and old_item.armor_class != self.armor_class and self.is_equipped)
+            if now_equipped_ac or was_equipped_ac or ac_changed:
+                self.char_own.recalculate_ac_from_equipment(
+                    force_reset_if_empty=(was_equipped_ac and not now_equipped_ac),
+                    skip_auto_log=skip_auto_log,
+                )
+
         if not skip_auto_log and self.char_own:
             unit_val = (self.cost_gold or 0) + ((self.cost_silver or 0) / 10.0)
             if is_new or (old_item and old_item.char_own_id != self.char_own_id):
@@ -293,6 +433,14 @@ class Items_Active(models.Model):
                     player=self.char_own.player,
                     message=f"Postava {self.char_own.name} získala předmět do inventáře: {qty_prefix}'{self.name_cz}' ({self.category or 'Ostatní'})",
                     value=float(round(unit_val * (self.quantity or 1), 2))
+                )
+            elif old_item and old_item.is_equipped != self.is_equipped:
+                state_txt = "nasadila" if self.is_equipped else "sundala"
+                create_db_log(
+                    character=self.char_own,
+                    player=self.char_own.player,
+                    message=f"Postava {self.char_own.name} si {state_txt} předmět '{self.name_cz}'",
+                    value=1.0 if self.is_equipped else 0.0
                 )
             elif old_item and (old_item.quantity or 1) != (self.quantity or 1):
                 delta_q = (self.quantity or 1) - (old_item.quantity or 1)
@@ -323,8 +471,11 @@ class Items_Active(models.Model):
         char = self.char_own
         name_cz = self.name_cz
         qty = max(1, self.quantity or 1)
+        was_equipped_ac = bool(self.is_equipped and (self.armor_class or 0) > 0)
         unit_val = (self.cost_gold or 0) + ((self.cost_silver or 0) / 10.0)
         res = super().delete(*args, **kwargs)
+        if char and was_equipped_ac and hasattr(char, 'recalculate_ac_from_equipment'):
+            char.recalculate_ac_from_equipment(force_reset_if_empty=True, skip_auto_log=skip_auto_log)
         if not skip_auto_log and char:
             qty_prefix = f"{qty}× " if qty > 1 else ""
             create_db_log(

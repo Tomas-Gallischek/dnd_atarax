@@ -423,6 +423,16 @@
     color: var(--sapphire-400);
 }
 
+.combat-stat-pill.stat-dmg {
+    border-color: rgba(249, 115, 22, 0.45);
+}
+
+.combat-stat-pill.stat-dmg .stat-value {
+    color: #fb923c;
+    font-size: 1.5rem;
+    word-break: break-word;
+}
+
 .combat-stat-pill.stat-speed {
     border-color: rgba(16, 185, 129, 0.4);
 }
@@ -5767,7 +5777,7 @@
         padding: 12px 10px;
     }
 
-    .combat-stat-pill:last-child {
+    .combat-stat-pill:nth-child(odd):last-child {
         grid-column: 1 / -1;
     }
 

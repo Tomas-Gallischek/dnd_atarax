@@ -290,6 +290,8 @@ def char_overview(request, char_id=None):
     """1. Přehled postavy - detail zvolené nebo aktivní postavy a její poznámky."""
     player, character = get_player_and_character(request, char_id)
     is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+    if character:
+        character.recalculate_ac_from_equipment(force_reset_if_empty=False, skip_auto_log=True)
     notes = character.char_notes.all() if character else []
 
     return render(request, 'player_site_app/char_over_view..html', {
@@ -610,7 +612,7 @@ def inv_view(request, char_id=None):
     total_items_count = 0
     if character:
         Items_Active.consolidate_for_character(character)
-        inv_all_items = list(Items_Active.objects.filter(char_own=character).order_by('name_cz', 'name_en'))
+        inv_all_items = list(Items_Active.objects.filter(char_own=character).order_by('-is_equipped', 'name_cz', 'name_en'))
         categories = sorted(list(set(item.category for item in inv_all_items if item.category)))
         total_weight = sum(item.total_weight for item in inv_all_items)
         total_items_count = sum(max(1, item.quantity or 1) for item in inv_all_items)
@@ -741,10 +743,87 @@ def remove_inv_item(request, item_id):
             'total_weight': t_weight,
             'total_items_count': t_pieces,
             'unique_items_count': u_count,
+            'armor_class': char.armor_class if char else 10,
+            'equipped_damage_dice': char.equipped_damage_dice_display if char else '—',
             'item_name': item_name,
             'message': success_msg
         })
 
+    if char_id:
+        return redirect('player_site_app:inv_detail', char_id=char_id)
+    return redirect('player_site_app:inv')
+
+
+@login_required(login_url='player_site_app:index')
+def toggle_equip_inv_item(request, item_id):
+    """
+    Umožňuje hráči nasadit (equip) nebo sundat (unequip) nasaditelný předmět (equip_able=True) v inventáři.
+    Automaticky přepočítá AC postavy v databázi podle nasazené výbavy.
+    """
+    if request.method != 'POST':
+        return redirect('player_site_app:inv')
+
+    player, _ = Player.objects.get_or_create(user=request.user, defaults={'nickname': request.user.username})
+    is_dm = bool(request.user.is_staff or getattr(player, 'admin', False))
+
+    item = get_object_or_404(Items_Active, id=item_id)
+    char = item.char_own
+
+    if not (is_dm or (char and char.player == player)):
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+            return JsonResponse({'status': 'error', 'message': 'Nemáte oprávnění spravovat výbavu této postavy.'}, status=403)
+        return HttpResponseForbidden("Nemáte oprávnění spravovat výbavu cizí postavy.")
+
+    from dm_site_app.models import infer_equip_able
+    if not item.equip_able and infer_equip_able(item.category, item.damage, item.armor_class, item.name_cz, item.name_en):
+        item.equip_able = True
+
+    if not item.equip_able:
+        err_msg = "Tento předmět nelze nasadit."
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+            return JsonResponse({'status': 'error', 'message': err_msg}, status=400)
+        messages.warning(request, err_msg)
+        return redirect('player_site_app:inv')
+
+    item.is_equipped = not item.is_equipped
+    item._skip_auto_log = True
+    item.save()
+
+    item_name = item.name_cz or item.name_en or f"Předmět #{item.id}"
+    char_name = char.name if char else "neznámá postava"
+    char_id = char.id if char else None
+
+    if char:
+        char.refresh_from_db(fields=['armor_class'])
+        action_verb = "nasadila" if item.is_equipped else "sundala"
+        extra_info = []
+        if item.armor_class and item.armor_class > 0:
+            extra_info.append(f"AC postavy: {char.armor_class}")
+        if item.damage_dice_only:
+            extra_info.append(f"kostka poškození: {item.damage_dice_only}")
+        suffix = f" ({', '.join(extra_info)})" if extra_info else ""
+        Logs.objects.create(
+            player=char.player,
+            character=char,
+            message=f"Postava {char_name} si {action_verb} předmět '{item_name}'{suffix}",
+            value=1.0 if item.is_equipped else 0.0
+        )
+
+    state_label = "nasazen" if item.is_equipped else "sundán"
+    success_msg = f"Předmět '{item_name}' byl {state_label}."
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax'):
+        return JsonResponse({
+            'status': 'ok',
+            'item_id': item.id,
+            'is_equipped': item.is_equipped,
+            'armor_class': char.armor_class if char else 10,
+            'equipped_damage_dice': char.equipped_damage_dice_display if char else '—',
+            'equipped_weapons_names': char.equipped_weapons_names if char else '',
+            'message': success_msg,
+        })
+
+    messages.success(request, success_msg)
     if char_id:
         return redirect('player_site_app:inv_detail', char_id=char_id)
     return redirect('player_site_app:inv')
