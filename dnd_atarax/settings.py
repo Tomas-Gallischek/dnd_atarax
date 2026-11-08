@@ -6,13 +6,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-(p^uw3gjeu=s)h3e#x=(6n_(=%pzb)9kkmb$_+a1=g3*dk*6)8')
+raw_secret = os.getenv('SECRET_KEY')
+SECRET_KEY = raw_secret.strip() if (raw_secret and raw_secret.strip()) else 'django-insecure-(p^uw3gjeu=s)h3e#x=(6n_(=%pzb)9kkmb$_+a1=g3*dk*6)8'
 
-debug_env = os.getenv('DEBUG', 'False').strip().lower()
+debug_env = (os.getenv('DEBUG') or 'False').strip().lower()
 DEBUG = debug_env in ('true', '1', 't')
 
-default_hosts = ['draciadementi.cz', 'www.draciadementi.cz', '192.168.0.95', 'localhost', '127.0.0.1', 'web']
-env_hosts = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h.strip()]
+default_hosts = ['draciadementi.cz', 'www.draciadementi.cz', '192.168.0.95', 'localhost', '127.0.0.1', 'web', 'dnd_django']
+env_hosts = [h.strip() for h in (os.getenv('ALLOWED_HOSTS') or '').split(',') if h.strip()]
 ALLOWED_HOSTS = list(dict.fromkeys(default_hosts + env_hosts))
 
 CSRF_TRUSTED_ORIGINS = [
@@ -62,7 +63,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'dnd_atarax.wsgi.application'
 
-DB_ENGINE = os.getenv('DB_ENGINE', 'postgresql').lower()
+DB_ENGINE = (os.getenv('DB_ENGINE') or 'postgresql').strip().lower()
 
 if DB_ENGINE == 'sqlite':
     DATABASES = {
@@ -72,22 +73,30 @@ if DB_ENGINE == 'sqlite':
         }
     }
 else:
-    db_host = os.getenv('DB_HOST', 'localhost')
-    if db_host == 'db':
+    raw_host = (os.getenv('DB_HOST') or 'localhost').strip()
+    if raw_host == 'db':
         import socket
         try:
             socket.gethostbyname('db')
+            db_host = 'db'
         except (socket.gaierror, OSError):
             db_host = '192.168.0.95'
+    else:
+        db_host = raw_host or 'localhost'
+
+    db_name = (os.getenv('DB_NAME') or 'dnd_atarax_db').strip() or 'dnd_atarax_db'
+    db_user = (os.getenv('DB_USER') or 'postgres').strip() or 'postgres'
+    db_password = (os.getenv('DB_PASSWORD') or 'postgres').strip() or 'postgres'
+    db_port = (os.getenv('DB_PORT') or '5432').strip() or '5432'
 
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.getenv('DB_NAME', 'dnd_atarax_db'),
-            'USER': os.getenv('DB_USER', 'postgres'),
-            'PASSWORD': os.getenv('DB_PASSWORD', 'postgres'),
+            'NAME': db_name,
+            'USER': db_user,
+            'PASSWORD': db_password,
             'HOST': db_host,
-            'PORT': os.getenv('DB_PORT', '5432'),
+            'PORT': db_port,
         }
     }
 

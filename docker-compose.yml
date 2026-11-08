@@ -4,9 +4,9 @@ services:
     container_name: dnd_postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME:-dnd_atarax_db}
+      - POSTGRES_USER=${DB_USER:-atarax_admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-tvrdemagickeheslo}
     volumes:
       - dnd_db_data:/var/lib/postgresql/data
     ports:
@@ -14,7 +14,7 @@ services:
       # aby PostgreSQL nebyl přímo vystavený do LAN ani do internetu.
       - "127.0.0.1:5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-atarax_admin} -d ${DB_NAME:-dnd_atarax_db}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -26,9 +26,9 @@ services:
     environment:
       - POSTGRES_HOST=db
       - POSTGRES_PORT=5432
-      - POSTGRES_DB=${DB_NAME}
-      - POSTGRES_USER=${DB_USER}
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME:-dnd_atarax_db}
+      - POSTGRES_USER=${DB_USER:-atarax_admin}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-tvrdemagickeheslo}
       - POSTGRES_EXTRA_OPTS=-Z6 --schema=public --blobs
       - SCHEDULE=@daily
       - BACKUP_ON_START=TRUE
@@ -50,15 +50,15 @@ services:
     ports:
       - "9000:8000"
     environment:
-      - SECRET_KEY=${SECRET_KEY}
+      - SECRET_KEY=${SECRET_KEY:-django-insecure-dnd-atarax-development-key-change-in-production}
       - DEBUG=${DEBUG:-False}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
-      - DB_ENGINE=${DB_ENGINE}
-      - DB_NAME=${DB_NAME}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_HOST=${DB_HOST}
-      - DB_PORT=${DB_PORT}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-draciadementi.cz,www.draciadementi.cz,localhost,127.0.0.1,192.168.0.95,web,dnd_django}
+      - DB_ENGINE=${DB_ENGINE:-postgresql}
+      - DB_NAME=${DB_NAME:-dnd_atarax_db}
+      - DB_USER=${DB_USER:-atarax_admin}
+      - DB_PASSWORD=${DB_PASSWORD:-tvrdemagickeheslo}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-5432}
     depends_on:
       db:
         condition: service_healthy
