@@ -873,14 +873,14 @@ function openSpellModal(spellId) {
 
     // Status pill
     const statusPill = document.getElementById('modalSpellStatusPill');
-    if (s.is_equipped) {
+    if (s.is_equipped && !isTrick) {
         statusPill.textContent = '⚔️ Vybaveno k seslání';
         statusPill.className = 'modal-status-pill pill-equipped';
     } else if (s.is_learned) {
-        statusPill.textContent = '🎓 Naučeno v knize';
+        statusPill.textContent = isTrick ? '🎓 Naučený trik (stále připraven)' : '🎓 Naučeno v knize';
         statusPill.className = 'modal-status-pill pill-learned';
     } else if (s.can_learn) {
-        statusPill.textContent = '🌟 Dostupné k naučení';
+        statusPill.textContent = isTrick ? '🌟 Lze se naučit trik' : '🌟 Dostupné k naučení';
         statusPill.className = 'modal-status-pill pill-available';
     } else {
         statusPill.textContent = '🔒 Vyžaduje vyšší úroveň';
@@ -950,40 +950,51 @@ function openSpellModal(spellId) {
 function renderModalActionButtons(s) {
     const actionsWrap = document.getElementById('modalActionButtons');
     actionsWrap.innerHTML = '';
+    const isTrick = Boolean(s.is_cantrip || s.level === 0);
 
     if (s.is_learned) {
-        // Již naučené kouzlo: možnost Vybavit / Odebrat z výbavy
-        if (s.is_equipped) {
-            const btnUnequip = document.createElement('button');
-            btnUnequip.type = 'button';
-            btnUnequip.className = 'btn btn-outline-gold';
-            btnUnequip.innerHTML = '<span>↩️</span> Odebrat z výbavy';
-            btnUnequip.onclick = () => handleEquipSpell(s.id);
-            actionsWrap.appendChild(btnUnequip);
+        if (!isTrick) {
+            // Kouzla 1.–9. úrovně mají možnost Vybavit / Odebrat z výbavy
+            if (s.is_equipped) {
+                const btnUnequip = document.createElement('button');
+                btnUnequip.type = 'button';
+                btnUnequip.className = 'btn btn-outline-gold';
+                btnUnequip.innerHTML = '<span>↩️</span> Odebrat z výbavy';
+                btnUnequip.onclick = () => handleEquipSpell(s.id);
+                actionsWrap.appendChild(btnUnequip);
+            } else {
+                const btnEquip = document.createElement('button');
+                btnEquip.type = 'button';
+                btnEquip.className = 'btn btn-gold';
+                btnEquip.innerHTML = '<span>⚔️</span> Vybavit kouzlo do hry';
+                btnEquip.onclick = () => handleEquipSpell(s.id);
+                actionsWrap.appendChild(btnEquip);
+            }
         } else {
-            const btnEquip = document.createElement('button');
-            btnEquip.type = 'button';
-            btnEquip.className = 'btn btn-gold';
-            btnEquip.innerHTML = '<span>⚔️</span> Vybavit kouzlo do hry';
-            btnEquip.onclick = () => handleEquipSpell(s.id);
-            actionsWrap.appendChild(btnEquip);
+            // Magické triky (0. úroveň) jsou po naučení trvale k dispozici – nenasazují se do slotů vybavených kouzel
+            const cantripReadyNote = document.createElement('span');
+            cantripReadyNote.className = 'badge badge-sapphire';
+            cantripReadyNote.style.padding = '8px 12px';
+            cantripReadyNote.style.fontSize = '0.85rem';
+            cantripReadyNote.innerHTML = '<span>🪄</span> Trik je trvale připraven k seslání';
+            actionsWrap.appendChild(cantripReadyNote);
         }
 
         // Tlačítko pro odnaučení / zapomenutí (pro flexibilitu DM i hráče)
         const btnUnlearn = document.createElement('button');
         btnUnlearn.type = 'button';
         btnUnlearn.className = 'btn btn-outline-danger btn-sm';
-        btnUnlearn.innerHTML = '<span>🗑️</span> Zapomenout';
-        btnUnlearn.title = 'Odebrat kouzlo ze své knihy';
+        btnUnlearn.innerHTML = isTrick ? '<span>🗑️</span> Zapomenout trik' : '<span>🗑️</span> Zapomenout';
+        btnUnlearn.title = isTrick ? 'Odebrat trik ze známých triků' : 'Odebrat kouzlo ze své knihy';
         btnUnlearn.onclick = () => handleLearnSpell(s.id, 'unlearn');
         actionsWrap.appendChild(btnUnlearn);
 
     } else if (s.can_learn) {
-        // Nenaučené kouzlo, na které postava dosahuje levelem
+        // Nenaučené kouzlo / trik
         const btnLearn = document.createElement('button');
         btnLearn.type = 'button';
-        btnLearn.className = 'btn btn-sapphire';
-        btnLearn.innerHTML = '<span>✨</span> Naučit se kouzlo';
+        btnLearn.className = isTrick ? 'btn btn-sapphire' : 'btn btn-gold';
+        btnLearn.innerHTML = isTrick ? '<span>✨</span> Naučit se trik' : '<span>✨</span> Naučit se kouzlo';
         btnLearn.onclick = () => handleLearnSpell(s.id, 'learn');
         actionsWrap.appendChild(btnLearn);
     } else {
@@ -1077,8 +1088,13 @@ function updateSpellCardDOM(s) {
     const card = document.getElementById(`spellCard-${s.id}`);
     if (!card) return;
 
+    const isTrick = Boolean(s.is_cantrip || s.level === 0);
+    if (isTrick) {
+        s.is_equipped = false;
+    }
+
     let newState = 'locked';
-    if (s.is_equipped) {
+    if (s.is_equipped && !isTrick) {
         newState = 'equipped';
     } else if (s.is_learned) {
         newState = 'learned';
@@ -1089,11 +1105,11 @@ function updateSpellCardDOM(s) {
     s.state = newState;
     card.className = `rpg-spell-card state-${newState}`;
     card.setAttribute('data-is-learned', s.is_learned ? '1' : '0');
-    card.setAttribute('data-is-equipped', s.is_equipped ? '1' : '0');
+    card.setAttribute('data-is-equipped', (s.is_equipped && !isTrick) ? '1' : '0');
 
     // Ribbon pro vybaveno
     let ribbon = card.querySelector('.spell-equipped-ribbon');
-    if (s.is_equipped) {
+    if (s.is_equipped && !isTrick) {
         if (!ribbon) {
             ribbon = document.createElement('div');
             ribbon.className = 'spell-equipped-ribbon';
@@ -1108,12 +1124,12 @@ function updateSpellCardDOM(s) {
     // Status label
     const statusLabel = card.querySelector('.spell-status-label');
     if (statusLabel) {
-        if (s.is_equipped) {
+        if (s.is_equipped && !isTrick) {
             statusLabel.className = 'spell-status-label status-equipped';
             statusLabel.textContent = '⚔️ Vybaveno';
         } else if (s.is_learned) {
             statusLabel.className = 'spell-status-label status-learned';
-            statusLabel.textContent = '🎓 V knize kouzel';
+            statusLabel.textContent = isTrick ? '🎓 Naučený trik' : '🎓 V knize kouzel';
         } else if (s.can_learn) {
             statusLabel.className = 'spell-status-label status-available';
             statusLabel.textContent = '✨ Lze se naučit!';
@@ -1133,13 +1149,17 @@ function updateCounters() {
 
     Object.values(SPELLS_MAP).forEach(s => {
         const lvl = s.level || 0;
+        const isTrick = Boolean(s.is_cantrip || lvl === 0);
         if (learnedPerLevel[lvl] === undefined) learnedPerLevel[lvl] = 0;
         if (s.is_learned) {
             learnedPerLevel[lvl]++;
-            if (s.is_cantrip || s.level === 0) cantripsCount++;
+            if (isTrick) cantripsCount++;
             else spellsCount++;
         }
-        if (s.is_equipped) equippedCount++;
+        // Vybavená kouzla: POUZE kouzla 1.–9. úrovně (triky se do vybavených nepřičítají!)
+        if (s.is_equipped && !isTrick && lvl > 0) {
+            equippedCount++;
+        }
     });
 
     const statCantrips = document.getElementById('statCantripsCount');
@@ -1348,7 +1368,7 @@ function applyFilters() {
             } else if (currentFilter === 'spells') {
                 tabMatch = !isCantrip;
             } else if (currentFilter === 'equipped') {
-                tabMatch = isEquipped;
+                tabMatch = isEquipped && !isCantrip;
             }
 
             let searchMatch = true;

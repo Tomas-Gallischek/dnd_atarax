@@ -370,18 +370,21 @@ class Char_info(models.Model):
     # Kapacity a limity pro kouzla a triky (propojeno se Spells_Active)
     dostupne_triky = models.IntegerField(
         default=0,
+        blank=True,
         verbose_name="Dostupné triky",
         help_text="Maximální povolený počet magických triků (0. úroveň), které se postava může naučit."
     )
     naucena_kouzla = models.IntegerField(
         default=0,
+        blank=True,
         verbose_name="Naučené kouzla",
         help_text="Maximální povolený počet kouzel (1.–9. úroveň), které se postava může naučit."
     )
     vybavena_kouzla = models.IntegerField(
         default=0,
+        blank=True,
         verbose_name="Vybavené kouzla",
-        help_text="Maximální povolený počet kouzel a triků, které může mít postava současně vybavené do hry."
+        help_text="Maximální povolený počet kouzel (1.–9. úroveň), které může mít postava současně vybavené do hry."
     )
 
     # Časová razítka
@@ -390,7 +393,7 @@ class Char_info(models.Model):
 
     # pracovní
     in_fight = models.BooleanField(default=False, verbose_name="V boji")
-    combat_initiative = models.IntegerField(default=0, verbose_name="Iniciativa v boji")
+    combat_initiative = models.IntegerField(default=0, blank=True, verbose_name="Iniciativa v boji")
     has_new_inv = models.BooleanField(default=False, verbose_name="Nový předmět v inventáři")
     has_new_ach = models.BooleanField(default=False, verbose_name="Nový posun v úspěších")
 
@@ -936,10 +939,10 @@ class Char_info(models.Model):
 
     @property
     def active_spells_equipped_count(self):
-        """Počet aktuálně vybavených kouzel/triků v databázi Spells_Active."""
+        """Počet aktuálně vybavených kouzel (1.–9. úroveň, bez triků) v databázi Spells_Active."""
         if not self.pk:
             return 0
-        return self.spells_active.filter(vybaveno=True).count()
+        return self.spells_active.filter(vybaveno=True, level__gt=0, is_cantrip=False).count()
 
     @property
     def remaining_cantrips_to_learn(self):

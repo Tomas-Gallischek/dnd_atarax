@@ -976,6 +976,9 @@ def char_schopnosti_view(request, char_id=None):
         is_racial = bool(race_name_lower and race_name_lower in (sp.races or "").lower())
         is_already_owned = bool(active_inst)
 
+        # Triky jsou trvalé – nenasazují se a nepřičítají se do vybavených kouzel
+        is_equipped = bool(active_inst and active_inst.vybaveno and not is_trick)
+
         # Určení, zda se postava může kouzlo naučit
         if is_trick:
             # Triky: Plnohodnotný sesilatel, nebo rasový trik, nebo již vlastněný
@@ -1048,9 +1051,10 @@ def char_schopnosti_view(request, char_id=None):
         })
 
     total_learned = sum(1 for s in spell_items if s['is_learned'])
-    total_equipped = sum(1 for s in spell_items if s['is_equipped'])
-    total_cantrips_learned = sum(1 for s in spell_items if s['level'] == 0 and s['is_learned'])
-    total_spells_learned = sum(1 for s in spell_items if s['level'] > 0 and s['is_learned'])
+    # Vybavená kouzla: výhradně kouzla 1.–9. úrovně (triky se do vybavených kouzel nepřičítají!)
+    total_equipped = sum(1 for s in spell_items if s['level'] > 0 and not s['is_cantrip'] and s['is_equipped'])
+    total_cantrips_learned = sum(1 for s in spell_items if (s['level'] == 0 or s['is_cantrip']) and s['is_learned'])
+    total_spells_learned = sum(1 for s in spell_items if s['level'] > 0 and not s['is_cantrip'] and s['is_learned'])
 
     max_cantrips_allowed = max(0, character.dostupne_triky or 0)
     max_spells_allowed = max(0, character.naucena_kouzla or 0)
@@ -1244,6 +1248,13 @@ def toggle_equip_spell(request):
     else:
         character = get_object_or_404(Char_info, id=char_id, player=player)
     spell_template = get_object_or_404(Spells_All_db, id=spell_id)
+
+    # Triky se nenasazují do slotů vybavených kouzel – po naučení jsou k dispozici trvale
+    if spell_template.is_trick or spell_template.level == 0:
+        return JsonResponse({
+            'success': False,
+            'error': 'Magické triky se nenasazují do vybavených kouzel – po naučení jsou připraveny k seslání trvale.'
+        }, status=400)
 
     # Validace D&D pravidel:
     max_spell_level = get_max_spell_level_for_character(character)

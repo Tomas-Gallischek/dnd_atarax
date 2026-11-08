@@ -7,8 +7,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-(p^uw3gjeu=s)h3e#x=(6n_(=%pzb)9kkmb$_+a1=g3*dk*6)8')
-DEBUG = False
-ALLOWED_HOSTS = ['draciadementi.cz', 'www.draciadementi.cz', '192.168.0.95', 'localhost', '127.0.0.1']
+
+debug_env = os.getenv('DEBUG', 'False').strip().lower()
+DEBUG = debug_env in ('true', '1', 't')
+
+default_hosts = ['draciadementi.cz', 'www.draciadementi.cz', '192.168.0.95', 'localhost', '127.0.0.1', 'web']
+env_hosts = [h.strip() for h in os.getenv('ALLOWED_HOSTS', '').split(',') if h.strip()]
+ALLOWED_HOSTS = list(dict.fromkeys(default_hosts + env_hosts))
 
 CSRF_TRUSTED_ORIGINS = [
     'https://draciadementi.cz',

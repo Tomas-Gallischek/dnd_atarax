@@ -615,6 +615,78 @@ class PlayerAuthAndCharacterTests(TestCase):
         active_spell.refresh_from_db()
         self.assertFalse(active_spell.vybaveno)
 
+    def test_cantrips_cannot_be_equipped_and_capacities_counted_properly(self):
+        """Triky (úroveň 0) nelze vybavit do hry a nezapočítávají se do vybavených kouzel."""
+        from dm_site_app.models import Spells_All_db, Spells_Active
+
+        char = Char_info.objects.create(
+            player=self.player1,
+            name='Triss',
+            character_class='Kouzelník',
+            level=3,
+            dostupne_triky=3,
+            naucena_kouzla=4,
+            vybavena_kouzla=2
+        )
+        cantrip = Spells_All_db.objects.create(
+            api_index='svitlo',
+            name_cz='Světlo',
+            name_en='Light',
+            level=0,
+            is_cantrip=True,
+            classes='Kouzelník'
+        )
+        spell1 = Spells_All_db.objects.create(
+            api_index='magic-missile',
+            name_cz='Magická střela',
+            name_en='Magic Missile',
+            level=1,
+            is_cantrip=False,
+            classes='Kouzelník'
+        )
+
+        self.client.login(username='hrac1', password='tajneheslo123')
+
+        # 1. Naučit trik
+        self.client.post(reverse('player_site_app:toggle_learn_spell'), {
+            'char_id': char.id,
+            'spell_id': cantrip.id,
+            'action': 'learn',
+            'ajax': '1'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        # 2. Naučit kouzlo 1. úrovně
+        self.client.post(reverse('player_site_app:toggle_learn_spell'), {
+            'char_id': char.id,
+            'spell_id': spell1.id,
+            'action': 'learn',
+            'ajax': '1'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+
+        # 3. Pokus o vybavení triku musí selhat (triky se neequipují)
+        res_cantrip_equip = self.client.post(reverse('player_site_app:toggle_equip_spell'), {
+            'char_id': char.id,
+            'spell_id': cantrip.id,
+            'ajax': '1'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_cantrip_equip.status_code, 400)
+        self.assertFalse(res_cantrip_equip.json()['success'])
+
+        # 4. Vybavení kouzla 1. úrovně musí projít
+        res_spell_equip = self.client.post(reverse('player_site_app:toggle_equip_spell'), {
+            'char_id': char.id,
+            'spell_id': spell1.id,
+            'ajax': '1'
+        }, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(res_spell_equip.status_code, 200)
+        self.assertTrue(res_spell_equip.json()['vybaveno'])
+
+        # 5. Kontrola počitadel na modelu
+        char.refresh_from_db()
+        self.assertEqual(char.active_cantrips_learned_count, 1)
+        self.assertEqual(char.active_spells_learned_count, 1)
+        self.assertEqual(char.active_spells_equipped_count, 1) # Pouze kouzlo 1. úrovně, trik se nepočítá!
+
     def test_spell_isolation_between_players(self):
         """Hráč 2 nemůže manipulovat s kouzly postavy hráče 1."""
         from dm_site_app.models import Spells_All_db

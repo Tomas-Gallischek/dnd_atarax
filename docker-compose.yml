@@ -10,7 +10,9 @@ services:
     volumes:
       - dnd_db_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Bezpečnost: Port je omezen pouze na 127.0.0.1 (localhost hostitele),
+      # aby PostgreSQL nebyl přímo vystavený do LAN ani do internetu.
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 5s
@@ -48,6 +50,9 @@ services:
     ports:
       - "9000:8000"
     environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - DEBUG=${DEBUG:-False}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
       - DB_ENGINE=${DB_ENGINE}
       - DB_NAME=${DB_NAME}
       - DB_USER=${DB_USER}
@@ -66,7 +71,8 @@ services:
     restart: unless-stopped
     command: tunnel run
     environment:
-      - TUNNEL_TOKEN=eyJhIjoiNjYxYzQ4MjIwNWI2MzJjNjA5MTIwYjBhOTMxOThmNTgiLCJ0IjoiNzBiNTQzMDEtMzk1Yi00ODMwLTkyNjEtODRkYzRmOGU0ZmI4IiwicyI6Ik9HSmtaREJoTlRZdFlXWXhOeTAwTmpnM0xUZzVNVGN0TkdWak1UbGlNR015T1RjMFlqWTNOVEF3Wm1JdFpqQm1OeTAwTkRrNUxXRTRaVFl0TnpGbE4yUXlPREZqTWpBdyJ9
+      # Token je bezpečně načítán z .env souboru (není verzován v Gitu)
+      - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       - web
 
