@@ -939,10 +939,19 @@ class Spells_Active(models.Model):
 
     @property
     def is_trick(self):
-        return self.level == 0 or self.is_cantrip
+        return self.level == 0 or self.is_cantrip or (self.template_spell and (self.template_spell.level == 0 or self.template_spell.is_cantrip))
+
+    def clean(self):
+        super().clean()
+        if self.is_trick or self.level == 0 or self.is_cantrip:
+            self.vybaveno = False
 
     def save(self, *args, **kwargs):
         from player_site_app.models import create_db_log
+        # Triky jsou trvale k dispozici a nelze je vybavovat do slotů připravených kouzel
+        if self.is_trick or self.level == 0 or self.is_cantrip:
+            self.vybaveno = False
+
         skip_auto_log = getattr(self, '_skip_auto_log', False)
         is_new = self.pk is None
         old_spell = None

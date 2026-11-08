@@ -384,7 +384,7 @@ class Char_info(models.Model):
         default=0,
         blank=True,
         verbose_name="Vybavené kouzla",
-        help_text="Maximální povolený počet kouzel (1.–9. úroveň), které může mít postava současně vybavené do hry."
+        help_text="Maximální povolený počet kouzel (1.–9. úroveň, bez triků), které může mít postava současně vybavené do hry."
     )
 
     # Časová razítka
@@ -928,21 +928,30 @@ class Char_info(models.Model):
         """Počet aktuálně naučených triků (0. úroveň) v databázi Spells_Active."""
         if not self.pk:
             return 0
-        return self.spells_active.filter(nauceno=True).filter(models.Q(level=0) | models.Q(is_cantrip=True)).count()
+        return self.spells_active.filter(nauceno=True).filter(
+            models.Q(level=0) | models.Q(is_cantrip=True) |
+            models.Q(template_spell__level=0) | models.Q(template_spell__is_cantrip=True)
+        ).distinct().count()
 
     @property
     def active_spells_learned_count(self):
-        """Počet aktuálně naučených kouzel (1.–9. úroveň) v databázi Spells_Active."""
+        """Počet aktuálně naučených kouzel (1.–9. úroveň, bez triků) v databázi Spells_Active."""
         if not self.pk:
             return 0
-        return self.spells_active.filter(nauceno=True, level__gt=0, is_cantrip=False).count()
+        return self.spells_active.filter(nauceno=True).exclude(
+            models.Q(level=0) | models.Q(is_cantrip=True) |
+            models.Q(template_spell__level=0) | models.Q(template_spell__is_cantrip=True)
+        ).distinct().count()
 
     @property
     def active_spells_equipped_count(self):
-        """Počet aktuálně vybavených kouzel (1.–9. úroveň, bez triků) v databázi Spells_Active."""
+        """Počet aktuálně vybavených kouzel (výhradně kouzla 1.–9. úroveň, triky se sem za žádných okolností nepočítají!)."""
         if not self.pk:
             return 0
-        return self.spells_active.filter(vybaveno=True, level__gt=0, is_cantrip=False).count()
+        return self.spells_active.filter(vybaveno=True).exclude(
+            models.Q(level=0) | models.Q(is_cantrip=True) |
+            models.Q(template_spell__level=0) | models.Q(template_spell__is_cantrip=True)
+        ).distinct().count()
 
     @property
     def remaining_cantrips_to_learn(self):
