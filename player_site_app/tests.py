@@ -109,6 +109,19 @@ class PlayerAuthAndCharacterTests(TestCase):
         self.assertEqual(res.status_code, 302)
         self.assertEqual(res.url, reverse('player_site_app:prehled_postav'))
 
+    def test_user_login_with_word_pin(self):
+        """PIN může obsahovat slovo/písmena a speciální znaky."""
+        word_pin = 'Drak123!tajemstvi'
+        self.player1.pin_code = word_pin
+        self.player1.save()
+
+        res = self.client.post(reverse('player_site_app:index'), {
+            'player_id': self.player1.id,
+            'pin': word_pin
+        })
+        self.assertEqual(res.status_code, 302)
+        self.assertEqual(res.url, reverse('player_site_app:prehled_postav'))
+
     def test_login_with_profile_dropdown_and_non_unique_pin(self):
         """Dva hráči mohou mít shodný PIN a úspěšně se přihlásit výběrem svého profilu."""
         # 1. Nastavíme oběma hráčům stejný PIN (ověření, že PIN již není unikátní v databázi)
