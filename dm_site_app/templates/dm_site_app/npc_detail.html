@@ -28,9 +28,29 @@
         <img src="{{ npc_obj.display_image_url }}" alt="{{ npc_obj.name }}" class="dm-detail-portrait-lg">
         
         <div class="dm-detail-meta-group">
-            <h2 class="dm-detail-title">{{ npc_obj.name }}</h2>
+            <h2 class="dm-detail-title">
+                {% if npc_obj.title %}<span style="color: #c084fc; font-weight: normal; font-size: 0.85em;">{{ npc_obj.title }}</span> {% endif %}{{ npc_obj.name }}
+            </h2>
             
             <div class="dm-entity-badges" style="margin-bottom: 14px;">
+                {% if npc_obj.title %}
+                    <span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.4); font-size: 0.9rem;">
+                        👑 {{ npc_obj.title }}
+                    </span>
+                {% endif %}
+
+                {% if npc_obj.race %}
+                    <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4); font-size: 0.9rem;">
+                        🧬 {{ npc_obj.race }}
+                    </span>
+                {% endif %}
+
+                {% if npc_obj.occupation %}
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.9rem;">
+                        ⚒️ {{ npc_obj.occupation }}
+                    </span>
+                {% endif %}
+
                 {% if npc_obj.gender %}
                     <span class="badge badge-silver" style="font-size: 0.9rem;">{{ npc_obj.get_gender_display|default:npc_obj.gender }}</span>
                 {% endif %}
@@ -59,7 +79,21 @@
             </div>
 
             <!-- Stats & Poklad -->
-            <div class="dm-stats-grid">
+            <div class="dm-stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+                <div class="dm-stat-box">
+                    <div class="dm-stat-label">🧬 Rasa</div>
+                    <div class="dm-stat-val" style="color: #93c5fd; font-size: 1.05rem;">{{ npc_obj.race|default:"Neuvedena" }}</div>
+                </div>
+                <div class="dm-stat-box">
+                    <div class="dm-stat-label">⚒️ Povolání</div>
+                    <div class="dm-stat-val" style="color: #6ee7b7; font-size: 1.05rem;">{{ npc_obj.occupation|default:"Neuvedeno" }}</div>
+                </div>
+                {% if npc_obj.title %}
+                <div class="dm-stat-box">
+                    <div class="dm-stat-label">👑 Titul</div>
+                    <div class="dm-stat-val" style="color: #d8b4fe; font-size: 1.05rem;">{{ npc_obj.title }}</div>
+                </div>
+                {% endif %}
                 <div class="dm-stat-box">
                     <div class="dm-stat-label">Zlaté mince (GP)</div>
                     <div class="dm-stat-val" style="color: #fbbf24;">🪙 {{ npc_obj.loot_gold }} GP</div>

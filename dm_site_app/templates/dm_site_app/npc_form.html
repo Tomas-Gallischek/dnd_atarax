@@ -44,6 +44,26 @@
             </div>
         </div>
 
+        <div class="dm-form-row" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            <div class="dm-form-group">
+                <label for="id_title">👑 Titul / Postavení</label>
+                <input type="text" id="id_title" name="title" class="dm-form-control" value="{{ npc_obj.title|default:'' }}" placeholder="Např. Šlechtic, Rytíř, Starosta...">
+                <span class="form-hint">Společenský titul nebo hodnost (text).</span>
+            </div>
+
+            <div class="dm-form-group">
+                <label for="id_race">🧬 Rasa</label>
+                <input type="text" id="id_race" name="race" class="dm-form-control" value="{{ npc_obj.race|default:'' }}" placeholder="Např. Člověk, Půlelf, Trpaslík...">
+                <span class="form-hint">Rasa či biologický druh (text).</span>
+            </div>
+
+            <div class="dm-form-group">
+                <label for="id_occupation">⚒️ Povolání / Řemeslo</label>
+                <input type="text" id="id_occupation" name="occupation" class="dm-form-control" value="{{ npc_obj.occupation|default:'' }}" placeholder="Např. Kovář, Obchodník, Hostinský...">
+                <span class="form-hint">Povolání nebo specializace (text).</span>
+            </div>
+        </div>
+
         <div class="dm-form-group">
             <label for="id_location">Domovská lokace</label>
             <select id="id_location" name="location" class="dm-form-control">

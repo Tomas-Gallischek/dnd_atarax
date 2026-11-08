@@ -14,10 +14,18 @@ class DmNoteAdmin(admin.ModelAdmin):
     list_editable = ('is_current',)
 
 
-@admin.register(Locations, Npc, Monsters_All_db, Monsters_Active)
+@admin.register(Locations, Monsters_All_db, Monsters_Active)
 #všichni
 class CommonAdmin(admin.ModelAdmin):
     pass
+
+
+@admin.register(Npc)
+class NpcAdmin(admin.ModelAdmin):
+    list_display = ('name', 'title', 'race', 'occupation', 'location', 'gender', 'is_dead', 'in_fight')
+    list_filter = ('location', 'gender', 'race', 'occupation', 'is_dead', 'in_fight')
+    search_fields = ('name', 'title', 'race', 'occupation', 'description', 'location__name')
+    list_editable = ('title', 'race', 'occupation')
 
 
 @admin.register(Items_All_db)

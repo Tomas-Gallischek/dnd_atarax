@@ -42,6 +42,9 @@ class Locations(models.Model):
 
 class Npc(models.Model):
     name = models.CharField(max_length=100, null=True, blank=True, verbose_name="Jméno")
+    race = models.CharField(max_length=100, null=True, blank=True, verbose_name="Rasa")
+    occupation = models.CharField(max_length=100, null=True, blank=True, verbose_name="Povolání")
+    title = models.CharField(max_length=100, null=True, blank=True, verbose_name="Titul")
     location = models.ForeignKey(Locations, on_delete=models.SET_NULL, null=True, blank=True, related_name='npcs', verbose_name="Lokace")
     description = models.TextField(null=True, blank=True, verbose_name="Popis")
     gender = models.CharField(max_length=100, null=True, blank=True, choices=[

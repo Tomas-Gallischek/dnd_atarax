@@ -238,9 +238,12 @@ class DMSiteAuthAndNavigationTests(TestCase):
         self.assertFalse(npc_default.has_custom_image)
         self.assertEqual(npc_default.display_image_url, '/static/img/default_npc.svg')
 
-        # 2. Vytvoření NPC přes formulář s externí URL
+        # 2. Vytvoření NPC přes formulář s externí URL, rasou, povoláním a titulem
         create_res = self.client.post(reverse('dm_site_app:npc_create'), {
             'name': 'Hospodský Toblen',
+            'race': 'Člověk',
+            'occupation': 'Hostinský',
+            'title': 'Pan domácí',
             'location': str(self.location.id),
             'gender': 'male',
             'description': 'Majitel hostince U Kamenného krbu.',
@@ -252,6 +255,9 @@ class DMSiteAuthAndNavigationTests(TestCase):
         self.assertEqual(create_res.status_code, 302)
         toblen = Npc.objects.filter(name='Hospodský Toblen').first()
         self.assertIsNotNone(toblen)
+        self.assertEqual(toblen.race, 'Člověk')
+        self.assertEqual(toblen.occupation, 'Hostinský')
+        self.assertEqual(toblen.title, 'Pan domácí')
         self.assertTrue(toblen.has_custom_image)
         self.assertEqual(toblen.display_image_url, 'https://example.com/toblen.png')
         self.assertEqual(toblen.location, self.location)
@@ -259,17 +265,23 @@ class DMSiteAuthAndNavigationTests(TestCase):
         self.assertEqual(toblen.loot_silver, 40)
         self.assertTrue(toblen.loot_able)
 
-        # 3. Zobrazení detailu
+        # 3. Zobrazení detailu (obsahuje nová pole)
         detail_res = self.client.get(reverse('dm_site_app:npc_detail', args=[toblen.id]))
         self.assertEqual(detail_res.status_code, 200)
         self.assertTemplateUsed(detail_res, 'dm_site_app/npc_detail.html')
         self.assertContains(detail_res, 'Hospodský Toblen')
+        self.assertContains(detail_res, 'Člověk')
+        self.assertContains(detail_res, 'Hostinský')
+        self.assertContains(detail_res, 'Pan domácí')
         self.assertContains(detail_res, '15 GP')
 
-        # 4. Úprava NPC přes formulář
+        # 4. Úprava NPC přes formulář (změna rasy, povolání a titulu)
         fake_avatar = SimpleUploadedFile("avatar.png", b"file_content", content_type="image/png")
         edit_res = self.client.post(reverse('dm_site_app:npc_edit', args=[toblen.id]), {
             'name': 'Toblen Kamenný krb',
+            'race': 'Půlelf',
+            'occupation': 'Kovář a hostinský',
+            'title': 'Rada starších',
             'location': str(self.location.id),
             'gender': 'male',
             'description': 'Aktualizovaný popis.',
@@ -281,9 +293,22 @@ class DMSiteAuthAndNavigationTests(TestCase):
         self.assertEqual(edit_res.status_code, 302)
         toblen.refresh_from_db()
         self.assertEqual(toblen.name, 'Toblen Kamenný krb')
+        self.assertEqual(toblen.race, 'Půlelf')
+        self.assertEqual(toblen.occupation, 'Kovář a hostinský')
+        self.assertEqual(toblen.title, 'Rada starších')
         self.assertTrue(toblen.is_dead)
         self.assertTrue(toblen.has_custom_image)
         self.assertIn('npcs/', toblen.display_image_url)
+
+        # Vyhledávání NPC podle rasy, povolání nebo titulu
+        search_race_res = self.client.get(reverse('dm_site_app:npc'), {'q': 'Půlelf'})
+        self.assertContains(search_race_res, 'Toblen Kamenný krb')
+
+        search_occ_res = self.client.get(reverse('dm_site_app:npc'), {'q': 'Kovář'})
+        self.assertContains(search_occ_res, 'Toblen Kamenný krb')
+
+        search_title_res = self.client.get(reverse('dm_site_app:npc'), {'q': 'starších'})
+        self.assertContains(search_title_res, 'Toblen Kamenný krb')
 
         # 5. Smazání NPC
         del_res = self.client.post(reverse('dm_site_app:npc_delete', args=[toblen.id]))

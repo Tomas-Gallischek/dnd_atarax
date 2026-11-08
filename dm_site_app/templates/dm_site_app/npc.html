@@ -41,8 +41,19 @@
             <div class="dm-npc-card-header">
                 <img src="{{ npc_item.display_image_url }}" alt="{{ npc_item.name|default:'NPC' }}" class="dm-npc-avatar" loading="lazy">
                 <div class="dm-npc-header-text">
-                    <h2 class="dm-npc-name">{{ npc_item.name|default:"Neznámé NPC" }}</h2>
+                    <h2 class="dm-npc-name">
+                        {% if npc_item.title %}<span style="color: #c084fc; font-weight: normal; font-size: 0.85em;">{{ npc_item.title }}</span> {% endif %}{{ npc_item.name|default:"Neznámé NPC" }}
+                    </h2>
                     <div class="dm-entity-badges">
+                        {% if npc_item.title %}
+                            <span class="badge" style="background: rgba(168, 85, 247, 0.2); color: #d8b4fe; border: 1px solid rgba(168, 85, 247, 0.4);">👑 {{ npc_item.title }}</span>
+                        {% endif %}
+                        {% if npc_item.race %}
+                            <span class="badge" style="background: rgba(59, 130, 246, 0.2); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.4);">🧬 {{ npc_item.race }}</span>
+                        {% endif %}
+                        {% if npc_item.occupation %}
+                            <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.4);">⚒️ {{ npc_item.occupation }}</span>
+                        {% endif %}
                         {% if npc_item.gender %}
                             <span class="badge badge-silver">{{ npc_item.get_gender_display|default:npc_item.gender }}</span>
                         {% endif %}

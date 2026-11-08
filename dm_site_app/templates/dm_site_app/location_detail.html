@@ -97,10 +97,11 @@
                         <img src="{{ npc_item.display_image_url }}" alt="{{ npc_item.name }}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid var(--gold-400); background: #120e18;">
                         <div style="flex: 1; min-width: 0;">
                             <a href="{% url 'dm_site_app:npc_detail' npc_item.id %}" style="color: var(--gold-400); font-weight: 700; text-decoration: none; font-size: 0.95rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                                {{ npc_item.name|default:"Neznámé NPC" }}
+                                {% if npc_item.title %}<span style="color: #c084fc; font-weight: normal; font-size: 0.85em;">{{ npc_item.title }}</span> {% endif %}{{ npc_item.name|default:"Neznámé NPC" }}
                             </a>
                             <span style="font-size: 0.8rem; color: var(--text-muted);">
-                                {{ npc_item.get_gender_display|default:npc_item.gender|default:"Postava" }}
+                                {% if npc_item.race %}{{ npc_item.race }} &bull; {% endif %}
+                                {% if npc_item.occupation %}{{ npc_item.occupation }}{% else %}{{ npc_item.get_gender_display|default:npc_item.gender|default:"Postava" }}{% endif %}
                             </span>
                         </div>
                         <a href="{% url 'dm_site_app:npc_edit' npc_item.id %}" class="dm-btn-secondary" style="padding: 4px 8px; font-size: 0.75rem;">

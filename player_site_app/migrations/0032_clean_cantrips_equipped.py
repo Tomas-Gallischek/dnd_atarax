@@ -21,3 +21,4 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(clean_cantrips_equipped, reverse_noop),
     ]
+

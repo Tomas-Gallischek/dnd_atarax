@@ -72,7 +72,13 @@ def npc(request):
 
     qs = Npc.objects.select_related('location').all()
     if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(description__icontains=q))
+        qs = qs.filter(
+            Q(name__icontains=q) |
+            Q(description__icontains=q) |
+            Q(race__icontains=q) |
+            Q(occupation__icontains=q) |
+            Q(title__icontains=q)
+        )
     if loc_id:
         qs = qs.filter(location_id=loc_id)
 
@@ -105,6 +111,9 @@ def npc_create(request):
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
+        race = request.POST.get('race', '').strip() or None
+        occupation = request.POST.get('occupation', '').strip() or None
+        title = request.POST.get('title', '').strip() or None
         location_id = request.POST.get('location') or None
         gender = request.POST.get('gender') or None
         description = request.POST.get('description', '').strip()
@@ -139,6 +148,9 @@ def npc_create(request):
 
         npc_obj = Npc.objects.create(
             name=name,
+            race=race,
+            occupation=occupation,
+            title=title,
             location=loc_instance,
             gender=gender,
             description=description,
@@ -169,6 +181,9 @@ def npc_edit(request, npc_id):
 
     if request.method == 'POST':
         name = request.POST.get('name', '').strip()
+        race = request.POST.get('race', '').strip() or None
+        occupation = request.POST.get('occupation', '').strip() or None
+        title = request.POST.get('title', '').strip() or None
         location_id = request.POST.get('location') or None
         gender = request.POST.get('gender') or None
         description = request.POST.get('description', '').strip()
@@ -204,6 +219,9 @@ def npc_edit(request, npc_id):
             loc_instance = Locations.objects.filter(id=location_id).first()
 
         npc_obj.name = name
+        npc_obj.race = race
+        npc_obj.occupation = occupation
+        npc_obj.title = title
         npc_obj.location = loc_instance
         npc_obj.gender = gender
         npc_obj.description = description
