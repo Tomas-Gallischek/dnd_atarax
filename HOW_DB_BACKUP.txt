@@ -1,0 +1,11 @@
+
+STAŽENÍ ZÁLOH NA PLOCHU (zadat přímo do cmd bez ssh přihlášení):
+ scp -r shrek@192.168.0.95:~/backups C:\Users\tgall\Desktop\dnd_zalohy_server
+
+
+ODESLÁNÍ ZÁLOHY NA SERVER:
+ scp C:\Users\tgall\Desktop\dnd_atarax_db-latest.sql.gz shrek@192.168.0.95:~/
+
+
+OENÍ ZÁLOHYNOVA NA SERVERU:
+zcat ~/dnd_atarax_db-latest.sql.gz | sudo docker exec -i dnd_postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'

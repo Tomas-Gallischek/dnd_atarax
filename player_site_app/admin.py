@@ -14,7 +14,7 @@ from dm_site_app.models import Items_Active
 class ItemsActiveInline(admin.TabularInline):
     model = Items_Active
     extra = 0
-    fields = ('name_cz', 'quantity', 'category', 'cost_gold', 'cost_silver', 'damage', 'armor_class', 'properties')
+    fields = ('name_cz', 'quantity', 'equip_able', 'is_equipped', 'category', 'cost_gold', 'cost_silver', 'damage', 'armor_class', 'properties')
     show_change_link = True
     verbose_name = "Vlastněný předmět"
     verbose_name_plural = "Vlastněné předměty (Inventář)"

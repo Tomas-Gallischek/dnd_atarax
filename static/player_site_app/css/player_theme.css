@@ -106,7 +106,15 @@
     font-size: 0.95rem;
     font-weight: 700;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
     transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.player-nav-toggle-btn > * {
+    pointer-events: none;
 }
 
 .player-nav-toggle-btn:hover {
@@ -301,8 +309,10 @@
     padding-left: 20px;
     padding-right: 20px;
     padding-bottom: 60px;
+    width: 100%;
     max-width: 1000px;
     margin: 0 auto;
+    box-sizing: border-box;
 }
 
 /* Auth Cards & Forms (Login & Register) */
@@ -372,12 +382,16 @@
 .char-identity-table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
 }
 
 .char-identity-table td {
     padding: 8px 12px;
     border-bottom: 1px solid var(--border-subtle);
     font-size: 0.92rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    vertical-align: top;
 }
 
 .char-identity-table tr:last-child td {
@@ -2052,11 +2066,15 @@
 .note-editor-box {
     margin-top: 1.25rem;
     padding: 1.25rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     background: rgba(22, 18, 31, 0.9);
     border: 1px solid var(--gold-600);
     border-radius: var(--radius-md);
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
     animation: fadeIn 0.3s ease;
+    overflow: hidden;
 }
 
 .note-editor-title {
@@ -2068,6 +2086,9 @@
 
 .note-textarea {
     resize: vertical;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     font-family: var(--font-body);
     font-size: 0.95rem;
     line-height: 1.5;
@@ -2075,15 +2096,18 @@
 
 .note-editor-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-top: 1rem;
 }
 
 .notes-list-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
     gap: 16px;
     margin-top: 1.25rem;
+    width: 100%;
+    max-width: 100%;
 }
 
 .note-card {
@@ -2095,6 +2119,11 @@
     flex-direction: column;
     justify-content: space-between;
     transition: all 0.25s ease;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .note-card:hover {
@@ -2115,14 +2144,18 @@
 
 .note-card-top {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 10px;
     margin-bottom: 10px;
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
 }
 
 .fav-star-form {
     margin: 0;
     padding: 0;
+    flex-shrink: 0;
 }
 
 .fav-star-btn {
@@ -2150,21 +2183,28 @@
     font-size: 1.05rem;
     color: var(--text-primary);
     margin: 0;
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    flex: 1 1 160px;
+    min-width: 0;
+    max-width: 100%;
+    line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .note-date {
     font-size: 0.75rem;
     color: var(--text-muted);
     flex-shrink: 0;
+    margin-left: auto;
 }
 
 .note-card-body {
     flex: 1;
     margin: 8px 0;
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
 }
 
 .note-preview-text {
@@ -2172,6 +2212,9 @@
     color: var(--text-secondary);
     line-height: 1.5;
     margin: 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
     word-break: break-word;
 }
 
@@ -2183,6 +2226,11 @@
     padding: 8px 10px;
     background: rgba(13, 10, 20, 0.5);
     border-radius: var(--radius-sm);
+    min-width: 0;
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    overflow-wrap: anywhere;
     word-break: break-word;
 }
 
@@ -2190,9 +2238,13 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
     padding-top: 10px;
     margin-top: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
+    min-width: 0;
+    max-width: 100%;
 }
 
 .btn-toggle-note {
@@ -2240,17 +2292,30 @@
 
 .form-checkbox-label {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     cursor: pointer;
     font-size: 0.95rem;
     color: var(--text-primary);
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.form-checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    flex-shrink: 0;
 }
 
 .backstory-actions-left {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
+    min-width: 0;
 }
 
 /* ==========================================================================
@@ -2258,7 +2323,7 @@
    ========================================================================== */
 .char-roster-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
     gap: 20px;
 }
 
@@ -2271,6 +2336,9 @@
     flex-direction: column;
     justify-content: space-between;
     transition: all 0.3s ease;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .char-roster-card:hover {
@@ -2288,9 +2356,14 @@
 
 .char-roster-avatar-wrap {
     position: relative;
-    width: 64px;
-    height: 64px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
     flex-shrink: 0;
+    line-height: 0;
+    overflow: visible;
 }
 
 .char-roster-info {
@@ -4444,7 +4517,11 @@
 .char-header-avatar-wrap {
     position: relative;
     border-radius: 50%;
-    overflow: hidden;
+    overflow: visible;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
 }
 
 .char-avatar-edit-overlay {
@@ -4500,13 +4577,24 @@
 
 /* Ikonka ve floating navigační liště */
 .char-avatar-nav-xs {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    line-height: 0;
+    overflow: visible;
     cursor: pointer;
     transition: transform 0.18s ease, filter 0.18s ease;
 }
 
-.char-avatar-nav-xs:hover {
-    transform: scale(1.12);
-    filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+@media (hover: hover) and (pointer: fine) {
+    .char-avatar-nav-xs:hover {
+        transform: scale(1.12);
+        filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+    }
 }
 
 /* Kolečko s kamerou v dropdownu */
@@ -5501,9 +5589,23 @@
 }
 
 /* ==========================================================================
-   KOMPLETNÍ RESPONZIVITA PRO MOBILY A MENŠÍ DISPLEJE (Hráčská část aplikace)
-   Desktop (> 900px) zůstává beze změny.
+   KOMPLETNÍ RESPONZIVITA PRO TABLETY A MOBILY (Hráčská část aplikace)
    ========================================================================== */
+
+@media (max-width: 1024px) {
+    .player-page-body {
+        padding: 64px 16px 48px 16px;
+    }
+
+    .settings-dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .kronika-columns-grid {
+        grid-template-columns: 1fr;
+        gap: 18px;
+    }
+}
 
 @media (max-width: 768px) {
     /* 1. Základní rozvržení stránky a plovoucí navigace */
@@ -5524,8 +5626,13 @@
 
     /* 2. Hlavičky stránek s avatarem a akcemi */
     .char-header-with-avatar {
-        gap: 14px;
+        gap: 16px;
         align-items: center;
+    }
+
+    .char-header-with-avatar .char-header-avatar-wrap {
+        width: 68px;
+        height: 68px;
     }
 
     .char-header-with-avatar .char-avatar-hero,
@@ -5535,8 +5642,8 @@
     }
 
     .char-header-title-flex {
-        flex: 1 1 calc(100% - 92px);
-        min-width: 170px;
+        flex: 1 1 calc(100% - 96px);
+        min-width: 160px;
     }
 
     .atarax-header-actions {
@@ -5928,16 +6035,32 @@
 
     .items-table tr.item-row td:nth-child(7) {
         width: 100% !important;
-        padding-top: 8px;
+        padding-top: 10px;
         margin-top: 4px;
         border-top: 1px dashed rgba(255, 255, 255, 0.08);
         text-align: right !important;
     }
 
-    .items-table tr.item-row td:nth-child(7) .form-remove-item,
+    .items-table tr.item-row td:nth-child(7) .inv-drop-actions {
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .items-table tr.item-row td:nth-child(7) .form-equip-item,
+    .items-table tr.item-row td:nth-child(7) .form-remove-item {
+        flex: 1 1 auto;
+        display: flex;
+        margin: 0;
+    }
+
+    .items-table tr.item-row td:nth-child(7) .btn-item-equip,
+    .items-table tr.item-row td:nth-child(7) .btn-item-drop-one,
     .items-table tr.item-row td:nth-child(7) .btn-item-drop {
         width: 100%;
         justify-content: center;
+        padding: 8px 12px;
     }
 
     /* 7. Poznámky, Roleplay, Úspěchy a Kronika */
@@ -6101,10 +6224,35 @@
         padding: 58px 10px 32px 10px;
     }
 
+    .char-header-with-avatar .char-header-avatar-wrap {
+        width: 56px;
+        height: 56px;
+    }
+
     .char-header-with-avatar .char-avatar-hero,
     .char-header-with-avatar .char-avatar-lg {
         width: 56px;
         height: 56px;
+    }
+
+    .char-roster-avatar-wrap,
+    .char-roster-avatar-wrap .char-avatar-lg {
+        width: 64px;
+        height: 64px;
+    }
+
+    .char-identity-label {
+        width: 100px;
+        font-size: 0.82rem;
+    }
+
+    .note-editor-box {
+        padding: 0.9rem;
+    }
+
+    .note-editor-actions .btn {
+        flex: 1 1 100%;
+        justify-content: center;
     }
 
     .ability-grid {

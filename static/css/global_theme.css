@@ -774,10 +774,11 @@ select option {
     flex-shrink: 0;
     line-height: 0;
     text-decoration: none;
+    overflow: visible;
 }
 
 .char-avatar {
-    display: inline-block;
+    display: block;
     object-fit: cover;
     border-radius: 50%;
     border: 2px solid var(--border-gold);
@@ -802,21 +803,23 @@ select option {
     transition: transform 0.2s ease;
 }
 
-.char-avatar-wrap:hover .char-avatar,
-.char-header-avatar-wrap:hover .char-avatar {
-    transform: scale(1.05);
-    border-color: var(--gold-400);
-    box-shadow: 0 0 16px rgba(245, 158, 11, 0.45);
-}
+@media (hover: hover) and (pointer: fine) {
+    .char-avatar-wrap:hover .char-avatar,
+    .char-header-avatar-wrap:hover .char-avatar {
+        transform: scale(1.05);
+        border-color: var(--gold-400);
+        box-shadow: 0 0 16px rgba(245, 158, 11, 0.45);
+    }
 
-.char-avatar-wrap:hover .char-avatar-frame,
-.char-header-avatar-wrap:hover .char-avatar-frame {
-    transform: translate(-50%, -50%) scale(1.06);
+    .char-avatar-wrap:hover .char-avatar-frame,
+    .char-header-avatar-wrap:hover .char-avatar-frame {
+        transform: translate(-50%, -50%) scale(1.06);
+    }
 }
 
 .char-avatar-xs {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     border-width: 1.5px;
 }
 
@@ -842,7 +845,7 @@ select option {
     width: 110px;
     height: 110px;
     border-width: 3px;
-    border-radius: 16px;
+    border-radius: 50%;
     box-shadow: 0 0 20px rgba(245, 158, 11, 0.35), var(--shadow-md);
 }
 
@@ -859,6 +862,7 @@ select option {
     justify-content: center;
     flex-shrink: 0;
     line-height: 0;
+    overflow: visible;
 }
 
 .char-avatar-group {
@@ -1136,9 +1140,9 @@ select option {
 }
 
 /* ==========================================================================
-   Global Mobile & Small Screen Responsiveness
+   Global Tablet, Mobile & Small Screen Responsiveness
    ========================================================================== */
-@media (max-width: 768px) {
+@media (max-width: 1024px), (hover: none) {
     html, body {
         overflow-x: hidden;
         max-width: 100vw;
@@ -1147,7 +1151,9 @@ select option {
     body {
         background-attachment: scroll;
     }
+}
 
+@media (max-width: 768px) {
     h1 {
         font-size: 1.45rem;
     }
@@ -1165,6 +1171,7 @@ select option {
     .atarax-card {
         padding: 1.1rem;
         margin-bottom: 1.1rem;
+        max-width: 100%;
     }
 
     .atarax-card-header {

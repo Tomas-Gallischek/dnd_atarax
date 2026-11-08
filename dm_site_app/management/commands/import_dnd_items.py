@@ -1,7 +1,7 @@
 import time
 import requests
 from django.core.management.base import BaseCommand
-from dm_site_app.models import Items_All_db
+from dm_site_app.models import Items_All_db, infer_equip_able
 
 try:
     from deep_translator import GoogleTranslator
@@ -400,6 +400,7 @@ class Command(BaseCommand):
             armor_class = item_data.get('armor_class', {}).get('base', None)
 
             # 5. Uložení nebo aktualizace v databázi
+            is_equipable = infer_equip_able(category_cz, damage_str, armor_class, name_cz, name_en)
             defaults_data = {
                 'name_en': name_en,
                 'name_cz': name_cz,
@@ -411,6 +412,7 @@ class Command(BaseCommand):
                 'armor_class': armor_class,
                 'properties': props_cz,
                 'description': desc_cz,
+                'equip_able': is_equipable,
             }
 
             if update_existing:

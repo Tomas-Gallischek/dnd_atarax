@@ -14,16 +14,25 @@ class DmNoteAdmin(admin.ModelAdmin):
     list_editable = ('is_current',)
 
 
-@admin.register(Locations, Npc, Monsters_All_db, Items_All_db, Monsters_Active)
+@admin.register(Locations, Npc, Monsters_All_db, Monsters_Active)
 #všichni
 class CommonAdmin(admin.ModelAdmin):
     pass
 
+
+@admin.register(Items_All_db)
+class Items_All_dbAdmin(admin.ModelAdmin):
+    list_display = ('name_cz', 'name_en', 'category', 'equip_able', 'cost_gold', 'cost_silver', 'damage', 'armor_class', 'weight')
+    list_editable = ('equip_able',)
+    list_filter = ('equip_able', 'category')
+    search_fields = ('name_cz', 'name_en', 'category', 'properties')
+
+
 @admin.register(Items_Active)
 class Items_ActiveAdmin(admin.ModelAdmin):
-    list_display = ('name_cz', 'quantity', 'category', 'char_own', 'cost_gold', 'cost_silver', 'damage', 'armor_class')
-    list_editable = ('quantity',)
-    list_filter = ('category', 'char_own')
+    list_display = ('name_cz', 'quantity', 'equip_able', 'is_equipped', 'category', 'char_own', 'cost_gold', 'cost_silver', 'damage', 'armor_class')
+    list_editable = ('quantity', 'equip_able', 'is_equipped')
+    list_filter = ('equip_able', 'is_equipped', 'category', 'char_own')
     search_fields = ('name_cz', 'name_en', 'char_own__name', 'category')
     autocomplete_fields = ('char_own',)
 

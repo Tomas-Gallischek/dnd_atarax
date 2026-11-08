@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block extra_head %}
-<link rel="stylesheet" href="{% static 'player_site_app/css/player_theme.css' %}?v=20261031_v4">
+<link rel="stylesheet" href="{% static 'player_site_app/css/player_theme.css' %}?v=20261108_v5">
 {% block extra_player_head %}{% endblock %}
 {% endblock %}
 
@@ -162,50 +162,47 @@
     </div>
 </div>
 
-{% endif %}
-
-<div class="player-page-body">
-    {% block player_content %}
-    {% endblock %}
-</div>
-{% endblock %}
-
-{% block extra_js %}
 <script>
     (function() {
         const toggleBtn = document.getElementById('playerNavToggleBtn');
         const dropdown = document.getElementById('playerNavDropdown');
         const container = document.getElementById('playerNavContainer');
 
-        if (toggleBtn && dropdown) {
-            toggleBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const isShown = dropdown.classList.toggle('show');
-                if (container) container.classList.toggle('open', isShown);
-                toggleBtn.classList.toggle('active', isShown);
-                toggleBtn.setAttribute('aria-expanded', isShown ? 'true' : 'false');
-            });
+        if (!toggleBtn || !dropdown || toggleBtn.dataset.navBound === '1') return;
+        toggleBtn.dataset.navBound = '1';
 
-            // Zavření při kliknutí mimo nabídku
-            document.addEventListener('click', function(e) {
-                if (container && !container.contains(e.target)) {
-                    dropdown.classList.remove('show');
-                    container.classList.remove('open');
-                    toggleBtn.classList.remove('active');
-                    toggleBtn.setAttribute('aria-expanded', 'false');
-                }
-            });
-
-            // Zavření klávesou Escape
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape') {
-                    dropdown.classList.remove('show');
-                    container.classList.remove('open');
-                    toggleBtn.classList.remove('active');
-                    toggleBtn.setAttribute('aria-expanded', 'false');
-                }
-            });
+        function setMenuOpen(isOpen) {
+            dropdown.classList.toggle('show', isOpen);
+            if (container) container.classList.toggle('open', isOpen);
+            toggleBtn.classList.toggle('active', isOpen);
+            toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
+
+        toggleBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const isShown = !dropdown.classList.contains('show');
+            setMenuOpen(isShown);
+        });
+
+        // Zavření při kliknutí / klepnutí mimo nabídku
+        document.addEventListener('click', function(e) {
+            if (container && !container.contains(e.target) && dropdown.classList.contains('show')) {
+                setMenuOpen(false);
+            }
+        });
+
+        // Zavření klávesou Escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && dropdown.classList.contains('show')) {
+                setMenuOpen(false);
+            }
+        });
     })();
 </script>
+{% endif %}
+
+<div class="player-page-body">
+    {% block player_content %}
+    {% endblock %}
+</div>
 {% endblock %}
