@@ -169,3 +169,4 @@ HEXBLADE_SPELLS_DATA = [
         }
     }
 ]
+

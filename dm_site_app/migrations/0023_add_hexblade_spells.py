@@ -28,3 +28,4 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(add_spells, reverse_code=remove_spells),
     ]
+

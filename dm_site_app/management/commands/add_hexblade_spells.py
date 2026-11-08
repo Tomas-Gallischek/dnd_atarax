@@ -41,3 +41,4 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"\n✅ Hotovo! Vytvořeno: {created_count}, aktualizováno: {updated_count}. Celkem v DB: {Spells_All_db.objects.count()} kouzel."
         ))
+
