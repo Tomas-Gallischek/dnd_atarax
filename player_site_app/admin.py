@@ -8,7 +8,7 @@ from .models import (
 )
 
 
-from dm_site_app.models import Items_Active
+from dm_site_app.models import Items_Active, Spells_Active
 
 
 class ItemsActiveInline(admin.TabularInline):
@@ -20,10 +20,23 @@ class ItemsActiveInline(admin.TabularInline):
     verbose_name_plural = "Vlastněné předměty (Inventář)"
 
 
+class SpellsActiveInline(admin.TabularInline):
+    model = Spells_Active
+    extra = 0
+    fields = ('name_cz', 'level', 'is_cantrip', 'nauceno', 'vybaveno', 'school', 'casting_time')
+    show_change_link = True
+    verbose_name = "Aktivní kouzlo / trik"
+    verbose_name_plural = "Aktivní kouzla a triky postavy (Spells_Active)"
+
+
 class CharInfoInline(admin.TabularInline):
     model = Char_info
     extra = 0
-    fields = ('name', 'race', 'character_class', 'level', 'hit_points_current', 'hit_points_max', 'armor_class')
+    fields = (
+        'name', 'race', 'character_class', 'level',
+        'hit_points_current', 'hit_points_max', 'armor_class',
+        'dostupne_triky', 'naucena_kouzla', 'vybavena_kouzla'
+    )
     show_change_link = True
 
 
@@ -161,6 +174,10 @@ class CharInfoAdmin(admin.ModelAdmin):
         'character_class',
         'race',
         'level',
+        'dostupne_triky',
+        'naucena_kouzla',
+        'vybavena_kouzla',
+        'spells_capacity_status',
         'items_count',
         'hit_points_current',
         'hit_points_max',
@@ -169,10 +186,30 @@ class CharInfoAdmin(admin.ModelAdmin):
         'proficiency_bonus',
         'inspiration',
     )
+    list_editable = ('dostupne_triky', 'naucena_kouzla', 'vybavena_kouzla')
     list_filter = ('is_public', 'character_class', 'race', 'level', 'inspiration', 'player')
     search_fields = ('name', 'player__user__username', 'player__nickname')
     ordering = ('-level', 'name')
-    inlines = [ItemsActiveInline, CharacterSpellSlotInline, CharacterFeatureInline]
+    inlines = [ItemsActiveInline, SpellsActiveInline, CharacterSpellSlotInline, CharacterFeatureInline]
+
+    @admin.display(description='Stav kouzel (Aktivní / Limit)')
+    def spells_capacity_status(self, obj):
+        c_curr = obj.active_cantrips_learned_count
+        c_max = obj.dostupne_triky or 0
+        s_curr = obj.active_spells_learned_count
+        s_max = obj.naucena_kouzla or 0
+        e_curr = obj.active_spells_equipped_count
+        e_max = obj.vybavena_kouzla or 0
+
+        over = obj.is_any_spell_limit_exceeded
+        color = '#ef4444' if over else '#10b981'
+        warn = '⚠️ ' if over else ''
+        return format_html(
+            '<span style="color: {}; font-weight: 700; white-space: nowrap;">'
+            '{}Triky: {}/{} | Kouzla: {}/{} | Vybaveno: {}/{}'
+            '</span>',
+            color, warn, c_curr, c_max, s_curr, s_max, e_curr, e_max
+        )
 
     @admin.display(description='Avatar')
     def avatar_preview(self, obj):
@@ -210,6 +247,11 @@ class CharInfoAdmin(admin.ModelAdmin):
                 ('armor_class', 'speed', 'initiative'),
                 ('hit_dice', 'proficiency_bonus', 'passive_perception'),
                 'inspiration',
+            ),
+        }),
+        ('Kapacita kouzel a triků (propojeno se Spells_Active)', {
+            'fields': (
+                ('dostupne_triky', 'naucena_kouzla', 'vybavena_kouzla'),
             ),
         }),
         ('Záchranné hody, Dovednosti & Zdatnosti', {

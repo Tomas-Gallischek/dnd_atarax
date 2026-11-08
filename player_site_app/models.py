@@ -367,6 +367,23 @@ class Char_info(models.Model):
     wisdom = models.IntegerField(default=10, verbose_name="Moudrost (WIS)")
     charisma = models.IntegerField(default=10, verbose_name="Charisma (CHA)")
 
+    # Kapacity a limity pro kouzla a triky (propojeno se Spells_Active)
+    dostupne_triky = models.IntegerField(
+        default=0,
+        verbose_name="Dostupné triky",
+        help_text="Maximální povolený počet magických triků (0. úroveň), které se postava může naučit."
+    )
+    naucena_kouzla = models.IntegerField(
+        default=0,
+        verbose_name="Naučené kouzla",
+        help_text="Maximální povolený počet kouzel (1.–9. úroveň), které se postava může naučit."
+    )
+    vybavena_kouzla = models.IntegerField(
+        default=0,
+        verbose_name="Vybavené kouzla",
+        help_text="Maximální povolený počet kouzel a triků, které může mít postava současně vybavené do hry."
+    )
+
     # Časová razítka
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Vytvořeno")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Poslední úprava")
@@ -410,6 +427,10 @@ class Char_info(models.Model):
         from dm_site_app.models import _parse_ac_value
         parsed_ac = _parse_ac_value(self.armor_class)
         self.armor_class = parsed_ac if parsed_ac is not None else 10
+
+        self.dostupne_triky = max(0, int(self.dostupne_triky or 0))
+        self.naucena_kouzla = max(0, int(self.naucena_kouzla or 0))
+        self.vybavena_kouzla = max(0, int(self.vybavena_kouzla or 0))
 
         skip_auto_log = getattr(self, '_skip_auto_log', False)
         is_new = self.pk is None
@@ -601,6 +622,21 @@ class Char_info(models.Model):
                         message=f"Změna zdatností postavy {self.name}: {', '.join(self.proficiencies_list) or 'Žádné'}",
                         value=0.0
                     )
+                spell_limit_fields = [
+                    ('dostupne_triky', 'Dostupné triky'),
+                    ('naucena_kouzla', 'Naučené kouzla (limit)'),
+                    ('vybavena_kouzla', 'Vybavené kouzla (limit)'),
+                ]
+                for field_attr, label in spell_limit_fields:
+                    old_v = getattr(old_char, field_attr, 0) or 0
+                    new_v = getattr(self, field_attr, 0) or 0
+                    if old_v != new_v:
+                        create_db_log(
+                            character=self,
+                            player=self.player,
+                            message=f"Změna kapacity kouzel ({label}) postavy {self.name}: {old_v} -> {new_v}",
+                            value=float(new_v - old_v)
+                        )
                 if old_char.in_fight != self.in_fight:
                     create_db_log(
                         character=self,
@@ -879,6 +915,66 @@ class Char_info(models.Model):
             if item.armor_class and item.armor_class > 0:
                 names.append(f"{item.name_cz or item.name_en} ({item.armor_class})")
         return ", ".join(names)
+
+    # ==========================================================
+    # PROPOJENÍ SE SPELLS_ACTIVE & KONTROLA KAPACITY KOUZEL
+    # ==========================================================
+
+    @property
+    def active_cantrips_learned_count(self):
+        """Počet aktuálně naučených triků (0. úroveň) v databázi Spells_Active."""
+        if not self.pk:
+            return 0
+        return self.spells_active.filter(nauceno=True).filter(models.Q(level=0) | models.Q(is_cantrip=True)).count()
+
+    @property
+    def active_spells_learned_count(self):
+        """Počet aktuálně naučených kouzel (1.–9. úroveň) v databázi Spells_Active."""
+        if not self.pk:
+            return 0
+        return self.spells_active.filter(nauceno=True, level__gt=0, is_cantrip=False).count()
+
+    @property
+    def active_spells_equipped_count(self):
+        """Počet aktuálně vybavených kouzel/triků v databázi Spells_Active."""
+        if not self.pk:
+            return 0
+        return self.spells_active.filter(vybaveno=True).count()
+
+    @property
+    def remaining_cantrips_to_learn(self):
+        """Kolik triků se postava ještě může naučit do svého limitu."""
+        return max(0, (self.dostupne_triky or 0) - self.active_cantrips_learned_count)
+
+    @property
+    def remaining_spells_to_learn(self):
+        """Kolik kouzel (L1–L9) se postava ještě může naučit do svého limitu."""
+        return max(0, (self.naucena_kouzla or 0) - self.active_spells_learned_count)
+
+    @property
+    def remaining_spells_to_equip(self):
+        """Kolik kouzel si postava ještě může vybavit do svého limitu."""
+        return max(0, (self.vybavena_kouzla or 0) - self.active_spells_equipped_count)
+
+    @property
+    def is_cantrips_over_limit(self):
+        return self.active_cantrips_learned_count > (self.dostupne_triky or 0)
+
+    @property
+    def is_learned_spells_over_limit(self):
+        return self.active_spells_learned_count > (self.naucena_kouzla or 0)
+
+    @property
+    def is_equipped_spells_over_limit(self):
+        return self.active_spells_equipped_count > (self.vybavena_kouzla or 0)
+
+    @property
+    def is_any_spell_limit_exceeded(self):
+        return (
+            self.is_cantrips_over_limit
+            or self.is_learned_spells_over_limit
+            or self.is_equipped_spells_over_limit
+        )
 
 # DATABÁZE EXISTUJÍCÍCH ACHIVEMENTŮ
 class Achivements_database(models.Model):

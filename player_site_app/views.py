@@ -954,6 +954,9 @@ def char_schopnosti_view(request, char_id=None):
     active_template_ids = [sa.template_spell_id for sa in active_spells_qs if sa.template_spell_id]
     if active_template_ids:
         q |= Q(id__in=active_template_ids)
+    active_api_indexes = [sa.api_index for sa in active_spells_qs if sa.api_index]
+    if active_api_indexes:
+        q |= Q(api_index__in=active_api_indexes)
 
     # Pokud postava nemá žádné magické zaměření ani rasová kouzla (např. Barbar),
     # seznam je prázdný (žádný fallback na all()!)
@@ -1049,6 +1052,23 @@ def char_schopnosti_view(request, char_id=None):
     total_cantrips_learned = sum(1 for s in spell_items if s['level'] == 0 and s['is_learned'])
     total_spells_learned = sum(1 for s in spell_items if s['level'] > 0 and s['is_learned'])
 
+    max_cantrips_allowed = max(0, character.dostupne_triky or 0)
+    max_spells_allowed = max(0, character.naucena_kouzla or 0)
+    max_equipped_allowed = max(0, character.vybavena_kouzla or 0)
+
+    remaining_cantrips = max(0, max_cantrips_allowed - total_cantrips_learned)
+    remaining_spells = max(0, max_spells_allowed - total_spells_learned)
+    remaining_equipped = max(0, max_equipped_allowed - total_equipped)
+
+    cantrips_exceeded_by = max(0, total_cantrips_learned - max_cantrips_allowed)
+    spells_exceeded_by = max(0, total_spells_learned - max_spells_allowed)
+    equipped_exceeded_by = max(0, total_equipped - max_equipped_allowed)
+
+    is_cantrips_over_limit = total_cantrips_learned > max_cantrips_allowed
+    is_spells_over_limit = total_spells_learned > max_spells_allowed
+    is_equipped_over_limit = total_equipped > max_equipped_allowed
+    is_any_limit_exceeded = is_cantrips_over_limit or is_spells_over_limit or is_equipped_over_limit
+
     has_spellcasting = has_class_spells or can_cast_cantrips_flag or (max_spell_level > 0) or len(spell_items) > 0
 
     return render(request, 'player_site_app/char_schopnosti.html', {
@@ -1067,6 +1087,19 @@ def char_schopnosti_view(request, char_id=None):
         'total_equipped': total_equipped,
         'total_cantrips_learned': total_cantrips_learned,
         'total_spells_learned': total_spells_learned,
+        'max_cantrips_allowed': max_cantrips_allowed,
+        'max_spells_allowed': max_spells_allowed,
+        'max_equipped_allowed': max_equipped_allowed,
+        'remaining_cantrips': remaining_cantrips,
+        'remaining_spells': remaining_spells,
+        'remaining_equipped': remaining_equipped,
+        'cantrips_exceeded_by': cantrips_exceeded_by,
+        'spells_exceeded_by': spells_exceeded_by,
+        'equipped_exceeded_by': equipped_exceeded_by,
+        'is_cantrips_over_limit': is_cantrips_over_limit,
+        'is_spells_over_limit': is_spells_over_limit,
+        'is_equipped_over_limit': is_equipped_over_limit,
+        'is_any_limit_exceeded': is_any_limit_exceeded,
     })
 
 
@@ -1186,6 +1219,9 @@ def toggle_learn_spell(request):
             'spell_id': spell_template.id,
             'nauceno': active_spell.nauceno,
             'vybaveno': active_spell.vybaveno,
+            'max_cantrips_allowed': max(0, character.dostupne_triky or 0),
+            'max_spells_allowed': max(0, character.naucena_kouzla or 0),
+            'max_equipped_allowed': max(0, character.vybavena_kouzla or 0),
         })
 
     messages.success(request, f"Kouzlo {spell_template.name_cz} bylo aktualizováno.")
@@ -1290,6 +1326,9 @@ def toggle_equip_spell(request):
             'spell_id': spell_template.id,
             'nauceno': active_spell.nauceno,
             'vybaveno': active_spell.vybaveno,
+            'max_cantrips_allowed': max(0, character.dostupne_triky or 0),
+            'max_spells_allowed': max(0, character.naucena_kouzla or 0),
+            'max_equipped_allowed': max(0, character.vybavena_kouzla or 0),
         })
 
     messages.success(request, f"Kouzlo {spell_template.name_cz} bylo aktualizováno ({status_str}).")

@@ -259,8 +259,132 @@
     color: #fcd34d;
 }
 
+/* ==========================================================================
+   VAROVNÝ NÁPIS PŘI PŘEKROČENÍ POVOLENÉHO POČTU KOUZEL / TRIKŮ
+   ========================================================================== */
+.spell-limit-warning-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px;
+    margin-bottom: 1.35rem;
+    background: linear-gradient(135deg, rgba(127, 29, 29, 0.48) 0%, rgba(45, 12, 18, 0.92) 100%);
+    border: 2px solid #ef4444;
+    border-left: 6px solid #ef4444;
+    border-radius: 12px;
+    box-shadow: 0 0 24px rgba(239, 68, 68, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: #fef2f2;
+    animation: pulseWarningGlow 2.6s infinite ease-in-out;
+}
+
+@keyframes pulseWarningGlow {
+    0%, 100% {
+        box-shadow: 0 0 18px rgba(239, 68, 68, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 28px rgba(239, 68, 68, 0.48), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+}
+
+.spell-limit-warning-icon {
+    font-size: 2rem;
+    line-height: 1;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.6));
+}
+
+.spell-limit-warning-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.spell-limit-warning-title {
+    margin: 0 0 6px 0;
+    font-family: var(--font-heading, 'Cinzel', serif);
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #fca5a5;
+}
+
+.spell-limit-warning-text {
+    margin: 0 0 10px 0;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: #fecaca;
+}
+
+.spell-limit-warning-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.spell-limit-warning-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 11px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: rgba(239, 68, 68, 0.22);
+    border: 1px solid rgba(248, 113, 113, 0.55);
+    color: #ffffff;
+}
+
+/* Doplňující informace o zbývající kapacitě v horních boxech */
+.rpg-stat-subnote {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #94a3b8;
+}
+
+.rpg-stat-subnote.subnote-available {
+    color: #38bdf8;
+}
+
+.rpg-stat-subnote.subnote-full {
+    color: #cbd5e1;
+}
+
+.rpg-stat-subnote.subnote-exceeded {
+    color: #f87171;
+}
+
+.rpg-summary-stat.stat-over-limit {
+    border-color: rgba(239, 68, 68, 0.65) !important;
+    background: linear-gradient(180deg, rgba(127, 29, 29, 0.28) 0%, rgba(24, 15, 22, 0.85) 100%) !important;
+    box-shadow: 0 0 14px rgba(239, 68, 68, 0.22) !important;
+}
+
+.rpg-summary-stat.stat-over-limit .rpg-stat-val {
+    color: #f87171 !important;
+}
+
 /* Na mobilu (<= 768px) zachováme vertikální scrollování v 1 sloupci pod sebou */
 @media (max-width: 768px) {
+    .spell-limit-warning-banner {
+        flex-direction: column;
+        gap: 10px;
+        padding: 14px 14px;
+    }
+
+    .spell-limit-warning-icon {
+        font-size: 1.6rem;
+    }
+
+    .spell-limit-warning-title {
+        font-size: 0.94rem;
+    }
+
+    .spell-limit-warning-text {
+        font-size: 0.84rem;
+    }
+
     .rpg-spells-grid {
         grid-template-columns: 1fr !important;
         gap: 12px !important;
@@ -300,6 +424,35 @@
 
 {% block player_content %}
 {% if character %}
+<!-- VAROVNÝ NÁPIS NAHOŘE V OBRAZOVCE PŘI PŘEKROČENÍ POVOLENÉHO POČTU KOUZEL / TRIKŮ -->
+<div class="spell-limit-warning-banner" id="spellLimitWarningBanner" role="alert" aria-live="polite"{% if not is_any_limit_exceeded %} style="display: none;"{% endif %}>
+    <div class="spell-limit-warning-icon" aria-hidden="true">⚠️</div>
+    <div class="spell-limit-warning-body">
+        <h2 class="spell-limit-warning-title">Překročil jsi povolený počet kouzel — zkontroluj si pravidla!</h2>
+        <p class="spell-limit-warning-text">
+            Tvá postava <strong>{{ character.name }}</strong> má aktuálně naučeno nebo vybaveno více kouzel či triků, než na kolik má podle své úrovně a deníku nárok.
+            Zkontroluj si prosím pravidla (nebo se domluv s Pánem jeskyně) a přebytečná kouzla odvybav či zapomeň.
+        </p>
+        <div class="spell-limit-warning-pills" id="spellLimitWarningPills">
+            {% if is_cantrips_over_limit %}
+            <span class="spell-limit-warning-pill">
+                🪄 Dostupné triky: {{ total_cantrips_learned }} / {{ max_cantrips_allowed }} (překročeno o +{{ cantrips_exceeded_by }})
+            </span>
+            {% endif %}
+            {% if is_spells_over_limit %}
+            <span class="spell-limit-warning-pill">
+                ✨ Naučené kouzla: {{ total_spells_learned }} / {{ max_spells_allowed }} (překročeno o +{{ spells_exceeded_by }})
+            </span>
+            {% endif %}
+            {% if is_equipped_over_limit %}
+            <span class="spell-limit-warning-pill">
+                ⚔️ Vybavené kouzla: {{ total_equipped }} / {{ max_equipped_allowed }} (překročeno o +{{ equipped_exceeded_by }})
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
 <div class="atarax-page-header char-header-with-avatar">
     <div class="char-header-avatar-wrap">
         <img src="{{ character.profile_image_url }}" alt="{{ character.name }}" class="char-avatar char-avatar-lg">
@@ -339,17 +492,56 @@
             {% endif %}
         </span>
     </div>
-    <div class="rpg-summary-stat">
-        <span class="rpg-stat-label">Naučené triky</span>
-        <span class="rpg-stat-val" id="statCantripsCount">{{ total_cantrips_learned }}</span>
+    <div class="rpg-summary-stat {% if is_cantrips_over_limit %}stat-over-limit{% endif %}" id="statBoxCantrips">
+        <span class="rpg-stat-label">🪄 Dostupné triky</span>
+        <span class="rpg-stat-val">
+            <span id="statCantripsCount">{{ total_cantrips_learned }}</span>
+            <span style="opacity: 0.55; font-weight: 500;">/</span>
+            <span id="statCantripsMax">{{ max_cantrips_allowed }}</span>
+        </span>
+        <span class="rpg-stat-subnote {% if is_cantrips_over_limit %}subnote-exceeded{% elif remaining_cantrips > 0 %}subnote-available{% else %}subnote-full{% endif %}" id="statCantripsSubnote">
+            {% if is_cantrips_over_limit %}
+                ⚠️ Překročeno o +{{ cantrips_exceeded_by }}!
+            {% elif remaining_cantrips > 0 %}
+                ✨ Můžeš se ještě naučit: {{ remaining_cantrips }}
+            {% else %}
+                Kapacita naplněna (zbývá 0)
+            {% endif %}
+        </span>
     </div>
-    <div class="rpg-summary-stat">
-        <span class="rpg-stat-label">Naučená kouzla</span>
-        <span class="rpg-stat-val" id="statSpellsCount">{{ total_spells_learned }}</span>
+    <div class="rpg-summary-stat {% if is_spells_over_limit %}stat-over-limit{% endif %}" id="statBoxSpells">
+        <span class="rpg-stat-label">✨ Naučené kouzla</span>
+        <span class="rpg-stat-val">
+            <span id="statSpellsCount">{{ total_spells_learned }}</span>
+            <span style="opacity: 0.55; font-weight: 500;">/</span>
+            <span id="statSpellsMax">{{ max_spells_allowed }}</span>
+        </span>
+        <span class="rpg-stat-subnote {% if is_spells_over_limit %}subnote-exceeded{% elif remaining_spells > 0 %}subnote-available{% else %}subnote-full{% endif %}" id="statSpellsSubnote">
+            {% if is_spells_over_limit %}
+                ⚠️ Překročeno o +{{ spells_exceeded_by }}!
+            {% elif remaining_spells > 0 %}
+                ✨ Můžeš se ještě naučit: {{ remaining_spells }}
+            {% else %}
+                Kapacita naplněna (zbývá 0)
+            {% endif %}
+        </span>
     </div>
-    <div class="rpg-summary-stat highlight-equipped">
-        <span class="rpg-stat-label">⚔️ Vybaveno do hry</span>
-        <span class="rpg-stat-val text-emerald" id="statEquippedCount">{{ total_equipped }}</span>
+    <div class="rpg-summary-stat highlight-equipped {% if is_equipped_over_limit %}stat-over-limit{% endif %}" id="statBoxEquipped">
+        <span class="rpg-stat-label">⚔️ Vybavené kouzla</span>
+        <span class="rpg-stat-val text-emerald">
+            <span id="statEquippedCount">{{ total_equipped }}</span>
+            <span style="opacity: 0.55; font-weight: 500;">/</span>
+            <span id="statEquippedMax">{{ max_equipped_allowed }}</span>
+        </span>
+        <span class="rpg-stat-subnote {% if is_equipped_over_limit %}subnote-exceeded{% elif remaining_equipped > 0 %}subnote-available{% else %}subnote-full{% endif %}" id="statEquippedSubnote">
+            {% if is_equipped_over_limit %}
+                ⚠️ Překročeno o +{{ equipped_exceeded_by }}!
+            {% elif remaining_equipped > 0 %}
+                ⚔️ Můžeš ještě vybavit: {{ remaining_equipped }}
+            {% else %}
+                Kapacita naplněna (zbývá 0)
+            {% endif %}
+        </span>
     </div>
 </div>
 
@@ -360,13 +552,13 @@
             <span>🌟</span> Všechny schopnosti (<span id="countTabAll">{{ spell_items|length }}</span>)
         </button>
         <button type="button" class="rpg-tab-btn" data-filter="cantrips" onclick="filterSpellbook('cantrips')">
-            <span>🪄</span> Magické triky (<span id="countTabCantrips">{{ total_cantrips_learned }} naučeno</span>)
+            <span>🪄</span> Magické triky (<span id="countTabCantrips">{{ total_cantrips_learned }}/{{ max_cantrips_allowed }} naučeno</span>)
         </button>
         <button type="button" class="rpg-tab-btn" data-filter="spells" onclick="filterSpellbook('spells')">
-            <span>✨</span> Kouzla L1–L9 (<span id="countTabSpells">{{ total_spells_learned }} naučeno</span>)
+            <span>✨</span> Kouzla L1–L9 (<span id="countTabSpells">{{ total_spells_learned }}/{{ max_spells_allowed }} naučeno</span>)
         </button>
         <button type="button" class="rpg-tab-btn" data-filter="equipped" onclick="filterSpellbook('equipped')">
-            <span>⚔️</span> Pouze vybavené (<span id="countTabEquipped">{{ total_equipped }}</span>)
+            <span>⚔️</span> Pouze vybavené (<span id="countTabEquipped">{{ total_equipped }}/{{ max_equipped_allowed }}</span>)
         </button>
     </div>
 
@@ -641,6 +833,10 @@ SPELL_ITEMS_DATA.forEach(s => { SPELLS_MAP[s.id] = s; });
 const CURRENT_CHAR_ID = parseInt('{{ character.id }}', 10);
 const CSRF_TOKEN = '{{ csrf_token }}';
 
+let MAX_CANTRIPS_ALLOWED = parseInt('{{ max_cantrips_allowed|default:0 }}', 10) || 0;
+let MAX_SPELLS_ALLOWED = parseInt('{{ max_spells_allowed|default:0 }}', 10) || 0;
+let MAX_EQUIPPED_ALLOWED = parseInt('{{ max_equipped_allowed|default:0 }}', 10) || 0;
+
 // Obsluha kliknutí na karty kouzel
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.rpg-spell-card').forEach(function(card) {
@@ -823,6 +1019,9 @@ function handleLearnSpell(spellId, action) {
         if (data.success) {
             s.is_learned = data.nauceno;
             s.is_equipped = data.vybaveno;
+            if (typeof data.max_cantrips_allowed === 'number') MAX_CANTRIPS_ALLOWED = data.max_cantrips_allowed;
+            if (typeof data.max_spells_allowed === 'number') MAX_SPELLS_ALLOWED = data.max_spells_allowed;
+            if (typeof data.max_equipped_allowed === 'number') MAX_EQUIPPED_ALLOWED = data.max_equipped_allowed;
             updateSpellCardDOM(s);
             renderModalActionButtons(s);
             updateCounters();
@@ -858,6 +1057,9 @@ function handleEquipSpell(spellId) {
         if (data.success) {
             s.is_learned = data.nauceno;
             s.is_equipped = data.vybaveno;
+            if (typeof data.max_cantrips_allowed === 'number') MAX_CANTRIPS_ALLOWED = data.max_cantrips_allowed;
+            if (typeof data.max_spells_allowed === 'number') MAX_SPELLS_ALLOWED = data.max_spells_allowed;
+            if (typeof data.max_equipped_allowed === 'number') MAX_EQUIPPED_ALLOWED = data.max_equipped_allowed;
             updateSpellCardDOM(s);
             renderModalActionButtons(s);
             updateCounters();
@@ -922,7 +1124,7 @@ function updateSpellCardDOM(s) {
     }
 }
 
-// Aktualizace součtů v horní liště i v jednotlivých úrovních
+// Aktualizace součtů v horní liště, varovného nápisu i v jednotlivých úrovních
 function updateCounters() {
     let cantripsCount = 0;
     let spellsCount = 0;
@@ -942,21 +1144,108 @@ function updateCounters() {
 
     const statCantrips = document.getElementById('statCantripsCount');
     if (statCantrips) statCantrips.textContent = cantripsCount;
+    const statCantripsMax = document.getElementById('statCantripsMax');
+    if (statCantripsMax) statCantripsMax.textContent = MAX_CANTRIPS_ALLOWED;
 
     const statSpells = document.getElementById('statSpellsCount');
     if (statSpells) statSpells.textContent = spellsCount;
+    const statSpellsMax = document.getElementById('statSpellsMax');
+    if (statSpellsMax) statSpellsMax.textContent = MAX_SPELLS_ALLOWED;
 
     const statEquipped = document.getElementById('statEquippedCount');
     if (statEquipped) statEquipped.textContent = equippedCount;
+    const statEquippedMax = document.getElementById('statEquippedMax');
+    if (statEquippedMax) statEquippedMax.textContent = MAX_EQUIPPED_ALLOWED;
+
+    // 1. Dostupné triky (box + subnote)
+    const cantripsOver = cantripsCount > MAX_CANTRIPS_ALLOWED;
+    const cantripsRem = Math.max(0, MAX_CANTRIPS_ALLOWED - cantripsCount);
+    const cantripsExc = Math.max(0, cantripsCount - MAX_CANTRIPS_ALLOWED);
+    const boxCantrips = document.getElementById('statBoxCantrips');
+    const subCantrips = document.getElementById('statCantripsSubnote');
+    if (boxCantrips) boxCantrips.classList.toggle('stat-over-limit', cantripsOver);
+    if (subCantrips) {
+        if (cantripsOver) {
+            subCantrips.className = 'rpg-stat-subnote subnote-exceeded';
+            subCantrips.textContent = `⚠️ Překročeno o +${cantripsExc}!`;
+        } else if (cantripsRem > 0) {
+            subCantrips.className = 'rpg-stat-subnote subnote-available';
+            subCantrips.textContent = `✨ Můžeš se ještě naučit: ${cantripsRem}`;
+        } else {
+            subCantrips.className = 'rpg-stat-subnote subnote-full';
+            subCantrips.textContent = 'Kapacita naplněna (zbývá 0)';
+        }
+    }
+
+    // 2. Naučená kouzla (box + subnote)
+    const spellsOver = spellsCount > MAX_SPELLS_ALLOWED;
+    const spellsRem = Math.max(0, MAX_SPELLS_ALLOWED - spellsCount);
+    const spellsExc = Math.max(0, spellsCount - MAX_SPELLS_ALLOWED);
+    const boxSpells = document.getElementById('statBoxSpells');
+    const subSpells = document.getElementById('statSpellsSubnote');
+    if (boxSpells) boxSpells.classList.toggle('stat-over-limit', spellsOver);
+    if (subSpells) {
+        if (spellsOver) {
+            subSpells.className = 'rpg-stat-subnote subnote-exceeded';
+            subSpells.textContent = `⚠️ Překročeno o +${spellsExc}!`;
+        } else if (spellsRem > 0) {
+            subSpells.className = 'rpg-stat-subnote subnote-available';
+            subSpells.textContent = `✨ Můžeš se ještě naučit: ${spellsRem}`;
+        } else {
+            subSpells.className = 'rpg-stat-subnote subnote-full';
+            subSpells.textContent = 'Kapacita naplněna (zbývá 0)';
+        }
+    }
+
+    // 3. Vybavená kouzla (box + subnote)
+    const equippedOver = equippedCount > MAX_EQUIPPED_ALLOWED;
+    const equippedRem = Math.max(0, MAX_EQUIPPED_ALLOWED - equippedCount);
+    const equippedExc = Math.max(0, equippedCount - MAX_EQUIPPED_ALLOWED);
+    const boxEquipped = document.getElementById('statBoxEquipped');
+    const subEquipped = document.getElementById('statEquippedSubnote');
+    if (boxEquipped) boxEquipped.classList.toggle('stat-over-limit', equippedOver);
+    if (subEquipped) {
+        if (equippedOver) {
+            subEquipped.className = 'rpg-stat-subnote subnote-exceeded';
+            subEquipped.textContent = `⚠️ Překročeno o +${equippedExc}!`;
+        } else if (equippedRem > 0) {
+            subEquipped.className = 'rpg-stat-subnote subnote-available';
+            subEquipped.textContent = `⚔️ Můžeš ještě vybavit: ${equippedRem}`;
+        } else {
+            subEquipped.className = 'rpg-stat-subnote subnote-full';
+            subEquipped.textContent = 'Kapacita naplněna (zbývá 0)';
+        }
+    }
+
+    // 4. Horní varovný nápis (#spellLimitWarningBanner)
+    const warningBanner = document.getElementById('spellLimitWarningBanner');
+    const warningPills = document.getElementById('spellLimitWarningPills');
+    const anyOverLimit = cantripsOver || spellsOver || equippedOver;
+    if (warningBanner) {
+        warningBanner.style.display = anyOverLimit ? '' : 'none';
+    }
+    if (warningPills) {
+        let pillsHtml = '';
+        if (cantripsOver) {
+            pillsHtml += `<span class="spell-limit-warning-pill">🪄 Dostupné triky: ${cantripsCount} / ${MAX_CANTRIPS_ALLOWED} (překročeno o +${cantripsExc})</span>`;
+        }
+        if (spellsOver) {
+            pillsHtml += `<span class="spell-limit-warning-pill">✨ Naučené kouzla: ${spellsCount} / ${MAX_SPELLS_ALLOWED} (překročeno o +${spellsExc})</span>`;
+        }
+        if (equippedOver) {
+            pillsHtml += `<span class="spell-limit-warning-pill">⚔️ Vybavené kouzla: ${equippedCount} / ${MAX_EQUIPPED_ALLOWED} (překročeno o +${equippedExc})</span>`;
+        }
+        warningPills.innerHTML = pillsHtml;
+    }
 
     const countTabCantrips = document.getElementById('countTabCantrips');
-    if (countTabCantrips) countTabCantrips.textContent = `${cantripsCount} naučeno`;
+    if (countTabCantrips) countTabCantrips.textContent = `${cantripsCount}/${MAX_CANTRIPS_ALLOWED} naučeno`;
 
     const countTabSpells = document.getElementById('countTabSpells');
-    if (countTabSpells) countTabSpells.textContent = `${spellsCount} naučeno`;
+    if (countTabSpells) countTabSpells.textContent = `${spellsCount}/${MAX_SPELLS_ALLOWED} naučeno`;
 
     const countTabEquipped = document.getElementById('countTabEquipped');
-    if (countTabEquipped) countTabEquipped.textContent = equippedCount;
+    if (countTabEquipped) countTabEquipped.textContent = `${equippedCount}/${MAX_EQUIPPED_ALLOWED}`;
 
     Object.keys(learnedPerLevel).forEach(lvl => {
         const tierCountEl = document.getElementById(`tierLearnedCount-${lvl}`);

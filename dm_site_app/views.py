@@ -2274,8 +2274,8 @@ def dm_edit_achievement_template(request, template_id):
 
 @dm_required
 def spell_slots_management(request):
-    """8. Správa volných pozic pro kouzla (Spell Sloty) jednotlivých postav."""
-    all_chars = Char_info.objects.select_related('player', 'player__user').prefetch_related('spell_slots').order_by('name')
+    """8. Správa volných pozic pro kouzla (Spell Sloty) a limitů kouzel jednotlivých postav."""
+    all_chars = Char_info.objects.select_related('player', 'player__user').prefetch_related('spell_slots', 'spells_active').order_by('name')
     context = {
         'all_chars': all_chars,
         'current_page': 'spell_slots_management',
@@ -2440,6 +2440,45 @@ def modify_spell_slots(request):
             if is_ajax:
                 return JsonResponse({'success': True, 'status': 'ok', 'char_id': char.id, 'deleted_level': lvl})
             messages.success(request, f"Sloty {lvl}. úrovně pro postavu {char.name} byly smazány.")
+
+    elif action == 'set_spell_limits':
+        try:
+            dostupne_triky = max(0, int(request.POST.get('dostupne_triky', char.dostupne_triky or 0)))
+            naucena_kouzla = max(0, int(request.POST.get('naucena_kouzla', char.naucena_kouzla or 0)))
+            vybavena_kouzla = max(0, int(request.POST.get('vybavena_kouzla', char.vybavena_kouzla or 0)))
+        except (ValueError, TypeError):
+            if is_ajax:
+                return JsonResponse({'success': False, 'status': 'error', 'error': 'Neplatné číselné hodnoty pro limity kouzel.'}, status=400)
+            messages.error(request, "Zadejte platné číselné hodnoty pro limity triků a kouzel.")
+            return redirect('dm_site_app:spell_slots_management')
+
+        char.dostupne_triky = dostupne_triky
+        char.naucena_kouzla = naucena_kouzla
+        char.vybavena_kouzla = vybavena_kouzla
+        char.save()
+
+        log_dm(
+            f"DM nastavil limity kouzel postavě {char.name}: "
+            f"Triky={dostupne_triky}, Naučená={naucena_kouzla}, Vybavená={vybavena_kouzla}"
+        )
+        if is_ajax:
+            return JsonResponse({
+                'success': True,
+                'status': 'ok',
+                'char_id': char.id,
+                'dostupne_triky': char.dostupne_triky,
+                'naucena_kouzla': char.naucena_kouzla,
+                'vybavena_kouzla': char.vybavena_kouzla,
+                'active_cantrips': char.active_cantrips_learned_count,
+                'active_spells': char.active_spells_learned_count,
+                'active_equipped': char.active_spells_equipped_count,
+                'is_over_limit': char.is_any_spell_limit_exceeded,
+            })
+        messages.success(
+            request,
+            f"Kapacita kouzel pro postavu {char.name} byla uložena "
+            f"(Dostupné triky: {dostupne_triky}, Naučené kouzla: {naucena_kouzla}, Vybavené kouzla: {vybavena_kouzla})."
+        )
 
     return redirect('dm_site_app:spell_slots_management')
 
