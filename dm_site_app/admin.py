@@ -61,14 +61,14 @@ class KronikaAdmin(admin.ModelAdmin):
 
 @admin.register(Spells_All_db)
 class Spells_All_dbAdmin(admin.ModelAdmin):
-    list_display = ('name_cz', 'name_en', 'level', 'is_cantrip', 'school', 'classes', 'casting_time')
-    list_filter = ('level', 'is_cantrip', 'school')
+    list_display = ('name_cz', 'name_en', 'level', 'is_cantrip', 'is_xhantar', 'school', 'classes', 'casting_time')
+    list_filter = ('level', 'is_cantrip', 'is_xhantar', 'school')
     search_fields = ('name_cz', 'name_en', 'classes', 'description')
 
 
 @admin.register(Spells_Active)
 class Spells_ActiveAdmin(admin.ModelAdmin):
-    list_display = ('name_cz', 'char_own', 'level', 'is_cantrip', 'nauceno', 'vybaveno')
-    list_filter = ('nauceno', 'vybaveno', 'level', 'char_own')
+    list_display = ('name_cz', 'char_own', 'level', 'is_cantrip', 'is_xhantar', 'nauceno', 'vybaveno')
+    list_filter = ('nauceno', 'vybaveno', 'is_xhantar', 'level', 'char_own')
     search_fields = ('name_cz', 'name_en', 'char_own__name')
     list_editable = ('nauceno', 'vybaveno')

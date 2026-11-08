@@ -542,14 +542,16 @@ class PlayerAuthAndCharacterTests(TestCase):
             school='Evokace',
             classes='Kouzelník, Čaroděj'
         )
-        spell_lvl5 = Spells_All_db.objects.create(
+        spell_lvl5, _ = Spells_All_db.objects.update_or_create(
             api_index='cone-of-cold',
-            name_cz='Kužel mrazu',
-            name_en='Cone of Cold',
-            level=5,
-            is_cantrip=False,
-            school='Evokace',
-            classes='Kouzelník'
+            defaults={
+                'name_cz': 'Kužel mrazu',
+                'name_en': 'Cone of Cold',
+                'level': 5,
+                'is_cantrip': False,
+                'school': 'Evokace',
+                'classes': 'Kouzelník'
+            }
         )
 
         self.client.login(username='hrac1', password='tajneheslo123')

@@ -2627,6 +2627,10 @@ def spells_management(request):
         spells_qs = spells_qs.exclude(damage_dice__isnull=True).exclude(damage_dice='')
     elif special_filter == 'heal':
         spells_qs = spells_qs.exclude(heal_dice__isnull=True).exclude(heal_dice='')
+    elif special_filter == 'xhantar':
+        spells_qs = spells_qs.filter(is_xhantar=True)
+    elif special_filter == 'base':
+        spells_qs = spells_qs.filter(is_xhantar=False)
 
     all_schools = sorted(list(set(
         Spells_All_db.objects.exclude(school__isnull=True).exclude(school='').values_list('school', flat=True)
@@ -2646,6 +2650,7 @@ def spells_management(request):
             'name_en': s.name_en or '',
             'level': s.level or 0,
             'is_cantrip': bool(s.is_cantrip or s.level == 0),
+            'is_xhantar': bool(s.is_xhantar),
             'school': s.school or '',
             'school_en': s.school_en or '',
             'casting_time': s.casting_time or '',
@@ -2705,11 +2710,19 @@ def _extract_spell_fields_from_post(request, existing_spell=None):
     concentration = request.POST.get('concentration') in ('on', 'true', 'True', '1')
     ritual = request.POST.get('ritual') in ('on', 'true', 'True', '1')
 
+    if 'is_xhantar' in request.POST:
+        is_xhantar = request.POST.get('is_xhantar') in ('on', 'true', 'True', '1')
+    elif 'has_xhantar_field' in request.POST:
+        is_xhantar = False
+    else:
+        is_xhantar = existing_spell.is_xhantar if existing_spell else False
+
     return {
         'name_cz': name_cz,
         'name_en': name_en,
         'level': level,
         'is_cantrip': is_cantrip,
+        'is_xhantar': is_xhantar,
         'school': request.POST.get('school', '').strip() or None,
         'school_en': request.POST.get('school_en', '').strip() or None,
         'casting_time': request.POST.get('casting_time', '').strip() or None,
@@ -2763,6 +2776,7 @@ def dm_edit_spell(request, spell_id):
         name_en=spell.name_en,
         level=spell.level,
         is_cantrip=spell.is_cantrip,
+        is_xhantar=spell.is_xhantar,
         school=spell.school,
         school_en=spell.school_en,
         casting_time=spell.casting_time,
@@ -2798,6 +2812,7 @@ def dm_edit_spell(request, spell_id):
                 'name_en': spell.name_en or '',
                 'level': spell.level or 0,
                 'is_cantrip': bool(spell.is_cantrip or spell.level == 0),
+                'is_xhantar': bool(spell.is_xhantar),
                 'school': spell.school or '',
                 'school_en': spell.school_en or '',
                 'casting_time': spell.casting_time or '',

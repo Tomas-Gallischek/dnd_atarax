@@ -203,6 +203,12 @@
     border: 1px solid rgba(16, 185, 129, 0.35);
 }
 
+.tag-xhantar {
+    background: rgba(168, 85, 247, 0.22);
+    color: #e9d5ff;
+    border: 1px solid rgba(192, 132, 252, 0.5);
+}
+
 .spell-desc-box {
     max-width: 380px;
     max-height: 88px;
@@ -416,9 +422,11 @@
     </div>
 
     <div class="dm-filter-group">
-        <label for="spellSpecialSelect">Vlastnost</label>
+        <label for="spellSpecialSelect">Vlastnost / Zdroj</label>
         <select name="special" id="spellSpecialSelect" onchange="this.form.submit()">
             <option value="">-- Vše --</option>
+            <option value="xhantar" {% if selected_special == 'xhantar' %}selected{% endif %}>🔮 Xanatharův průvodce (Hexblade)</option>
+            <option value="base" {% if selected_special == 'base' %}selected{% endif %}>📖 Základní pravidla</option>
             <option value="concentration" {% if selected_special == 'concentration' %}selected{% endif %}>Soustředění</option>
             <option value="ritual" {% if selected_special == 'ritual' %}selected{% endif %}>Rituál</option>
             <option value="damage" {% if selected_special == 'damage' %}selected{% endif %}>Způsobuje zranění</option>
@@ -470,6 +478,7 @@
                             {% if s.school_en %}<small style="color:#64748b;">({{ s.school_en }})</small>{% endif %}
                         </div>
                         <div>
+                            {% if s.is_xhantar %}<span class="spell-tag-mini tag-xhantar">🔮 Xanathar</span>{% endif %}
                             {% if s.concentration %}<span class="spell-tag-mini tag-conc">🧠 Soustředění</span>{% endif %}
                             {% if s.ritual %}<span class="spell-tag-mini tag-ritual">📜 Rituál</span>{% endif %}
                         </div>
@@ -631,10 +640,12 @@
                 </div>
                 <div class="dm-form-field">
                     <label>Příznaky kouzla</label>
+                    <input type="hidden" name="has_xhantar_field" value="1">
                     <div class="dm-form-checkboxes">
                         <label><input type="checkbox" name="is_cantrip" id="f_is_cantrip"> Je trik (Cantrip)</label>
                         <label><input type="checkbox" name="concentration" id="f_concentration"> Soustředění</label>
                         <label><input type="checkbox" name="ritual" id="f_ritual"> Rituál</label>
+                        <label><input type="checkbox" name="is_xhantar" id="f_is_xhantar"> 🔮 Xanatharův průvodce</label>
                     </div>
                 </div>
 
@@ -706,6 +717,7 @@ function openEditSpellModal(spellId) {
     document.getElementById('f_is_cantrip').checked = Boolean(s.is_cantrip);
     document.getElementById('f_concentration').checked = Boolean(s.concentration);
     document.getElementById('f_ritual').checked = Boolean(s.ritual);
+    document.getElementById('f_is_xhantar').checked = Boolean(s.is_xhantar);
     document.getElementById('f_classes').value = s.classes || '';
     document.getElementById('f_races').value = s.races || '';
     document.getElementById('f_backgrounds').value = s.backgrounds || '';

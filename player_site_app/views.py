@@ -938,9 +938,11 @@ def char_schopnosti_view(request, char_id=None):
             q |= Q(classes__icontains="Kouzelník")
             has_class_spells = True
 
-    # B) Podle rasy (vrozená rasová kouzla/triky např. Tiefling, Elf, Gnom):
+    # B) Podle rasy (vrozená rasová kouzla/triky např. Tiefling, Elf, Temný elf, Gnom):
     if race_name and race_name != "Ostatní":
         q |= Q(races__icontains=race_name)
+        if "elf" in race_name_lower:
+            q |= Q(races__icontains="Elf") | Q(races__icontains="Temný elf")
 
     # C) Podle zázemí:
     if bg_name and bg_name != "Ostatní":
@@ -973,7 +975,13 @@ def char_schopnosti_view(request, char_id=None):
         is_equipped = bool(active_inst and active_inst.vybaveno)
 
         is_trick = sp.is_trick or sp.level == 0
-        is_racial = bool(race_name_lower and race_name_lower in (sp.races or "").lower())
+        spell_races_lower = (sp.races or "").lower()
+        is_racial = bool(
+            race_name_lower and (
+                race_name_lower in spell_races_lower or
+                ("elf" in race_name_lower and ("elf" in spell_races_lower or "temný elf" in spell_races_lower))
+            )
+        )
         is_already_owned = bool(active_inst)
 
         # Triky jsou trvalé – nenasazují se a nepřičítají se do vybavených kouzel
@@ -996,6 +1004,8 @@ def char_schopnosti_view(request, char_id=None):
         else:
             state = 'locked'
 
+        is_xhantar_flag = bool(sp.is_xhantar or (active_inst and active_inst.is_xhantar))
+
         spell_items.append({
             'id': sp.id,
             'api_index': sp.api_index,
@@ -1003,6 +1013,7 @@ def char_schopnosti_view(request, char_id=None):
             'name_en': sp.name_en,
             'level': sp.level,
             'is_cantrip': is_trick,
+            'is_xhantar': is_xhantar_flag,
             'school': sp.school or "Univerzální",
             'school_en': sp.school_en,
             'casting_time': sp.casting_time or "1 akce",
@@ -1055,6 +1066,8 @@ def char_schopnosti_view(request, char_id=None):
     total_equipped = sum(1 for s in spell_items if s['level'] > 0 and not s['is_cantrip'] and s['is_equipped'])
     total_cantrips_learned = sum(1 for s in spell_items if (s['level'] == 0 or s['is_cantrip']) and s['is_learned'])
     total_spells_learned = sum(1 for s in spell_items if s['level'] > 0 and not s['is_cantrip'] and s['is_learned'])
+    total_xhantar = sum(1 for s in spell_items if s['is_xhantar'])
+    total_base = sum(1 for s in spell_items if not s['is_xhantar'])
 
     max_cantrips_allowed = max(0, character.dostupne_triky or 0)
     max_spells_allowed = max(0, character.naucena_kouzla or 0)
@@ -1091,6 +1104,8 @@ def char_schopnosti_view(request, char_id=None):
         'total_equipped': total_equipped,
         'total_cantrips_learned': total_cantrips_learned,
         'total_spells_learned': total_spells_learned,
+        'total_xhantar': total_xhantar,
+        'total_base': total_base,
         'max_cantrips_allowed': max_cantrips_allowed,
         'max_spells_allowed': max_spells_allowed,
         'max_equipped_allowed': max_equipped_allowed,
@@ -1139,7 +1154,12 @@ def toggle_learn_spell(request):
         if "kouzelník" in spell_classes or "wizard" in spell_classes:
             is_class_match = True
 
-    is_race_match = bool(race_name and race_name in spell_races)
+    is_race_match = bool(
+        race_name and (
+            race_name in spell_races or
+            ("elf" in race_name and ("elf" in spell_races or "temný elf" in spell_races))
+        )
+    )
     existing_active = Spells_Active.objects.filter(char_own=character, template_spell=spell_template).first()
 
     is_trying_to_learn = (action == 'learn') or (action == 'toggle' and (not existing_active or not existing_active.nauceno))
@@ -1175,6 +1195,7 @@ def toggle_learn_spell(request):
             'name_en': spell_template.name_en,
             'level': spell_template.level,
             'is_cantrip': spell_template.is_cantrip,
+            'is_xhantar': spell_template.is_xhantar,
             'school': spell_template.school,
             'school_en': spell_template.school_en,
             'casting_time': spell_template.casting_time,

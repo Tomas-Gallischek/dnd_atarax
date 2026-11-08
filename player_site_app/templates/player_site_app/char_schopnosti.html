@@ -259,6 +259,42 @@
     color: #fcd34d;
 }
 
+.spell-type-mini-badge.mini-xhantar {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.28) 0%, rgba(126, 34, 206, 0.35) 100%);
+    border: 1px solid rgba(192, 132, 252, 0.6);
+    color: #e9d5ff;
+    box-shadow: 0 0 8px rgba(168, 85, 247, 0.25);
+}
+
+.spell-type-mini-badge.mini-base {
+    background: rgba(100, 116, 139, 0.16);
+    border: 1px solid rgba(148, 163, 184, 0.32);
+    color: #cbd5e1;
+}
+
+.rpg-spell-card.card-xhantar {
+    border-top: 2px solid rgba(168, 85, 247, 0.55) !important;
+}
+
+.rpg-tab-btn.tab-btn-xhantar.active {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.35) 0%, rgba(88, 28, 135, 0.5) 100%) !important;
+    border-color: #c084fc !important;
+    color: #f3e8ff !important;
+    box-shadow: 0 0 14px rgba(168, 85, 247, 0.35) !important;
+}
+
+.badge-xhantar-modal {
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.32) 0%, rgba(107, 33, 168, 0.48) 100%);
+    border: 1px solid rgba(192, 132, 252, 0.65);
+    color: #f3e8ff;
+}
+
+.badge-base-modal {
+    background: rgba(100, 116, 139, 0.22);
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    color: #e2e8f0;
+}
+
 /* ==========================================================================
    VAROVNÝ NÁPIS PŘI PŘEKROČENÍ POVOLENÉHO POČTU KOUZEL / TRIKŮ
    ========================================================================== */
@@ -545,7 +581,7 @@
     </div>
 </div>
 
-<!-- Filtrovací lišta & Záložky (Vše / Triky / Kouzla / Vybaveno) -->
+<!-- Filtrovací lišta & Záložky (Vše / Triky / Kouzla / Vybaveno / Xanathar / Základní) -->
 <div class="rpg-spellbook-controls">
     <div class="rpg-spell-tabs">
         <button type="button" class="rpg-tab-btn active" data-filter="all" onclick="filterSpellbook('all')">
@@ -559,6 +595,12 @@
         </button>
         <button type="button" class="rpg-tab-btn" data-filter="equipped" onclick="filterSpellbook('equipped')">
             <span>⚔️</span> Pouze vybavené (<span id="countTabEquipped">{{ total_equipped }}/{{ max_equipped_allowed }}</span>)
+        </button>
+        <button type="button" class="rpg-tab-btn tab-btn-xhantar" data-filter="xhantar" onclick="filterSpellbook('xhantar')" title="Rozšíření Xanatharův průvodce vším & Hexblade">
+            <span>🔮</span> Xanatharův průvodce (<span id="countTabXhantar">{{ total_xhantar|default:0 }}</span>)
+        </button>
+        <button type="button" class="rpg-tab-btn" data-filter="base" onclick="filterSpellbook('base')" title="Základní pravidla D&D 5e (PHB)">
+            <span>📖</span> Základní pravidla (<span id="countTabBase">{{ total_base|default:0 }}</span>)
         </button>
     </div>
 
@@ -660,7 +702,7 @@
             {% if tier.spells %}
                 <div class="rpg-spells-grid">
                     {% for s in tier.spells %}
-                    <div class="rpg-spell-card state-{{ s.state }}"
+                    <div class="rpg-spell-card state-{{ s.state }}{% if s.is_xhantar %} card-xhantar{% endif %}"
                          id="spellCard-{{ s.id }}"
                          data-spell-id="{{ s.id }}"
                          data-name-cz="{{ s.name_cz|lower }}"
@@ -668,6 +710,7 @@
                          data-school="{{ s.school|lower }}"
                          data-level="{{ s.level }}"
                          data-is-cantrip="{{ s.is_cantrip|yesno:'1,0' }}"
+                         data-is-xhantar="{{ s.is_xhantar|yesno:'1,0' }}"
                          data-is-learned="{{ s.is_learned|yesno:'1,0' }}"
                          data-is-equipped="{{ s.is_equipped|yesno:'1,0' }}"
                          data-can-learn="{{ s.can_learn|yesno:'1,0' }}">
@@ -695,6 +738,11 @@
                                         <span class="spell-type-mini-badge mini-cantrip">🪄 Trik</span>
                                     {% else %}
                                         <span class="spell-type-mini-badge mini-spell">✨ Lvl {{ s.level }}</span>
+                                    {% endif %}
+                                    {% if s.is_xhantar %}
+                                        <span class="spell-type-mini-badge mini-xhantar" title="Rozšíření: Xanatharův průvodce vším (Hexblade)">🔮 Xanathar</span>
+                                    {% else %}
+                                        <span class="spell-type-mini-badge mini-base" title="Základní pravidla D&D 5e">📖 Základní</span>
                                     {% endif %}
                                     <div class="spell-school-tag" style="margin-bottom:0;">{{ s.school }}</div>
                                 </div>
@@ -753,6 +801,7 @@
                 <div class="modal-top-meta">
                     <span id="modalSpellTierBadge" class="badge badge-gold">Trik</span>
                     <span id="modalSpellSchoolBadge" class="badge badge-sapphire">Evokace</span>
+                    <span id="modalSpellSourceBadge" class="badge badge-base-modal">📖 Základní pravidla</span>
                     <span id="modalSpellStatusPill" class="modal-status-pill"></span>
                 </div>
                 <h2 id="modalSpellTitleCz" class="modal-spell-title">Ohnivá koule</h2>
@@ -869,6 +918,17 @@ function openSpellModal(spellId) {
     } else {
         tierBadge.textContent = `✨ Level ${s.level}`;
         tierBadge.className = 'badge badge-gold';
+    }
+
+    const sourceBadge = document.getElementById('modalSpellSourceBadge');
+    if (sourceBadge) {
+        if (s.is_xhantar) {
+            sourceBadge.textContent = '🔮 Xanatharův průvodce (Hexblade)';
+            sourceBadge.className = 'badge badge-xhantar-modal';
+        } else {
+            sourceBadge.textContent = '📖 Základní pravidla';
+            sourceBadge.className = 'badge badge-base-modal';
+        }
     }
 
     // Status pill
@@ -1103,7 +1163,7 @@ function updateSpellCardDOM(s) {
     }
 
     s.state = newState;
-    card.className = `rpg-spell-card state-${newState}`;
+    card.className = `rpg-spell-card state-${newState}${s.is_xhantar ? ' card-xhantar' : ''}`;
     card.setAttribute('data-is-learned', s.is_learned ? '1' : '0');
     card.setAttribute('data-is-equipped', (s.is_equipped && !isTrick) ? '1' : '0');
 
@@ -1358,6 +1418,7 @@ function applyFilters() {
         cards.forEach(card => {
             const isCantrip = card.getAttribute('data-is-cantrip') === '1';
             const isEquipped = card.getAttribute('data-is-equipped') === '1';
+            const isXhantar = card.getAttribute('data-is-xhantar') === '1';
             const nameCz = card.getAttribute('data-name-cz') || '';
             const nameEn = card.getAttribute('data-name-en') || '';
             const school = card.getAttribute('data-school') || '';
@@ -1369,6 +1430,10 @@ function applyFilters() {
                 tabMatch = !isCantrip;
             } else if (currentFilter === 'equipped') {
                 tabMatch = isEquipped && !isCantrip;
+            } else if (currentFilter === 'xhantar') {
+                tabMatch = isXhantar;
+            } else if (currentFilter === 'base') {
+                tabMatch = !isXhantar;
             }
 
             let searchMatch = true;

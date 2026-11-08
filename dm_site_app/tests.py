@@ -1144,21 +1144,29 @@ class HexbladeSpellsTests(TestCase):
     def test_add_hexblade_spells_command_and_models(self):
         from django.core.management import call_command
         from dm_site_app.models import Spells_All_db
+        from dm_site_app.spells_data import HEXBLADE_SPELLS_DATA
         import io
 
         out = io.StringIO()
         call_command('add_hexblade_spells', stdout=out)
 
-        # Ověření 4 specifických kouzel
+        # Ověření celého repertoáru Hexblade kouzel v DB a příznaku is_xhantar=True
+        self.assertGreaterEqual(len(HEXBLADE_SPELLS_DATA), 45)
+        for item in HEXBLADE_SPELLS_DATA:
+            idx = item['api_index']
+            spell = Spells_All_db.objects.filter(api_index=idx).first()
+            self.assertIsNotNone(spell, f"Kouzlo {idx} nebylo nalezeno v databázi!")
+            self.assertTrue(spell.is_xhantar, f"Kouzlo {idx} nemá is_xhantar=True!")
+            self.assertIn('Černokněžník', spell.classes)
+
+        # Ověření 4 klíčových 1. kruhových kouzel / schopností
         expected_indexes = ['hexblade-curse', 'hex-warrior', 'shield', 'wrathful-smite']
         for idx in expected_indexes:
             spell = Spells_All_db.objects.filter(api_index=idx).first()
-            self.assertIsNotNone(spell, f"Kouzlo {idx} nebylo nalezeno v databázi!")
+            self.assertIsNotNone(spell)
             self.assertEqual(spell.level, 1)
             self.assertFalse(spell.is_cantrip)
-            self.assertTrue(bool(spell.name_cz))
-            self.assertTrue(bool(spell.name_en))
-            self.assertIn('Černokněžník', spell.classes)
+            self.assertTrue(spell.is_xhantar)
 
         # Ověření detailních parametrů
         shield = Spells_All_db.objects.get(api_index='shield')
@@ -1182,6 +1190,66 @@ class HexbladeSpellsTests(TestCase):
         warrior = Spells_All_db.objects.get(api_index='hex-warrior')
         self.assertEqual(warrior.name_cz, 'Prokletý válečník')
         self.assertEqual(warrior.school, 'Vymítání')
+
+    def test_dark_elf_hexblade_warlock_char_schopnosti_and_learning(self):
+        from dm_site_app.models import Spells_All_db, Spells_Active
+        from player_site_app.models import Player, Char_info
+
+        user = User.objects.create_user(username='drow_warlock', password='123')
+        player = Player.objects.create(user=user, nickname='DrizztHex', pin_code='hex123')
+        char = Char_info.objects.create(
+            player=player,
+            name='Malakor',
+            race='Temný elf',
+            character_class='Černokněžník',
+            level=5,
+            dostupne_triky=3,
+            naucena_kouzla=6,
+            vybavena_kouzla=6,
+        )
+        # Přidáme i jedno základní kouzlo s is_xhantar=False pro otestování rozdělení
+        base_spell, _ = Spells_All_db.objects.get_or_create(
+            api_index='eldritch-blast-test',
+            defaults={
+                'name_cz': 'Eldritchův výboj',
+                'name_en': 'Eldritch Blast',
+                'level': 0,
+                'is_cantrip': True,
+                'is_xhantar': False,
+                'classes': 'Černokněžník',
+                'school': 'Evokace',
+            }
+        )
+
+        self.client.force_login(user)
+        session = self.client.session
+        session['active_char_id'] = char.id
+        session.save()
+
+        res = self.client.get(reverse('player_site_app:char_schopnosti'))
+        self.assertEqual(res.status_code, 200)
+        self.assertContains(res, 'Xanatharův průvodce')
+        self.assertContains(res, 'Základní pravidla')
+        self.assertContains(res, '🔮 Xanathar')
+        self.assertContains(res, '📖 Základní')
+        self.assertGreater(res.context['total_xhantar'], 30)
+        self.assertGreaterEqual(res.context['total_base'], 1)
+
+        # Naučení kouzla Stínová čepel (Shadow Blade) z Xanathara
+        shadow_blade = Spells_All_db.objects.get(api_index='shadow-blade')
+        learn_res = self.client.post(reverse('player_site_app:toggle_learn_spell'), {
+            'char_id': char.id,
+            'spell_id': shadow_blade.id,
+            'action': 'learn',
+            'ajax': '1',
+        })
+        self.assertEqual(learn_res.status_code, 200)
+        self.assertTrue(learn_res.json()['success'])
+
+        active_sb = Spells_Active.objects.get(char_own=char, template_spell=shadow_blade)
+        self.assertTrue(active_sb.nauceno)
+        self.assertTrue(active_sb.is_xhantar)
+
 
 
 

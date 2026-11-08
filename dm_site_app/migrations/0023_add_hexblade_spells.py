@@ -4,9 +4,13 @@ from dm_site_app.spells_data import HEXBLADE_SPELLS_DATA
 
 def add_spells(apps, schema_editor):
     Spells_All_db = apps.get_model('dm_site_app', 'Spells_All_db')
+    valid_fields = {f.name for f in Spells_All_db._meta.fields}
     for spell_data in HEXBLADE_SPELLS_DATA:
         api_index = spell_data['api_index']
-        defaults = {k: v for k, v in spell_data.items() if k != 'api_index'}
+        defaults = {
+            k: v for k, v in spell_data.items()
+            if k != 'api_index' and k in valid_fields
+        }
         Spells_All_db.objects.update_or_create(
             api_index=api_index,
             defaults=defaults
@@ -28,4 +32,3 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(add_spells, reverse_code=remove_spells),
     ]
-

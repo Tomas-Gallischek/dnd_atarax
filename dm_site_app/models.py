@@ -815,6 +815,7 @@ class Spells_All_db(models.Model):
     classes = models.CharField(max_length=255, blank=True, null=True, verbose_name="Povolání (CZ)")
     races = models.CharField(max_length=255, blank=True, null=True, verbose_name="Rasy (CZ)")
     backgrounds = models.CharField(max_length=255, blank=True, null=True, verbose_name="Zázemí (CZ)")
+    is_xhantar = models.BooleanField(default=False, verbose_name="Xanatharův průvodce (Rozšíření)")
 
     # Ikonka a vizuál
     icon = models.FileField(
@@ -904,6 +905,7 @@ class Spells_Active(models.Model):
     classes = models.CharField(max_length=255, blank=True, null=True, verbose_name="Povolání (CZ)")
     races = models.CharField(max_length=255, blank=True, null=True, verbose_name="Rasy (CZ)")
     backgrounds = models.CharField(max_length=255, blank=True, null=True, verbose_name="Zázemí (CZ)")
+    is_xhantar = models.BooleanField(default=False, verbose_name="Xanatharův průvodce (Rozšíření)")
 
     # Ikonka a vizuál
     icon = models.FileField(
