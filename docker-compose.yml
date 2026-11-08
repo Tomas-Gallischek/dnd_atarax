@@ -11,6 +11,11 @@ services:
       - dnd_db_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   db_backup:
     image: prodrigestivill/postgres-backup-local:16-alpine
@@ -18,18 +23,22 @@ services:
     restart: unless-stopped
     environment:
       - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_USER=${DB_USER}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_EXTRA_OPTS=-Z6 --schema=public --blobs
       - SCHEDULE=@daily
+      - BACKUP_ON_START=TRUE
       - BACKUP_KEEP_DAYS=7
       - BACKUP_KEEP_WEEKS=4
       - BACKUP_KEEP_MONTHS=6
+      - TZ=Europe/Prague
     volumes:
       - ./backups:/backups
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   web:
     build: .
@@ -46,7 +55,8 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - ./media:/app/media
 

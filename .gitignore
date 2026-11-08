@@ -15,3 +15,4 @@ media/esence_items/*
 *.swo
 .DS_Store
 Thumbs.db
+backups/
