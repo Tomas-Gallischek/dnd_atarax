@@ -705,11 +705,13 @@ class PlayerAuthAndCharacterTests(TestCase):
         from dm_site_app.models import Spells_All_db
 
         char1 = Char_info.objects.create(player=self.player1, name='Geralt', level=1)
-        spell = Spells_All_db.objects.create(
+        spell, _ = Spells_All_db.objects.get_or_create(
             api_index='shield',
-            name_cz='Štít',
-            name_en='Shield',
-            level=1
+            defaults={
+                'name_cz': 'Štít',
+                'name_en': 'Shield',
+                'level': 1
+            }
         )
 
         self.client.login(username='hrac2', password='tajneheslo123')

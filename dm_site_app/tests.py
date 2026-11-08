@@ -1138,6 +1138,53 @@ class DMLogsAndSpellsToolsTests(TestCase):
         self.assertFalse(self.Spells_All_db.objects.filter(id=new_spell.id).exists())
 
 
+class HexbladeSpellsTests(TestCase):
+    """Testy pro kouzla a schopnosti Hexblade (Xanatharův průvodce vším & PHB 5e)."""
+
+    def test_add_hexblade_spells_command_and_models(self):
+        from django.core.management import call_command
+        from dm_site_app.models import Spells_All_db
+        import io
+
+        out = io.StringIO()
+        call_command('add_hexblade_spells', stdout=out)
+
+        # Ověření 4 specifických kouzel
+        expected_indexes = ['hexblade-curse', 'hex-warrior', 'shield', 'wrathful-smite']
+        for idx in expected_indexes:
+            spell = Spells_All_db.objects.filter(api_index=idx).first()
+            self.assertIsNotNone(spell, f"Kouzlo {idx} nebylo nalezeno v databázi!")
+            self.assertEqual(spell.level, 1)
+            self.assertFalse(spell.is_cantrip)
+            self.assertTrue(bool(spell.name_cz))
+            self.assertTrue(bool(spell.name_en))
+            self.assertIn('Černokněžník', spell.classes)
+
+        # Ověření detailních parametrů
+        shield = Spells_All_db.objects.get(api_index='shield')
+        self.assertEqual(shield.name_cz, 'Štít')
+        self.assertIn('Kouzelník', shield.classes)
+        self.assertIn('Čaroděj', shield.classes)
+        self.assertIn('Černokněžník', shield.classes)
+
+        wrathful = Spells_All_db.objects.get(api_index='wrathful-smite')
+        self.assertEqual(wrathful.name_cz, 'Hněvivý úder')
+        self.assertIn('Paladin', wrathful.classes)
+        self.assertIn('Černokněžník', wrathful.classes)
+        self.assertEqual(wrathful.damage_dice, '1k6')
+        self.assertEqual(wrathful.damage_type, 'Psychické')
+        self.assertTrue(wrathful.concentration)
+
+        curse = Spells_All_db.objects.get(api_index='hexblade-curse')
+        self.assertEqual(curse.name_cz, 'Kletba čepelníka')
+        self.assertEqual(curse.casting_time, '1 bonusová akce')
+
+        warrior = Spells_All_db.objects.get(api_index='hex-warrior')
+        self.assertEqual(warrior.name_cz, 'Prokletý válečník')
+        self.assertEqual(warrior.school, 'Vymítání')
+
+
+
 
 
 

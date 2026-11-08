@@ -401,6 +401,10 @@ class DnDSpellTranslator:
             'wish': 'Přání',
             'witch bolt': 'Čarodějný blesk',
             'word of recall': 'Slovo návratu',
+            'wrathful smite': 'Hněvivý úder',
+            'hexblade curse': 'Kletba čepelníka',
+            "hexblade's curse": 'Kletba čepelníka',
+            'hex warrior': 'Prokletý válečník',
             'zone of truth': 'Zóna pravdy',
         }
 
