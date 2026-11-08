@@ -35,7 +35,7 @@ services:
       - BACKUP_KEEP_MONTHS=6
       - TZ=Europe/Prague
     volumes:
-      - ./backups:/backups
+      - /home/shrek/backups:/backups
     depends_on:
       db:
         condition: service_healthy
